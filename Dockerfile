@@ -1,7 +1,7 @@
 FROM        alpine:latest
 MAINTAINER  Anthony Teisseire <anthony.teisseire@technofy.io>
 
-COPY cloudwatch_exporter  /bin/cloudwatch_exporter
+COPY *_exporter  /bin/
 COPY config.yml           /etc/cloudwatch_exporter/config.yml
 
 RUN apk update && \
