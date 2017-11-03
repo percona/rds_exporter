@@ -1,5 +1,7 @@
 # CloudWatch Exporter
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/Percona-Lab/rds_exporter)](https://goreportcard.com/report/github.com/Percona-Lab/rds_exporter)
+
 An [AWS CloudWatch](http://aws.amazon.com/cloudwatch/) exporter for [Prometheus](https://github.com/prometheus/prometheus) coded in Go, with multi-region and dynamic target support.
 
 
