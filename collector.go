@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Percona-Lab/rds_exporter/config"
@@ -77,6 +78,10 @@ func generateTemplates(cfg *config.Settings) {
 // The newly created instance will reference its parent template so that metric descriptions are not recreated on every call.
 // It returns either a pointer to a new instance of cwCollector or an error.
 func NewCwCollector(target string, taskName string, region string) (*cwCollector, error) {
+	if settings == nil {
+		return nil, fmt.Errorf("settings not initialized")
+	}
+
 	// Check if task exists
 	task, err := settings.GetTask(taskName)
 
