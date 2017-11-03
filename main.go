@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/Percona-Lab/rds_exporter/config"
 	"os"
 	"sync"
+
+	"github.com/Percona-Lab/rds_exporter/config"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (

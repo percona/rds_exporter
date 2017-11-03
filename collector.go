@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/Percona-Lab/rds_exporter/config"
 	"time"
+
+	"github.com/Percona-Lab/rds_exporter/config"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

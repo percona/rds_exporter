@@ -21,7 +21,7 @@ DOCKER_IMAGE_NAME       ?= $(shell basename $(shell pwd))
 DOCKER_IMAGE_TAG        ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
 
-all: format build tarball docker test
+all: format build test
 
 style:
 	@echo ">> checking code style"
@@ -56,5 +56,13 @@ promu:
 	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
 	        $(GO) get -u github.com/prometheus/promu
 
+travis: build codecov tarball docker
+
+codecov: gocoverutil
+	@gocoverutil -coverprofile=coverage.txt test -v -race $(pkgs)
+	@curl -s https://codecov.io/bash | bash -s - -X fix
+
+gocoverutil:
+	@$(GO) get -u github.com/AlekSi/gocoverutil
 
 .PHONY: all style format build test vet tarball docker promu
