@@ -1,5 +1,4 @@
 FROM        alpine:latest
-MAINTAINER  Anthony Teisseire <anthony.teisseire@technofy.io>
 
 COPY *_exporter  /bin/
 COPY config.yml           /etc/cloudwatch_exporter/config.yml

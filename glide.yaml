@@ -1,13 +1,11 @@
-package: cloudwatch_exporter
+package: github.com/Percona-Lab/rds_exporter
 import:
 - package: github.com/aws/aws-sdk-go
-  version: ^1.8.28
   subpackages:
   - aws
   - aws/session
   - service/cloudwatch
 - package: github.com/prometheus/client_golang
-  version: ^0.8.0
   subpackages:
   - prometheus
   - prometheus/promhttp

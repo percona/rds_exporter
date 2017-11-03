@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/technofy/cloudwatch_exporter/config"
+	"github.com/Percona-Lab/rds_exporter/config"
 	"time"
 )
 
