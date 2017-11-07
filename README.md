@@ -1,6 +1,8 @@
 # CloudWatch Exporter
 
+[![Build Status](https://travis-ci.org/Percona-Lab/rds_exporter.svg?branch=master)](https://travis-ci.org/Percona-Lab/rds_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Percona-Lab/rds_exporter)](https://goreportcard.com/report/github.com/Percona-Lab/rds_exporter)
+[![CLA assistant](https://cla-assistant.io/readme/badge/Percona-Lab/rds_exporter)](https://cla-assistant.io/Percona-Lab/rds_exporter)
 
 An [AWS CloudWatch](http://aws.amazon.com/cloudwatch/) exporter for [Prometheus](https://github.com/prometheus/prometheus) coded in Go, with multi-region and dynamic target support.
 Based on [Technofy/cloudwatch_exporter](https://github.com/Technofy/cloudwatch_exporter).
