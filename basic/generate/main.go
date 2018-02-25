@@ -19,7 +19,7 @@ func (m Metric) FqName() string {
 	case "FreeableMemory":
 		return "node_memory_Cached"
 	case "CPUUtilization":
-		return "node_cpu"
+		return "node_cpu_average"
 	case "EngineUptime":
 		return "node_boot_time"
 	}
