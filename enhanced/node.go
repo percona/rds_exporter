@@ -6,7 +6,7 @@ func MapToNode(subsystem, name string, extraLabelsValues ...string) (namespaceOU
 		// map cpuUtilization to node_cpu{cpu="All"}
 
 		// Turn metric name to 'mode' label e.g. node_cpu{cpu="All", mode="nice"}
-		return "node", "", "cpu", []string{"mode"}, []string{name}
+		return "node", "", "cpu_average", []string{"mode"}, []string{name}
 	case "loadAverageMinute":
 		// map loadAverageMinute.one to node_load1
 		switch name {

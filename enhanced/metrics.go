@@ -69,10 +69,10 @@ var Metrics = map[string]Metric{
 			map[string]string(nil),
 		),
 	},
-	"node_cpu": {
-		Name: "cpu",
+	"node_cpu_average": {
+		Name: "cpu_average",
 		Desc: prometheus.NewDesc(
-			"node_cpu",
+			"node_cpu_average",
 			"The percentage of CPU utilization. Units: Percent",
 			[]string{"instance", "region", "mode"},
 			map[string]string{"cpu": "All"},
