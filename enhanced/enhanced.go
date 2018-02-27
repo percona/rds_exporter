@@ -132,36 +132,15 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 	sess := e.Sessions.Get(instance)
 	svc := cloudwatchlogs.New(sess)
 
-	input := cloudwatchlogs.DescribeLogStreamsInput{
-		LogGroupName: aws.String(logGroupName),
-	}
-	var logStreamNames []*string
-	svc.DescribeLogStreamsPages(&input, func(out *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
-		for _, stream := range out.LogStreams {
-			logStreamNames = append(logStreamNames, stream.LogStreamName)
-		}
-		return !lastPage
-	})
-	log.Infoln("Global log streams:")
-	for _, n := range logStreamNames {
-		log.Infoln("-", *n)
-	}
-
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-
+	values := map[string]interface{}{}
 	FilterLogEventsInput := &cloudwatchlogs.FilterLogEventsInput{
-		Limit:          aws.Int64(1),
-		LogGroupName:   aws.String(logGroupName),
-		FilterPattern:  aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
-		LogStreamNames: logStreamNames,
+		StartTime:     aws.Int64(aws.TimeUnixMilli(time.Now().UTC().Add(-5 * time.Minute))),
+		Limit:         aws.Int64(1),
+		LogGroupName:  aws.String(logGroupName),
+		FilterPattern: aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
 	}
 	var err error
 	fn := func(logs *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
-		log.Infoln("Log streams:")
-		for _, sls := range logs.SearchedLogStreams {
-			log.Infoln("-", *sls.LogStreamName, *sls.SearchedCompletely)
-		}
 		if len(logs.Events) == 0 {
 			return !lastPage
 		}
@@ -172,30 +151,34 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 			return !lastPage
 		}
 
-		values, ok := message.(map[string]interface{})
+		v, ok := message.(map[string]interface{})
 		if !ok {
 			return !lastPage
 		}
-
-		wg.Add(len(values))
-		for key, value := range values {
-			go func(key string, value interface{}) {
-				defer wg.Done()
-
-				err := e.collectValue(ch, instance, key, value, l)
-				if err != nil {
-					log.Error(err)
-				}
-			}(key, value)
+		for i := range v {
+			values[i] = v
 		}
 
-		// todo with return false it seems to work, but that doesn't seem to be correct
-		// Shouldn't it be return !lastPage
-		return false
+		return !lastPage
 	}
 	err = svc.FilterLogEventsPages(FilterLogEventsInput, fn)
 	if err != nil {
 		return fmt.Errorf("unable to get logs for instance %s: %s", instance.Instance, err)
+	}
+
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
+
+	wg.Add(len(values))
+	for key, value := range values {
+		go func(key string, value interface{}) {
+			defer wg.Done()
+
+			err := e.collectValue(ch, instance, key, value, l)
+			if err != nil {
+				log.Error(err)
+			}
+		}(key, value)
 	}
 
 	return nil
