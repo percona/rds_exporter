@@ -166,19 +166,10 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 		return fmt.Errorf("unable to get logs for instance %s: %s", instance.Instance, err)
 	}
 
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-
-	wg.Add(len(values))
 	for key, value := range values {
-		go func(key string, value interface{}) {
-			defer wg.Done()
-
-			err := e.collectValue(ch, instance, key, value, l)
-			if err != nil {
-				log.Error(err)
-			}
-		}(key, value)
+		if err = e.collectValue(ch, instance, key, value, l); err != nil {
+			log.Error(err)
+		}
 	}
 
 	return nil
