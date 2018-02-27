@@ -88,6 +88,7 @@ func main() {
 
 	// Inform user we are ready.
 	log.Infoln("RDS exporter started")
+	log.Infoln("Listening on", *listenAddress)
 
 	// Start serving for clients
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))

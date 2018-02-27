@@ -132,47 +132,70 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 	sess := e.Sessions.Get(instance)
 	svc := cloudwatchlogs.New(sess)
 
-	FilterLogEventsOutput, err := svc.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
-		Limit:         aws.Int64(1),
-		LogGroupName:  aws.String(logGroupName),
-		FilterPattern: aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
+	input := cloudwatchlogs.DescribeLogStreamsInput{
+		LogGroupName: aws.String(logGroupName),
+	}
+	var logStreamNames []*string
+	svc.DescribeLogStreamsPages(&input, func(out *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
+		for _, stream := range out.LogStreams {
+			logStreamNames = append(logStreamNames, stream.LogStreamName)
+		}
+		return !lastPage
 	})
-	if err != nil {
-		return fmt.Errorf("unable to get logs for instance %s: %s", instance.Instance, err)
-	}
-
-	if len(FilterLogEventsOutput.Events) == 0 {
-		return fmt.Errorf("no events in region %s for instance %s", instance.Region, instance.Instance)
-	}
-
-	var message interface{}
-	err = json.Unmarshal([]byte(*FilterLogEventsOutput.Events[0].Message), &message)
-	if err != nil {
-		return err
-	}
-
-	values, ok := message.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("unsupported message type: %T", message)
-	}
-
-	if len(values) == 0 {
-		return nil
+	log.Infoln("Global log streams:")
+	for _, n := range logStreamNames {
+		log.Infoln("-", *n)
 	}
 
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 
-	wg.Add(len(values))
-	for key, value := range values {
-		go func(key string, value interface{}) {
-			defer wg.Done()
+	FilterLogEventsInput := &cloudwatchlogs.FilterLogEventsInput{
+		Limit:          aws.Int64(1),
+		LogGroupName:   aws.String(logGroupName),
+		FilterPattern:  aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
+		LogStreamNames: logStreamNames,
+	}
+	var err error
+	fn := func(logs *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
+		log.Infoln("Log streams:")
+		for _, sls := range logs.SearchedLogStreams {
+			log.Infoln("-", *sls.LogStreamName, *sls.SearchedCompletely)
+		}
+		if len(logs.Events) == 0 {
+			return !lastPage
+		}
 
-			err := e.collectValue(ch, instance, key, value, l)
-			if err != nil {
-				log.Error(err)
-			}
-		}(key, value)
+		var message interface{}
+		err = json.Unmarshal([]byte(*logs.Events[0].Message), &message)
+		if err != nil {
+			return !lastPage
+		}
+
+		values, ok := message.(map[string]interface{})
+		if !ok {
+			return !lastPage
+		}
+
+		wg.Add(len(values))
+		for key, value := range values {
+			go func(key string, value interface{}) {
+				defer wg.Done()
+
+				err := e.collectValue(ch, instance, key, value, l)
+				if err != nil {
+					log.Error(err)
+				}
+			}(key, value)
+		}
+
+		// todo with return false it seems to work, but that doesn't seem to be correct
+		// Shouldn't it be return !lastPage
+		return false
+	}
+	err = svc.FilterLogEventsPages(FilterLogEventsInput, fn)
+	if err != nil {
+		return fmt.Errorf("unable to get logs for instance %s: %s", instance.Instance, err)
 	}
 
 	return nil
