@@ -140,26 +140,27 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 		FilterPattern: aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
 	}
 	var err error
-	fn := func(logs *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
+	fn := func(logs *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) (cont bool) {
+		cont = !lastPage
+
 		if len(logs.Events) == 0 {
-			return !lastPage
+			return
 		}
 
 		var message interface{}
 		err = json.Unmarshal([]byte(*logs.Events[0].Message), &message)
 		if err != nil {
-			return !lastPage
+			return
 		}
 
 		v, ok := message.(map[string]interface{})
 		if !ok {
-			return !lastPage
+			return
 		}
-		for i := range v {
-			values[i] = v
+		for key, value := range v {
+			values[key] = value
 		}
-
-		return !lastPage
+		return
 	}
 	err = svc.FilterLogEventsPages(FilterLogEventsInput, fn)
 	if err != nil {

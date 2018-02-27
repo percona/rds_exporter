@@ -42,6 +42,7 @@ func (s *Sessions) load(instances []config.Instance) error {
 func (s *Sessions) loadOne(instance config.Instance) {
 	awsConfig := &aws.Config{
 		Region: aws.String(instance.Region),
+		// LogLevel: aws.LogLevel(aws.LogDebugWithHTTPBody),
 	}
 
 	// If aws_access_key or aws_secret_key is present in config
