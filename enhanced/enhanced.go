@@ -134,7 +134,7 @@ func (e *Exporter) collectValues(ch chan<- prometheus.Metric, instance config.In
 
 	values := map[string]interface{}{}
 	FilterLogEventsInput := &cloudwatchlogs.FilterLogEventsInput{
-		StartTime:     aws.Int64(aws.TimeUnixMilli(time.Now().UTC().Add(-5 * time.Minute))),
+		StartTime:     aws.Int64(aws.TimeUnixMilli(time.Now().UTC().Add(-2 * time.Minute))),
 		Limit:         aws.Int64(1),
 		LogGroupName:  aws.String(logGroupName),
 		FilterPattern: aws.String(fmt.Sprintf(`{ $.instanceID = "%s" }`, instance.Instance)),
