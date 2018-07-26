@@ -8,4 +8,4 @@ RUN apk update && \
     update-ca-certificates
 
 EXPOSE      9042
-ENTRYPOINT  [ "/bin/rds_exporter", "-config.file=/etc/rds_exporter/config.yml" ]
+ENTRYPOINT  [ "/bin/rds_exporter", "--config.file=/etc/rds_exporter/config.yml" ]
