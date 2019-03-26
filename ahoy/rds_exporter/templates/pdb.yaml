@@ -1,0 +1,29 @@
+{{- range $key, $value := .Values.deployments }}
+{{- if or ($value.minAvailable) ($value.maxUnavailable) }}
+{{- if lt $value.minAvailable $value.replicaCount }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}
+  labels:
+    app: {{ template "rds_exporter.name" $ }}
+    chart: {{ template "rds_exporter.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+spec:
+  {{- if $value.minAvailable }}
+  minAvailable: {{ $value.minAvailable }}
+  {{- end }}
+  {{- if $value.maxUnavailable }}
+  maxUnavailable: {{ $value.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+      release: {{ $.Release.Name }}
+{{- end }}
+{{- end }}
+{{- end }}

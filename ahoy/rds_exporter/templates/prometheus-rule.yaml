@@ -1,0 +1,18 @@
+{{ if .Values.prometheusRules }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: {{ template "rds_exporter.name" $ }}
+    chart: {{ template "rds_exporter.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{$.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+    prometheus: kube-prometheus
+    role: alert-rules
+  name: {{ template "rds_exporter.name" $ }}
+spec:
+  groups:
+{{ toYaml .Values.prometheusRules | indent 4 }}
+{{ end }}
