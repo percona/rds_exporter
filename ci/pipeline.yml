@@ -1,0 +1,618 @@
+---
+#-----------------------------------------------------------------------------------------------------------------------
+# Resource Types
+#-----------------------------------------------------------------------------------------------------------------------
+
+resource_types:
+
+- name: git-pull-request
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/concourse-pr
+
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+    tag: v1.4.1
+
+- name: helm
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/concourse-helm-resource
+
+- name: hf-docker-image
+  type: docker-image
+  privileged: true
+  source:
+    repository: quay.io/hellofresh/docker-image-resource
+
+- name: s3-cache
+  type: docker-image
+  source:
+    repository: quay.io/hellofresh/concourse-s3-cache
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Resources
+#-----------------------------------------------------------------------------------------------------------------------
+
+resources:
+
+- name: pull-request
+  type: git-pull-request
+  check_every: 1h
+  webhook_token: ((secrets.concourse_webhook_pr))
+  source:
+    uri: https://((secrets.github_token))@github.com/((github_user))/((github_repository_name)).git
+    repo: ((github_user))/((github_repository_name))
+    access_token: ((secrets.github_token))
+    http_cache: false
+
+- name: master-source-code
+  type: git
+  check_every: 1h
+  webhook_token: ((secrets.concourse_webhook_master))
+  source:
+    uri: https://((secrets.github_token))@github.com/((github_user))/((github_repository_name)).git
+    branch: master
+
+- name: master-release
+  type: github-release
+  source:
+    user: ((github_user))
+    repository: ((github_repository_name))
+    access_token: ((secrets.github_token))
+
+- name: master-release-version
+  type: semver
+  source:
+    driver: git
+    uri: https://((secrets.github_token))@github.com/((github_user))/((github_repository_name)).git
+    initial_version: 0.1.0
+    branch: version
+    file: version
+
+- name: source-code-deps
+  type: s3-cache
+  source:
+    bucket: hf-concourse-cache
+    region_name: eu-west-1
+    path: ((hellofresh_tribe)).((hellofresh_squad))/((project_name))
+
+- name: housekeeper
+  type: time
+  source:
+    interval: 12h
+
+- name: slack-notification
+  type: slack-notification
+  source:
+    url: ((secrets.slack_url))
+
+- name: rds_exporter_hf-docker-image
+  type: hf-docker-image
+  source:
+    registry_mirror: ((defaults.registry_mirror))
+    repository: quay.io/hellofresh/rds_exporter_hf
+    username: ((defaults.docker_username))
+    password: ((defaults.docker_password))
+
+- name: rds_exporter_hf-helm-staging
+  type: helm
+  source:
+    cluster_url: ((defaults.kubernetes_url_staging))
+    cluster_ca: ((defaults.kubernetes_ca_staging))
+    release: rds_exporter_hf
+    repos:
+      - name: hf-charts
+        url: ((defaults.helm_repo_url))
+
+- name: rds_exporter_hf-helm-live
+  type: helm
+  source:
+    cluster_url: ((defaults.kubernetes_url_live))
+    cluster_ca: ((defaults.kubernetes_ca_live))
+    release: rds_exporter_hf
+    repos:
+      - name: hf-charts
+        url: ((defaults.helm_repo_url))
+
+- name: jetstream-ci-scripts
+  type: git
+  source:
+    uri: https://((secrets.github_token))@github.com/hellofresh/jetstream-ci-scripts.git
+    branch: master
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Groups
+#-----------------------------------------------------------------------------------------------------------------------
+
+groups:
+
+- name: ((project_name))
+  jobs:
+  - 'PR: Fetch dependencies'
+  - 'PR: Check'
+  - 'PR: Test'
+  - 'PR: Release'
+  - 'Fetch dependencies'
+  - 'Release'
+  - 'Deploy Staging'
+  - 'Deploy Live'
+
+- name: Master
+  jobs:
+  - 'Fetch dependencies'
+  - 'Release'
+  - 'Deploy Staging'
+  - 'Deploy Live'
+
+- name: Pull Request
+  jobs:
+  - 'PR: Fetch dependencies'
+  - 'PR: Check'
+  - 'PR: Test'
+  - 'PR: Release'
+
+- name: House keeping
+  jobs:
+  - 'Cleanup Releases'
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Jobs
+#-----------------------------------------------------------------------------------------------------------------------
+
+jobs:
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pull Request flow
+#-----------------------------------------------------------------------------------------------------------------------
+
+# PR: Fetch dependencies -----------------------------------------------------------------------------------------------
+- name: 'PR: Fetch dependencies'
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: pull-request
+      trigger: true
+      version: every
+
+    - get: jetstream-ci-scripts
+
+  - task: Download dependencies
+    file: jetstream-ci-scripts/tasks/go/1.11/download-deps.yml
+    params:
+      GITHUB_TOKEN: ((secrets.github_token))
+      USE_ARTIFACTORY: true
+      ARTIFACTORY_USERNAME: ((defaults.artifactory_username))
+      ARTIFACTORY_PASSWORD: ((defaults.artifactory_password))
+      GOPACKAGE: ((project_src))
+
+  - put: source-code-deps
+    params:
+      dir: source-code-deps
+    get_params:
+      skip_download: true
+
+  on_failure:
+    put: Set dependencies (failure)
+    resource: pull-request
+    params: { path: source-code, context: dependencies, status: failure }
+
+# PR: Test -------------------------------------------------------------------------------------------------------------
+- name: 'PR: Test'
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'PR: Fetch dependencies'
+      trigger: true
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - put: Set lint badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: lint, status: pending }
+
+  - aggregate:
+    - task: Check committed files
+      file: jetstream-ci-scripts/tasks/check-files.yml
+
+    - task: Check branch name
+      file: jetstream-ci-scripts/tasks/check-branch.yml
+
+    - task: Check helm chart
+      file: jetstream-ci-scripts/tasks/check-helm-chart.yml
+      params:
+        VPASS: ((defaults.ansible_vpass))
+
+    on_failure:
+      put: Set lint (failure)
+      resource: pull-request
+      params: { path: source-code, context: lint, status: failure }
+
+    on_success:
+      put: Set lint (success)
+      resource: pull-request
+      params: { path: source-code, context: lint, status: success }
+
+
+# PR: Check ------------------------------------------------------------------------------------------------------------
+- name: 'PR: Check'
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'PR: Fetch dependencies'
+      trigger: true
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - put: Set code-style badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: code-style, status: pending }
+
+  - aggregate:
+    - task: Check code style
+      file: jetstream-ci-scripts/tasks/go/1.11/code-style.yml
+      input_mapping:
+        source-code-deps: source-code
+      params:
+        GOPACKAGE: ((project_src))
+
+      on_failure:
+        put: Set code-style badge (failure)
+        resource: pull-request
+        params: { path: source-code, context: code-style, status: failure }
+
+      on_success:
+        put: Set code-style badge (success)
+        resource: pull-request
+        params: { path: source-code, context: code-style, status: success }
+
+# PR: Release ----------------------------------------------------------------------------------------------------------
+- name: 'PR: Release'
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'PR: Test'
+      trigger: true
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - put: Set release badge (pending)
+      resource: pull-request
+      params: { path: source-code, context: release, status: pending }
+
+    - task: Get PR draft version
+      file: jetstream-ci-scripts/tasks/draft-version.yml
+      params:
+        USE_AUTOMATION: false
+      output_mapping:
+        draft-version: version
+
+  - task: Generate docker build arguments file
+    file: jetstream-ci-scripts/tasks/docker-build-args.yml
+    params:
+      GITHUB_TOKEN: ((secrets.github_token))
+
+  - aggregate:
+    - put: rds_exporter_hf-docker-image
+      get_params:
+        skip_download: true
+      params:
+        build: source-code
+        tag_as_latest: false
+        tag: version/version
+        build_args_file: app-version/version.json
+        dockerfile: source-code/Dockerfile
+        daemon: ((defaults.docker_daemon))
+
+  on_failure:
+    put: Set release badge (failure)
+    resource: pull-request
+    params: { path: source-code, context: release, status: failure }
+
+  on_success:
+    put: Set release badge (success)
+    resource: pull-request
+    params: { path: source-code, context: release, status: success }
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Master flow
+#-----------------------------------------------------------------------------------------------------------------------
+
+# Fetch dependencies ---------------------------------------------------------------------------------------------------
+- name: 'Fetch dependencies'
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: master-source-code
+      trigger: true
+
+    - get: jetstream-ci-scripts
+
+  - task: Download dependencies
+    file: jetstream-ci-scripts/tasks/go/1.11/download-deps.yml
+    params:
+      USE_ARTIFACTORY: true
+      GITHUB_TOKEN: ((secrets.github_token))
+      ARTIFACTORY_USERNAME: ((defaults.artifactory_username))
+      ARTIFACTORY_PASSWORD: ((defaults.artifactory_password))
+      GOPACKAGE: ((project_src))
+
+  - put: source-code-deps
+    params:
+      dir: source-code-deps
+    get_params:
+      skip_download: true
+
+# Release --------------------------------------------------------------------------------------------------------------
+- name: 'Release'
+  serial: true
+  plan:
+  - aggregate:
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'Fetch dependencies'
+      trigger: true
+
+    - get: master-release-version
+
+    - get: jetstream-ci-scripts
+
+  - task: Update release version
+    file: jetstream-ci-scripts/tasks/release-version-bump.yml
+    params:
+      ACCESS_TOKEN: ((secrets.github_token))
+      REPOSITORY: ((github_user))/((github_repository_name))
+    input_mapping:
+      version: master-release-version
+    output_mapping:
+      release-version: version
+
+  - task: Generate docker build arguments file
+    file: jetstream-ci-scripts/tasks/docker-build-args.yml
+    params:
+      GITHUB_TOKEN: ((secrets.github_token))
+
+  - put: Push release version
+    resource: master-release-version
+    params:
+      file: version/version
+
+  - put: Push release
+    resource: master-release
+    params:
+      name: version/version
+      tag: version/version
+
+  - aggregate:
+    - put: rds_exporter_hf-docker-image
+      get_params:
+        skip_download: true
+      params:
+        build: source-code
+        tag_as_latest: true
+        tag: version/version
+        build_args_file: app-version/version.json
+        dockerfile: source-code/Dockerfile
+        daemon: ((defaults.docker_daemon))
+
+  - aggregate:
+    - task: rds_exporter_hf-create-chart
+      file: jetstream-ci-scripts/tasks/kubernetes-create-chart.yml
+      params:
+        CHART_REPO: ((defaults.helm_repo_url))
+        CHART_NAME: rds_exporter_hf
+        CHART_PATH: source-code/ahoy/rds_exporter_hf
+
+# Deploy Staging -------------------------------------------------------------------------------------------------------
+- name: 'Deploy Staging'
+  public: false
+  serial_groups:
+  - deployment-staging
+  plan:
+  - aggregate:
+    - get: version
+      resource: master-release-version
+      trigger: true
+      passed:
+      - 'Release'
+
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'Release'
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - do:
+      - task: Generate Kubernetes token for Staging
+        file: jetstream-ci-scripts/tasks/kubernetes-token.yml
+        params:
+          CLUSTER_NAME: ((defaults.kubernetes_cluster_name_staging))
+          ROLE_ARN: ((defaults.kubernetes_cluster_arn_staging))
+          TOKEN: ((defaults.kubernetes_concourse_token_staging))
+      - aggregate:
+        - put: slack-notification
+          params:
+            channel: ((slack_channel))
+            username: ((slack_username))
+            icon_url: ((slack_logo))
+            text_file: version/version
+            text: >
+              Deploying to :kube: (Environment: Staging,
+              Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+              Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+        - put: rds_exporter_hf-helm-staging
+          params:
+            token_path: kube-token/token
+            chart: hf-charts/rds_exporter_hf
+            values:
+            - source-code/ahoy/rds_exporter_hf/values-staging.yaml
+            - source-code/ahoy/rds_exporter_hf/secrets-staging.yaml
+            version: version/version
+            vpass: ((defaults.ansible_vpass))
+            override_values:
+            - key: tag
+              path: version/version
+
+      - task: ensure-app-rollout
+        file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
+        params:
+          DEPLOYMENT_SELECTOR: release=rds_exporter_hf
+          CLUSTER_URL: ((defaults.kubernetes_url_staging))
+          CLUSTER_CA: ((defaults.kubernetes_ca_staging))
+          TOKEN_PATH: kube-token/token
+
+      on_failure:
+        put: slack-notification
+        params:
+          channel: ((slack_channel))
+          username: ((slack_username))
+          icon_url: ((slack_logo))
+          text_file: version/version
+          text: >
+            Deployment to :kube: failed! :x: (Environment: Staging,
+            Chart: rds_exporter_hf
+            Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+            Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+
+      on_success:
+        put: slack-notification
+        params:
+          channel: ((slack_channel))
+          username: ((slack_username))
+          icon_url: ((slack_logo))
+          text_file: version/version
+          text: >
+            Deployment rolled out to :kube: :white_check_mark: (Environment: Staging,
+            Chart: rds_exporter_hf,
+            Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+            Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+
+# Deploy Live ----------------------------------------------------------------------------------------------------------
+- name: 'Deploy Live'
+  public: false
+  serial_groups:
+  - deployment-live
+  plan:
+  - aggregate:
+    - get: version
+      resource: master-release-version
+      passed:
+      - 'Deploy Staging'
+
+    - get: source-code
+      resource: source-code-deps
+      passed:
+      - 'Deploy Staging'
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - do:
+      - task: Generate Kubernetes token for Live
+        file: jetstream-ci-scripts/tasks/kubernetes-token.yml
+        params:
+          CLUSTER_NAME: ((defaults.kubernetes_cluster_name_live))
+          ROLE_ARN: ((defaults.kubernetes_cluster_arn_live))
+          TOKEN: ((defaults.kubernetes_concourse_token_live))
+      - aggregate:
+        - put: slack-notification
+          params:
+            channel: ((slack_channel))
+            username: ((slack_username))
+            icon_url: ((slack_logo))
+            text_file: version/version
+            text: >
+              Deploying to :kube: (Environment: Live,
+              Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+              Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+
+        - put: rds_exporter_hf-helm-live
+          params:
+            token_path: kube-token/token
+            chart: hf-charts/rds_exporter_hf
+            values:
+            - source-code/ahoy/rds_exporter_hf/values-live.yaml
+            - source-code/ahoy/rds_exporter_hf/secrets-live.yaml
+            version: version/version
+            vpass: ((defaults.ansible_vpass))
+            override_values:
+            - key: tag
+              path: version/version
+
+      - task: ensure-app-rollout
+        file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
+        params:
+          DEPLOYMENT_SELECTOR: release=rds_exporter_hf
+          CLUSTER_URL: ((defaults.kubernetes_url_live))
+          CLUSTER_CA: ((defaults.kubernetes_ca_live))
+          TOKEN_PATH: kube-token/token
+
+      on_failure:
+        put: slack-notification
+        params:
+          channel: ((slack_channel))
+          username: ((slack_username))
+          icon_url: ((slack_logo))
+          text_file: version/version
+          text: >
+            Deployment to :kube: failed! :x: (Environment: Live,
+            Chart: rds_exporter_hf
+            Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+            Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+
+      on_success:
+        put: slack-notification
+        params:
+          channel: ((slack_channel))
+          username: ((slack_username))
+          icon_url: ((slack_logo))
+          text_file: version/version
+          text: >
+            Deployment rolled out to :kube: :white_check_mark: (Environment: Live,
+            Chart: rds_exporter_hf,
+            Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
+            Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
+
+#-----------------------------------------------------------------------------------------------------------------------
+# House keeping flow
+#-----------------------------------------------------------------------------------------------------------------------
+
+# Cleanup Releases -----------------------------------------------------------------------------------------------------
+- name: 'Cleanup Releases'
+  serial: true
+  plan:
+  - aggregate:
+    - get: housekeeper
+      trigger: true
+
+    - get: jetstream-ci-scripts
+
+  - aggregate:
+    - task: Cleanup draft releases
+      file: jetstream-ci-scripts/tasks/release-draft-cleanup.yml
+      params:
+        ACCESS_TOKEN: ((secrets.github_token))
+        REPOSITORY: ((github_user))/((github_repository_name))
+
+    - task: Cleanup docker drafts
+      file: jetstream-ci-scripts/tasks/docker-draft-cleanup.yml
+      params:
+        ACCESS_TOKEN: ((secrets.github_token))
+        REPOSITORY: ((github_user))/((github_repository_name))
+        QUAY_TOKEN: ((defaults.quay_token))
+        IMAGE_NAMES:
+          - rds_exporter_hf
