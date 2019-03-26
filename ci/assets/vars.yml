@@ -1,0 +1,94 @@
+---
+# Name of your project
+project_name: rds_exporter_hf
+
+# Ownership information
+hellofresh_tribe: platform
+hellofresh_squad: site-reliability
+
+# Go source directory
+project_src: github.com/hellofresh/rds_exporter_hf
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Concourse
+#-----------------------------------------------------------------------------------------------------------------------
+
+concourse_host: ci.hellofresh.io
+concourse_webtokens: true
+
+#-----------------------------------------------------------------------------------------------------------------------
+# GitHub
+#-----------------------------------------------------------------------------------------------------------------------
+
+# GitHub User/Company name
+github_user: hellofresh
+
+# GitHub repository Name
+github_repository_name: rds_exporter_hf
+
+# GitHub releases flag
+github_build_release: false
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Slack
+#-----------------------------------------------------------------------------------------------------------------------
+
+slack_username: rds_exporter_hf
+slack_channel: "#deployments"
+slack_logo: https://hellofresh.github.io/concourse-resources/logo.png
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Jetstream
+#-----------------------------------------------------------------------------------------------------------------------
+
+jetstream_version: 2.1
+
+language_name: golang
+language_version: "1.11"
+
+build_oses: []
+build_architectures: []
+
+slack_notifications: true
+
+automation: false
+docker: true
+docker_images:
+    - name: "rds_exporter_hf"
+      repository: "quay.io/hellofresh/rds_exporter_hf"
+      path: "Dockerfile"
+      tag: ""
+
+kubernetes: true
+kubernetes_staging_deployment: true
+kubernetes_live_deployment: true
+kubernetes_secrets_from_vault: false
+kubernetes_charts:
+    - name: "rds_exporter_hf"
+      path: "ahoy/rds_exporter_hf"
+      deployment_tag: "tag"
+      deployment_timeout: "300"
+
+terraform: false
+
+testing_unit: false
+testing_integration: false
+codecov: false
+
+documentation_raml: false
+promote_release_manually: false
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Vault - Secret management
+#-----------------------------------------------------------------------------------------------------------------------
+
+jetstream_secrets:
+  concourse_webhook_master:
+    description: 'Concourse webhook token for master'
+  concourse_webhook_pr:
+    description: 'Concourse webhook token for pull requests'
+  github_token:
+    description: 'GitHub Access Token'
+  slack_url:
+    description: 'Slack url for posting notifications'

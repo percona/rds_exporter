@@ -1,0 +1,59 @@
+{{- range $key, $job := .Values.jobs }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Release.Name }}-{{ $key }}"
+  labels:
+    app: {{ template "rds_exporter_hf.name" $ }}-{{ $key }}
+    chart: {{ template "rds_exporter_hf.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+{{- with $job.annotations }}
+  annotations:
+{{ toYaml . | indent 4}}
+{{- end }}
+spec:
+  template:
+    metadata:
+      name: "{{ $.Release.Name }}-{{ $key }}"
+      labels:
+        app: {{ template "rds_exporter_hf.name" $ }}-{{ $key }}
+        chart: {{ template "rds_exporter_hf.chart" $ }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+{{- with $.Values.podAnnotations }}
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
+    spec:
+      restartPolicy: {{ $job.restartPolicy }}
+      containers:
+      - name: {{ $key }}
+        {{- if $.Values.tag }}
+        image: "{{ $job.repository }}:{{ $.Values.tag }}"
+        {{- else }}
+        image: "{{ $job.repository }}:{{ $.Chart.AppVersion }}"
+        {{- end }}
+        imagePullPolicy: {{ $job.pullPolicy }}
+        {{- if $job.command }}
+        command: {{ $job.command }}
+        {{- end }}
+        {{- if $job.args }}
+        args:
+{{ toYaml $job.args | indent 14 }}
+        {{- end }}
+        {{- if or ($.Values.configMap) ($.Values.secrets) }}
+        envFrom:
+        {{- if $.Values.configMap }}
+          - configMapRef:
+              name: {{ template "rds_exporter_hf.fullname" $ }}
+        {{- end }}
+        {{- if $.Values.secrets }}
+          - secretRef:
+              name: {{ template "rds_exporter_hf.fullname" $ }}
+        {{- end }}
+        {{- end }}
+{{- end }}

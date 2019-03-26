@@ -1,0 +1,23 @@
+{{- if .Values.provisionDashboards }}
+  {{- if .Values.provisionDashboards.enabled }}
+    {{- $root := . }}
+    {{- range $path, $bytes := .Files.Glob "dashboards/*" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "rds_exporter_hf.fullname" $ }}-{{ base $path | trimSuffix ".json" }}
+  labels:
+    app: {{ template "rds_exporter_hf.name" $ }}
+    chart: {{ template "rds_exporter_hf.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+    {{ $.Values.provisionDashboards.dashboardLabel }}: "1"
+data:
+  {{ base $path }}: |-
+{{ $root.Files.Get $path | indent 4}}
+    {{ end }}
+  {{- end }}
+{{- end }}
