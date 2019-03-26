@@ -4,7 +4,7 @@ set -e
 DIR=$( cd "$( dirname "$0" )" && pwd )
 
 # Update following line with correct pipeline
-PIPELINE=rds_exporter_hf
+PIPELINE=rds_exporter
 
 #############################################################
 

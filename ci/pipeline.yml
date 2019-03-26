@@ -45,7 +45,7 @@ resources:
   source:
     uri: https://((secrets.github_token))@github.com/((github_user))/((github_repository_name)).git
     repo: ((github_user))/((github_repository_name))
-    access_token: ((secrets.github_token))
+    access_token: ((secrets. github_token))
     http_cache: false
 
 - name: master-source-code
@@ -89,30 +89,30 @@ resources:
   source:
     url: ((secrets.slack_url))
 
-- name: rds_exporter_hf-docker-image
+- name: rds_exporter-docker-image
   type: hf-docker-image
   source:
     registry_mirror: ((defaults.registry_mirror))
-    repository: quay.io/hellofresh/rds_exporter_hf
+    repository: quay.io/hellofresh/rds_exporter
     username: ((defaults.docker_username))
     password: ((defaults.docker_password))
 
-- name: rds_exporter_hf-helm-staging
+- name: rds_exporter-helm-staging
   type: helm
   source:
     cluster_url: ((defaults.kubernetes_url_staging))
     cluster_ca: ((defaults.kubernetes_ca_staging))
-    release: rds_exporter_hf
+    release: rds_exporter
     repos:
       - name: hf-charts
         url: ((defaults.helm_repo_url))
 
-- name: rds_exporter_hf-helm-live
+- name: rds_exporter-helm-live
   type: helm
   source:
     cluster_url: ((defaults.kubernetes_url_live))
     cluster_ca: ((defaults.kubernetes_ca_live))
-    release: rds_exporter_hf
+    release: rds_exporter
     repos:
       - name: hf-charts
         url: ((defaults.helm_repo_url))
@@ -304,7 +304,7 @@ jobs:
       GITHUB_TOKEN: ((secrets.github_token))
 
   - aggregate:
-    - put: rds_exporter_hf-docker-image
+    - put: rds_exporter-docker-image
       get_params:
         skip_download: true
       params:
@@ -396,7 +396,7 @@ jobs:
       tag: version/version
 
   - aggregate:
-    - put: rds_exporter_hf-docker-image
+    - put: rds_exporter-docker-image
       get_params:
         skip_download: true
       params:
@@ -408,12 +408,12 @@ jobs:
         daemon: ((defaults.docker_daemon))
 
   - aggregate:
-    - task: rds_exporter_hf-create-chart
+    - task: rds_exporter-create-chart
       file: jetstream-ci-scripts/tasks/kubernetes-create-chart.yml
       params:
         CHART_REPO: ((defaults.helm_repo_url))
-        CHART_NAME: rds_exporter_hf
-        CHART_PATH: source-code/ahoy/rds_exporter_hf
+        CHART_NAME: rds_exporter
+        CHART_PATH: source-code/ahoy/rds_exporter
 
 # Deploy Staging -------------------------------------------------------------------------------------------------------
 - name: 'Deploy Staging'
@@ -454,13 +454,12 @@ jobs:
               Deploying to :kube: (Environment: Staging,
               Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
               Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
-        - put: rds_exporter_hf-helm-staging
+        - put: rds_exporter-helm-staging
           params:
             token_path: kube-token/token
-            chart: hf-charts/rds_exporter_hf
+            chart: hf-charts/rds_exporter
             values:
-            - source-code/ahoy/rds_exporter_hf/values-staging.yaml
-            - source-code/ahoy/rds_exporter_hf/secrets-staging.yaml
+            - source-code/ahoy/rds_exporter/values-staging.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
@@ -470,7 +469,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds_exporter_hf
+          DEPLOYMENT_SELECTOR: release=rds_exporter
           CLUSTER_URL: ((defaults.kubernetes_url_staging))
           CLUSTER_CA: ((defaults.kubernetes_ca_staging))
           TOKEN_PATH: kube-token/token
@@ -484,7 +483,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment to :kube: failed! :x: (Environment: Staging,
-            Chart: rds_exporter_hf
+            Chart: rds_exporter
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -497,7 +496,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment rolled out to :kube: :white_check_mark: (Environment: Staging,
-            Chart: rds_exporter_hf,
+            Chart: rds_exporter,
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -540,13 +539,12 @@ jobs:
               Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
               Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
-        - put: rds_exporter_hf-helm-live
+        - put: rds_exporter-helm-live
           params:
             token_path: kube-token/token
-            chart: hf-charts/rds_exporter_hf
+            chart: hf-charts/rds_exporter
             values:
-            - source-code/ahoy/rds_exporter_hf/values-live.yaml
-            - source-code/ahoy/rds_exporter_hf/secrets-live.yaml
+            - source-code/ahoy/rds_exporter/values-live.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
@@ -556,7 +554,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds_exporter_hf
+          DEPLOYMENT_SELECTOR: release=rds_exporter
           CLUSTER_URL: ((defaults.kubernetes_url_live))
           CLUSTER_CA: ((defaults.kubernetes_ca_live))
           TOKEN_PATH: kube-token/token
@@ -570,7 +568,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment to :kube: failed! :x: (Environment: Live,
-            Chart: rds_exporter_hf
+            Chart: rds_exporter
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -583,7 +581,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment rolled out to :kube: :white_check_mark: (Environment: Live,
-            Chart: rds_exporter_hf,
+            Chart: rds_exporter,
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -615,4 +613,4 @@ jobs:
         REPOSITORY: ((github_user))/((github_repository_name))
         QUAY_TOKEN: ((defaults.quay_token))
         IMAGE_NAMES:
-          - rds_exporter_hf
+          - rds_exporter
