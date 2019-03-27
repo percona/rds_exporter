@@ -15,9 +15,9 @@ var (
 	// Period is period in seconds
 	Period = 60 * time.Second
 	// Delay is delay in seconds
-	Delay  = 600 * time.Second
+	Delay = 600 * time.Second
 	// Range is range in seconds
-	Range  = 600 * time.Second
+	Range = 600 * time.Second
 )
 
 // Scraper is an entity used to describe a scraper
