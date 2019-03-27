@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/percona/hellofresh/client"
-	"github.com/percona/hellofresh/config"
-	"github.com/percona/hellofresh/sessions"
+	"github.com/hellofresh/rds_exporter/client"
+	"github.com/hellofresh/rds_exporter/config"
+	"github.com/hellofresh/rds_exporter/sessions"
 )
 
 func TestScraper(t *testing.T) {
