@@ -12,11 +12,15 @@ import (
 )
 
 var (
+	// Period is period in seconds
 	Period = 60 * time.Second
+	// Delay is delay in seconds
 	Delay  = 600 * time.Second
+	// Range is range in seconds
 	Range  = 600 * time.Second
 )
 
+// Scraper is an entity used to describe a scraper
 type Scraper struct {
 	// params
 	instance *config.Instance
@@ -28,6 +32,7 @@ type Scraper struct {
 	labels []string
 }
 
+// NewScraper is a function used to initialize a scraper
 func NewScraper(instance *config.Instance, exporter *Exporter, ch chan<- prometheus.Metric) *Scraper {
 	// Create CloudWatch client
 	sess, _ := exporter.sessions.GetSession(instance.Region, instance.Instance)
@@ -52,7 +57,7 @@ func NewScraper(instance *config.Instance, exporter *Exporter, ch chan<- prometh
 }
 
 func getLatestDatapoint(datapoints []*cloudwatch.Datapoint) *cloudwatch.Datapoint {
-	var latest *cloudwatch.Datapoint = nil
+	var latest *cloudwatch.Datapoint
 
 	for dp := range datapoints {
 		if latest == nil || latest.Timestamp.Before(*datapoints[dp].Timestamp) {
