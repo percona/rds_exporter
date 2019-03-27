@@ -5,8 +5,8 @@ COPY . ./
 RUN make
 
 FROM ubuntu:bionic
-COPY --from=builder /go/src/github.com/hellofresh/rds_exporter/out/rds_exporter /
+COPY --from=builder /go/src/github.com/hellofresh/rds_exporter/rds_exporter /
 COPY config.yml           /etc/rds_exporter/config.yml
 
 EXPOSE 9042
-ENTRYPOINT  [ "/bin/rds_exporter", "--config.file=/etc/rds_exporter/config.yml" ]
+ENTRYPOINT  [ "/rds_exporter", "--config.file=/etc/rds_exporter/config.yml" ]

@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/config"
+	"github.com/hellofresh/rds_exporter/config"
 )
 
 // Instance represents a single RDS instance information in runtime.

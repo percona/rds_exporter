@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/hellofresh/rds_exporter/sessions"
 )
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
