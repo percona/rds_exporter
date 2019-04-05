@@ -1,4 +1,8 @@
 ---
+# Jetstream configuration file version (Managed by Jetstream, don't edit manually!)
+jetstream_version: 2.1.1
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Name of your project
 project_name: rds_exporter
 
@@ -41,9 +45,6 @@ slack_logo: https://hellofresh.github.io/concourse-resources/logo.png
 #-----------------------------------------------------------------------------------------------------------------------
 # Jetstream
 #-----------------------------------------------------------------------------------------------------------------------
-
-jetstream_version: 2.1
-
 language_name: golang
 language_version: "1.11"
 

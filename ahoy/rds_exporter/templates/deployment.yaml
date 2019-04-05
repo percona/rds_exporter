@@ -42,7 +42,12 @@ spec:
           - name: ndots
             value: "1"
       containers:
-        - name: {{ $.Chart.Name }}-{{ $key }}
+        # all php-fpm containers should be named "fpm" for easier metrics gathering
+        {{ if and $value.phpFPMMetricsExporter }}
+        - name: {{ if $value.phpFPMMetricsExporter.enabled }}fpm{{ else }}{{ $.Chart.Name }}-{{ $key }}{{ end }}
+        {{- else }}
+        - name:  {{ $.Chart.Name }}-{{ $key }}
+        {{- end }}
           {{- if $.Values.tag }}
           image: "{{ $value.repository }}:{{ $.Values.tag }}"
           {{- else }}
@@ -57,6 +62,10 @@ spec:
 {{ toYaml $value.args | indent 12 }}
           {{- end }}
           env:
+          - name: JAEGER_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
           {{- if $value.env }}
           {{- range $envName, $envValue := $value.env }}
           - name: {{ $envName }}
@@ -90,6 +99,17 @@ spec:
           {{- end }}
           resources:
 {{ toYaml $value.resources | indent 12 }}
+        {{- if $value.phpFPMMetricsExporter }}
+          {{- if $value.phpFPMMetricsExporter.enabled }}
+        - name: "php-fpm-exporter"
+          image: "{{ $value.phpFPMMetricsExporter.repository }}:{{ $value.phpFPMMetricsExporter.tag }}"
+          imagePullPolicy: {{ $value.pullPolicy }}
+          ports:
+            - name: {{ $value.phpFPMMetricsExporter.portName }}
+              containerPort: {{ $value.phpFPMMetricsExporter.tcpPort }}
+              protocol: TCP
+          {{- end }}
+        {{- end }}
     {{- with $value.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

@@ -45,7 +45,7 @@ resources:
   source:
     uri: https://((secrets.github_token))@github.com/((github_user))/((github_repository_name)).git
     repo: ((github_user))/((github_repository_name))
-    access_token: ((secrets. github_token))
+    access_token: ((secrets.github_token))
     http_cache: false
 
 - name: master-source-code

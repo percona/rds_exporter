@@ -28,11 +28,6 @@ spec:
     path: /nginx-metrics
     port: http
 {{- end }}
-{{- if $value.phpFPMMetricsExporter.enabled }}
-  - interval: 30s
-    path: /metrics
-    port: {{ $value.phpFPMMetricsExporter.portName }}
-{{- end }}
   jobLabel: {{ template "rds_exporter.name" $ }}-{{ $key }}
   namespaceSelector:
     matchNames:

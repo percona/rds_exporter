@@ -5,6 +5,9 @@ COPY . ./
 RUN make
 
 FROM ubuntu:bionic
+
+RUN apt-get update -y && apt-get install -y ca-certificates && rm -rf /var/cache/apt/*
+
 COPY --from=builder /go/src/github.com/hellofresh/rds_exporter/rds_exporter /
 COPY config.yml           /etc/rds_exporter/config.yml
 
