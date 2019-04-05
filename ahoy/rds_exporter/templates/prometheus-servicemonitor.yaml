@@ -22,7 +22,10 @@ spec:
   endpoints:
   - interval: 30s
     port: http
-    path: /metrics
+    path: /basic
+  - interval: 30s
+    port: http
+    path: /enhanced
 {{- if $value.enableNGINXContainerMetrics }}
   - interval: 30s
     path: /nginx-metrics
