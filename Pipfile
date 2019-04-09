@@ -1,0 +1,14 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+bpython = "*"
+
+[packages]
+boto3 = "==1.9.130"
+pyyaml = "==5.1"
+
+[requires]
+python_version = "3.7"

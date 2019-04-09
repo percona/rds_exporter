@@ -6,10 +6,10 @@ RUN make
 
 FROM ubuntu:bionic
 
-RUN apt-get update -y && apt-get install -y ca-certificates && rm -rf /var/cache/apt/*
+RUN apt-get update -y && apt-get install -y ca-certificates python3-boto3 python3-yaml && rm -rf /var/cache/apt/*
 
 COPY --from=builder /go/src/github.com/hellofresh/rds_exporter/rds_exporter /
-COPY config.yml           /etc/rds_exporter/config.yml
+COPY entry.py             /
 
 EXPOSE 9042
-ENTRYPOINT  [ "/rds_exporter", "--config.file=/etc/rds_exporter/config.yml" ]
+ENTRYPOINT ["/usr/bin/python3", "/entry.py"]
