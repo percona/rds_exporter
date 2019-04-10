@@ -4,14 +4,14 @@ jetstream_version: 2.1.1
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Name of your project
-project_name: rds_exporter
+project_name: rds-exporter
 
 # Ownership information
 hellofresh_tribe: platform
 hellofresh_squad: site-reliability
 
 # Go source directory
-project_src: github.com/hellofresh/rds_exporter
+project_src: github.com/hellofresh/rds-exporter
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Concourse
@@ -28,7 +28,7 @@ concourse_webtokens: true
 github_user: hellofresh
 
 # GitHub repository Name
-github_repository_name: rds_exporter
+github_repository_name: rds-exporter
 
 # GitHub releases flag
 github_build_release: false
@@ -37,7 +37,7 @@ github_build_release: false
 # Slack
 #-----------------------------------------------------------------------------------------------------------------------
 
-slack_username: rds_exporter
+slack_username: rds-exporter
 slack_channel: "#deployments"
 slack_logo: https://hellofresh.github.io/concourse-resources/logo.png
 
@@ -56,7 +56,7 @@ slack_notifications: true
 automation: false
 docker: true
 docker_images:
-    - name: "rds_exporter"
+    - name: "rds-exporter"
       repository: "quay.io/hellofresh/rds_exporter"
       path: "Dockerfile"
       tag: ""
@@ -66,8 +66,8 @@ kubernetes_staging_deployment: true
 kubernetes_live_deployment: true
 kubernetes_secrets_from_vault: true
 kubernetes_charts:
-    - name: "rds_exporter"
-      path: "ahoy/rds_exporter"
+    - name: "rds-exporter"
+      path: "ahoy/rds-exporter"
       deployment_tag: "tag"
       deployment_timeout: "300"
 

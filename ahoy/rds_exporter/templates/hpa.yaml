@@ -5,10 +5,10 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -17,7 +17,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}
+    name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}
   minReplicas: {{ $value.hpa.replicas.min }}
   maxReplicas: {{ $value.hpa.replicas.max }}
   metrics:

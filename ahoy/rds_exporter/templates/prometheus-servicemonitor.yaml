@@ -6,17 +6,17 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
     squad: {{ $.Values.squad }}
     prometheus: kube-prometheus
   {{- if eq $length 1 }}
-  name: {{ template "rds_exporter.fullname" $ }}-k8s
+  name: {{ template "rds-exporter.fullname" $ }}-k8s
   {{- else }}
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}-k8s
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}-k8s
   {{- end }}
 spec:
   endpoints:
@@ -33,12 +33,12 @@ spec:
     path: /nginx-metrics
     port: http
 {{- end }}
-  jobLabel: {{ template "rds_exporter.name" $ }}-{{ $key }}
+  jobLabel: {{ template "rds-exporter.name" $ }}-{{ $key }}
   namespaceSelector:
     matchNames:
     - "{{ $.Release.Namespace }}"
   selector:
     matchLabels:
-      app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+      app: {{ template "rds-exporter.name" $ }}-{{ $key }}
 {{- end }}
 {{- end }}

@@ -5,8 +5,8 @@ kind: Job
 metadata:
   name: "{{ $.Release.Name }}-{{ $key }}"
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -20,8 +20,8 @@ spec:
     metadata:
       name: "{{ $.Release.Name }}-{{ $key }}"
       labels:
-        app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-        chart: {{ template "rds_exporter.chart" $ }}
+        app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+        chart: {{ template "rds-exporter.chart" $ }}
         release: {{ $.Release.Name }}
         heritage: {{ $.Release.Service }}
 {{- with $.Values.podAnnotations }}
@@ -49,11 +49,11 @@ spec:
         envFrom:
         {{- if $.Values.configMap }}
           - configMapRef:
-              name: {{ template "rds_exporter.fullname" $ }}
+              name: {{ template "rds-exporter.fullname" $ }}
         {{- end }}
         {{- if $.Values.secrets }}
           - secretRef:
-              name: {{ template "rds_exporter.fullname" $ }}
+              name: {{ template "rds-exporter.fullname" $ }}
         {{- end }}
         {{- end }}
 {{- end }}

@@ -6,13 +6,13 @@ apiVersion: v1
 kind: Service
 metadata:
   {{- if eq $length 1 }}
-  name: {{ template "rds_exporter.fullname" $ }}-k8s
+  name: {{ template "rds-exporter.fullname" $ }}-k8s
   {{- else }}
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}-k8s
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}-k8s
   {{- end }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{$.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -29,7 +29,7 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
     release: {{ $.Release.Name }}
 {{- end }}
 {{- end }}

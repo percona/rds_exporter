@@ -5,10 +5,10 @@
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -22,7 +22,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+      app: {{ template "rds-exporter.name" $ }}-{{ $key }}
       release: {{ $.Release.Name }}
 {{- end }}
 {{- end }}

@@ -3,7 +3,7 @@
 {{- $services := $.Values.services }}
 {{- $currentService := index $services $key }}
 {{- if and ($value.enabled) ($currentService.enabled) -}}
-{{- $fullName := include "rds_exporter.fullname" $ -}}
+{{- $fullName := include "rds-exporter.fullname" $ -}}
 {{- $ingressPath := $value.path -}}
 ---
 apiVersion: extensions/v1beta1
@@ -11,8 +11,8 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}-{{ $key }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}

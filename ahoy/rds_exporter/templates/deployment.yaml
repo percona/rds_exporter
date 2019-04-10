@@ -3,10 +3,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -16,12 +16,12 @@ spec:
   replicas: {{ $value.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+      app: {{ template "rds-exporter.name" $ }}-{{ $key }}
       release: {{ $.Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+        app: {{ template "rds-exporter.name" $ }}-{{ $key }}
         release: {{ $.Release.Name }}
         environment: {{ $.Values.environment }}
         tribe: {{ $.Values.tribe }}
@@ -76,11 +76,11 @@ spec:
           envFrom:
           {{- if $.Values.configMap }}
             - configMapRef:
-                name: {{ template "rds_exporter.fullname" $ }}
+                name: {{ template "rds-exporter.fullname" $ }}
           {{- end }}
           {{- if $.Values.secrets }}
             - secretRef:
-                name: {{ template "rds_exporter.fullname" $ }}
+                name: {{ template "rds-exporter.fullname" $ }}
           {{- end }}
           {{- end }}
           {{- if $value.containerPort }}

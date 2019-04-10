@@ -7,13 +7,13 @@ apiVersion: v1
 kind: Service
 metadata:
   {{- if eq $length 1 }}
-  name: {{ template "rds_exporter.fullname" $ }}-fpm-metrics
+  name: {{ template "rds-exporter.fullname" $ }}-fpm-metrics
   {{- else }}
-  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}-fpm-metrics
+  name: {{ template "rds-exporter.fullname" $ }}-{{ $key }}-fpm-metrics
   {{- end }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{$.Release.Service }}
     tribe: {{ $.Values.tribe }}
@@ -30,7 +30,7 @@ spec:
       protocol: TCP
       name: {{ $value.phpFPMMetricsExporter.portName }}
   selector:
-    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+    app: {{ template "rds-exporter.name" $ }}-{{ $key }}
     release: {{ $.Release.Name }}
 {{- end }}
 {{- end }}
