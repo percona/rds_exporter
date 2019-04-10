@@ -6,10 +6,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "rds_exporter.fullname" $ }}-{{ base $path | trimSuffix ".json" }}
+  name: {{ template "rds-exporter.fullname" $ }}-{{ base $path | trimSuffix ".json" }}
   labels:
-    app: {{ template "rds_exporter.name" $ }}
-    chart: {{ template "rds_exporter.chart" $ }}
+    app: {{ template "rds-exporter.name" $ }}
+    chart: {{ template "rds-exporter.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     tribe: {{ $.Values.tribe }}
