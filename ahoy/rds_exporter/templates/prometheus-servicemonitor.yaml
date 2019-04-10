@@ -23,9 +23,11 @@ spec:
   - interval: 30s
     port: http
     path: /basic
+    honor_labels: true
   - interval: 30s
     port: http
     path: /enhanced
+    honor_labels: true
 {{- if $value.enableNGINXContainerMetrics }}
   - interval: 30s
     path: /nginx-metrics
