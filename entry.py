@@ -40,4 +40,4 @@ if __name__ == "__main__":
     rds_exporter = '/rds_exporter \
                 --config.file=/config.yml'
 
-    subprocess.call(rds_exporter, shell=True)
+    subprocess.run(rds_exporter, shell=True)
