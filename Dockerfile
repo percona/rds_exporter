@@ -1,11 +1,15 @@
-FROM        alpine:latest
+FROM golang:1.11.2 AS builder
 
-COPY rds_exporter  /bin/
-COPY config.yml           /etc/rds_exporter/config.yml
+WORKDIR /go/src/github.com/hellofresh/rds_exporter
+COPY . ./
+RUN make
 
-RUN apk update && \
-    apk add ca-certificates && \
-    update-ca-certificates
+FROM ubuntu:bionic
 
-EXPOSE      9042
-ENTRYPOINT  [ "/bin/rds_exporter", "--config.file=/etc/rds_exporter/config.yml" ]
+RUN apt-get update -y && apt-get install -y ca-certificates python3-boto3 python3-yaml && rm -rf /var/cache/apt/*
+
+COPY --from=builder /go/src/github.com/hellofresh/rds_exporter/rds_exporter /
+COPY entry.py             /
+
+EXPOSE 9042
+ENTRYPOINT ["/usr/bin/python3", "/entry.py"]

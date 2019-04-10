@@ -7,8 +7,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/config"
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/hellofresh/rds_exporter/config"
+	"github.com/hellofresh/rds_exporter/sessions"
 )
 
 //go:generate go run generate/main.go generate/utils.go
@@ -22,11 +22,13 @@ var (
 	)
 )
 
+// Metric is an entity used to describe a metric value
 type Metric struct {
 	Name string
 	Desc *prometheus.Desc
 }
 
+// Exporter is an entity used to describe an exporter
 type Exporter struct {
 	config   *config.Config
 	sessions *sessions.Sessions
@@ -44,6 +46,7 @@ func New(config *config.Config, sessions *sessions.Sessions) *Exporter {
 	}
 }
 
+// Collect is a function used to collect metrics
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	now := time.Now()
 	e.collect(ch)
@@ -67,6 +70,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 	}
 }
 
+// Describe is a function used to describe metrics
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	// RDS metrics
 	for _, m := range e.metrics {

@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/hellofresh/rds_exporter/sessions"
 )
 
 // Collector collects enhanced RDS metrics by utilizing several scrapers.

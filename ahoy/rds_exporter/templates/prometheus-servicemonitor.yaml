@@ -1,0 +1,44 @@
+{{- $length := len .Values.services }}
+{{- range $key, $value := .Values.services }}
+{{- if and $value.enabled $value.enablePrometheus }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds_exporter.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+    prometheus: kube-prometheus
+  {{- if eq $length 1 }}
+  name: {{ template "rds_exporter.fullname" $ }}-k8s
+  {{- else }}
+  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}-k8s
+  {{- end }}
+spec:
+  endpoints:
+  - interval: 30s
+    port: http
+    path: /basic
+    honor_labels: true
+  - interval: 30s
+    port: http
+    path: /enhanced
+    honor_labels: true
+{{- if $value.enableNGINXContainerMetrics }}
+  - interval: 30s
+    path: /nginx-metrics
+    port: http
+{{- end }}
+  jobLabel: {{ template "rds_exporter.name" $ }}-{{ $key }}
+  namespaceSelector:
+    matchNames:
+    - "{{ $.Release.Namespace }}"
+  selector:
+    matchLabels:
+      app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+{{- end }}
+{{- end }}

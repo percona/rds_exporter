@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/hellofresh/rds_exporter/sessions"
 )
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
@@ -106,7 +107,13 @@ func (s *scraper) scrape(ctx context.Context) map[string][]prometheus.Metric {
 		return true // continue pagination
 	}
 	if err := s.svc.FilterLogEventsPagesWithContext(ctx, input, collectAllMetrics); err != nil {
-		s.logger.Errorf("Failed to filter log events: %s.", err)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == cloudwatchlogs.ErrCodeResourceNotFoundException {
+				s.logger.Warnf("Enhanced monitoring problem: %s", awsErr.Message())
+			}
+		} else {
+			s.logger.Errorf("Failed to filter log events: %s.", err)
+		}
 	}
 
 	// get better times

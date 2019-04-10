@@ -1,0 +1,16 @@
+{{- if .Values.configMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "rds_exporter.fullname" . }}
+  labels:
+    app: {{ template "rds_exporter.name" . }}
+    chart: {{ template "rds_exporter.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    tribe: {{ .Values.tribe }}
+    squad: {{ .Values.squad }}
+
+data:
+{{ toYaml .Values.configMap | indent 2 }}
+{{- end }}

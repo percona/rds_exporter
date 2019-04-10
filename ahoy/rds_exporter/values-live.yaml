@@ -1,0 +1,42 @@
+# Environment tag
+environment: live
+tag: latest
+tribe: platform
+squad: site-reliability
+
+deployments:
+  metrics:
+    replicaCount: 1
+    minAvailable: 1
+    containerPort: 9042
+    repository: quay.io/hellofresh/rds_exporter
+    pullPolicy: IfNotPresent
+
+    livenessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 3
+
+    resources:
+      requests:
+        cpu: 250m
+        memory: 100Mi
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+services:
+  metrics:
+    enabled: true
+    enablePrometheus: true
+    type: ClusterIP
+
+provisionDashboards:
+  enabled: true
+  dashboardLabel: grafana_dashboard

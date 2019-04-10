@@ -1,0 +1,37 @@
+{{- $length := len .Values.services }}
+{{- range $key, $value := .Values.deployments }}
+{{- if $value.phpFPMMetricsExporter }}
+{{- if $value.phpFPMMetricsExporter.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  {{- if eq $length 1 }}
+  name: {{ template "rds_exporter.fullname" $ }}-fpm-metrics
+  {{- else }}
+  name: {{ template "rds_exporter.fullname" $ }}-{{ $key }}-fpm-metrics
+  {{- end }}
+  labels:
+    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+    chart: {{ template "rds_exporter.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{$.Release.Service }}
+    tribe: {{ $.Values.tribe }}
+    squad: {{ $.Values.squad }}
+{{- with $value.annotations }}
+  annotations:
+{{ toYaml . | indent 4}}
+{{- end }}
+spec:
+  type: {{ $value.type }}
+  ports:
+    - port: 80
+      targetPort: {{ $value.phpFPMMetricsExporter.tcpPort }}
+      protocol: TCP
+      name: {{ $value.phpFPMMetricsExporter.portName }}
+  selector:
+    app: {{ template "rds_exporter.name" $ }}-{{ $key }}
+    release: {{ $.Release.Name }}
+{{- end }}
+{{- end }}
+{{- end }}
