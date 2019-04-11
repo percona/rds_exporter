@@ -89,7 +89,7 @@ resources:
   source:
     url: ((secrets.slack_url))
 
-- name: rds-exporter-docker-image
+- name: rds_exporter-docker-image
   type: hf-docker-image
   source:
     registry_mirror: ((defaults.registry_mirror))
@@ -304,7 +304,7 @@ jobs:
       GITHUB_TOKEN: ((secrets.github_token))
 
   - aggregate:
-    - put: rds-exporter-docker-image
+    - put: rds_exporter-docker-image
       get_params:
         skip_download: true
       params:
@@ -396,7 +396,7 @@ jobs:
       tag: version/version
 
   - aggregate:
-    - put: rds-exporter-docker-image
+    - put: rds_exporter-docker-image
       get_params:
         skip_download: true
       params:
@@ -460,6 +460,7 @@ jobs:
             chart: hf-charts/rds-exporter
             values:
             - source-code/ahoy/rds-exporter/values-staging.yaml
+            - source-code/ahoy/rds-exporter/secrets-staging.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
@@ -469,7 +470,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds-exporter
+          DEPLOYMENT_SELECTOR: release=rds_exporter
           CLUSTER_URL: ((defaults.kubernetes_url_staging))
           CLUSTER_CA: ((defaults.kubernetes_ca_staging))
           TOKEN_PATH: kube-token/token
@@ -483,7 +484,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment to :kube: failed! :x: (Environment: Staging,
-            Chart: rds-exporter
+            Chart: rds_exporter
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -496,7 +497,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment rolled out to :kube: :white_check_mark: (Environment: Staging,
-            Chart: rds-exporter,
+            Chart: rds_exporter,
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -545,6 +546,7 @@ jobs:
             chart: hf-charts/rds-exporter
             values:
             - source-code/ahoy/rds-exporter/values-live.yaml
+            - source-code/ahoy/rds-exporter/secrets-live.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
@@ -554,7 +556,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds-exporter
+          DEPLOYMENT_SELECTOR: release=rds_exporter
           CLUSTER_URL: ((defaults.kubernetes_url_live))
           CLUSTER_CA: ((defaults.kubernetes_ca_live))
           TOKEN_PATH: kube-token/token
@@ -568,7 +570,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment to :kube: failed! :x: (Environment: Live,
-            Chart: rds-exporter
+            Chart: rds_exporter
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -581,7 +583,7 @@ jobs:
           text_file: version/version
           text: >
             Deployment rolled out to :kube: :white_check_mark: (Environment: Live,
-            Chart: rds-exporter,
+            Chart: rds_exporter,
             Version: <https://github.com/((github_user))/((github_repository_name))/releases/tag/$TEXT_FILE_CONTENT|$TEXT_FILE_CONTENT>,
             Build: <http://((concourse_host))/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_NAME>)
 
@@ -613,4 +615,4 @@ jobs:
         REPOSITORY: ((github_user))/((github_repository_name))
         QUAY_TOKEN: ((defaults.quay_token))
         IMAGE_NAMES:
-          - rds-exporter
+          - rds_exporter
