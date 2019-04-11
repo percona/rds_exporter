@@ -460,7 +460,6 @@ jobs:
             chart: hf-charts/rds-exporter
             values:
             - source-code/ahoy/rds-exporter/values-staging.yaml
-            - source-code/ahoy/rds-exporter/secrets-staging.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
@@ -546,7 +545,6 @@ jobs:
             chart: hf-charts/rds-exporter
             values:
             - source-code/ahoy/rds-exporter/values-live.yaml
-            - source-code/ahoy/rds-exporter/secrets-live.yaml
             version: version/version
             vpass: ((defaults.ansible_vpass))
             override_values:
