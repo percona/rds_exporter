@@ -258,7 +258,7 @@ jobs:
 
   - aggregate:
     - task: Check code style
-      file: source-code/ci/tasks/jetstream/go/1.11/code-style.yaml
+      file: source-code/ci/tasks/jetstream/go/1.11/code-style.yml
       input_mapping:
         source-code-deps: source-code
       params:
