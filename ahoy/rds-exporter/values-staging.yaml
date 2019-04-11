@@ -24,6 +24,8 @@ deployments:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    podAnnotations:
+      iam.amazonaws.com/role: arn:aws:iam::489198589229:role/rds-exporter-role
 
 services:
   metrics:
