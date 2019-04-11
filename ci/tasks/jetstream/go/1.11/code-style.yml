@@ -12,7 +12,7 @@ inputs:
   - name: jetstream-ci-scripts
 
 run:
-  path: ./ci/scripts/jeatstream/go/code-style.sh
+  path: ./ci/scripts/jetstream/go/code-style.sh
   dir: source-code-deps
 
 params:
