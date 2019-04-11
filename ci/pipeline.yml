@@ -469,7 +469,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds_exporter
+          DEPLOYMENT_SELECTOR: release=rds-exporter
           CLUSTER_URL: ((defaults.kubernetes_url_staging))
           CLUSTER_CA: ((defaults.kubernetes_ca_staging))
           TOKEN_PATH: kube-token/token
@@ -554,7 +554,7 @@ jobs:
       - task: ensure-app-rollout
         file: jetstream-ci-scripts/tasks/ensure-k8s-rollout.yml
         params:
-          DEPLOYMENT_SELECTOR: release=rds_exporter
+          DEPLOYMENT_SELECTOR: release=rds-exporter
           CLUSTER_URL: ((defaults.kubernetes_url_live))
           CLUSTER_CA: ((defaults.kubernetes_ca_live))
           TOKEN_PATH: kube-token/token
