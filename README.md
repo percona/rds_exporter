@@ -66,3 +66,4 @@ scrape_configs:
 ```
 
 `honor_labels: true` is important because exporter returns metrics with `instance` label set.
+
