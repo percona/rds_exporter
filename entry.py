@@ -33,6 +33,7 @@ if __name__ == "__main__":
             instance_name = instance['DBInstanceIdentifier']
             instance = {'instance': instance_name, 'region': REGION}
             em_enabled_instances['instances'].append(instance)
+            break
 
     with open('/config.yml', 'w') as yaml_file:
         yaml.dump(em_enabled_instances, yaml_file, default_flow_style=False)
