@@ -66,7 +66,7 @@ func main() {
 			w.Write([]byte(`
 					<head><title>Rds Exporter</title></head>
 			<body>
-			<h1>Elasticsearch Exporter</h1>
+			<h1>Rds Exporter</h1>
 			<p><a href="` + *basicMetricsPathF + `">Basic Metrics</a></p>
 			<p><a href="` + *enhancedMetricsPathF + `">Enhanced Metrics</a></p>
 			</body>
