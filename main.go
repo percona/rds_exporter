@@ -62,6 +62,17 @@ func main() {
 		}))
 	}
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`
+					<head><title>Rds Exporter</title></head>
+			<body>
+			<h1>Elasticsearch Exporter</h1>
+			<p><a href="` + *basicMetricsPathF + `">Basic Metrics</a></p>
+			<p><a href="` + *enhancedMetricsPathF + `">Enhanced Metrics</a></p>
+			</body>
+			</html>`))
+	})
+
 	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
 	log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
 	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
