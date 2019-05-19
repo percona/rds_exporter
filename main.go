@@ -42,6 +42,17 @@ func main() {
 		log.Fatalf("Can't create sessions: %s", err)
 	}
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`
+					<head><title>Rds Exporter</title></head>
+			<body>
+			<h1>Rds Exporter</h1>
+			<p><a href="` + *basicMetricsPathF + `">Basic Metrics</a></p>
+			<p><a href="` + *enhancedMetricsPathF + `">Enhanced Metrics</a></p>
+			</body>
+			</html>`))
+	})
+
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
 	{
 		prometheus.MustRegister(basic.New(cfg, sess))
@@ -61,17 +72,6 @@ func main() {
 			ErrorHandling: promhttp.ContinueOnError,
 		}))
 	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(`
-					<head><title>Rds Exporter</title></head>
-			<body>
-			<h1>Rds Exporter</h1>
-			<p><a href="` + *basicMetricsPathF + `">Basic Metrics</a></p>
-			<p><a href="` + *enhancedMetricsPathF + `">Enhanced Metrics</a></p>
-			</body>
-			</html>`))
-	})
 
 	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
 	log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
