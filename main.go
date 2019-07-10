@@ -64,7 +64,7 @@ func main() {
 	}
 
 	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
-	if *disableEnhancedMetrics ==false {
+	if *disableEnhancedMetrics == false {
 		log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
 	}
 	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
