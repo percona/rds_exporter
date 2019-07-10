@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// enhanced metrics
-	if *disableEnhancedMetrics ==false {
+	if *disableEnhancedMetrics == false {
 		registry := prometheus.NewRegistry()
 		registry.MustRegister(enhanced.NewCollector(sess))
 		http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
