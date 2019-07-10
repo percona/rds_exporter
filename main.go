@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// enhanced metrics
-	if *disableEnhancedMetrics == false {
+	if !*disableEnhancedMetrics {
 		registry := prometheus.NewRegistry()
 		registry.MustRegister(enhanced.NewCollector(sess))
 		http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
@@ -64,7 +64,7 @@ func main() {
 	}
 
 	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
-	if *disableEnhancedMetrics == false {
+	if !*disableEnhancedMetrics {
 		log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
 	}
 	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
