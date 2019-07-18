@@ -57,7 +57,6 @@ func main() {
 		}
 	})
 
-
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
 	{
 		prometheus.MustRegister(basic.New(cfg, sess))
