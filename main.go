@@ -43,7 +43,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`
+		_, err := w.Write([]byte(`
 					<head><title>Rds Exporter</title></head>
 			<body>
 			<h1>Rds Exporter</h1>
@@ -51,7 +51,12 @@ func main() {
 			<p><a href="` + *enhancedMetricsPathF + `">Enhanced Metrics</a></p>
 			</body>
 			</html>`))
+
+		if err != nil {
+			log.Fatalf("Failed to return page: %s", err)
+		}
 	})
+
 
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
 	{
