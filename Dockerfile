@@ -1,7 +1,7 @@
 
 FROM golang:1.12.6-alpine as build
 WORKDIR /opt/
-RUN apk update && apk add make git && git clone -b feature/god-mod https://github.com/quintoandar/rds_exporter.git
+RUN apk update && apk add make git && git clone https://github.com/quintoandar/rds_exporter.git
 WORKDIR /opt/rds_exporter
 RUN make build
 RUN chmod +x rds_exporter
