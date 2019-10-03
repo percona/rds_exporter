@@ -1,5 +1,7 @@
 # RDS Exporter
 
+[![Codeship](https://app.codeship.com/projects/49ac2570-c7e6-0137-d88e-66f7c07c21b5/status?branch=master)](https://app.codeship.com/projects/367433)
+
 [![Release](https://img.shields.io/github/release/percona/rds_exporter.svg?style=flat)](https://github.com/percona/rds_exporter/releases/latest)
 [![Build Status](https://travis-ci.org/percona/rds_exporter.svg)](https://travis-ci.org/percona/rds_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/percona/rds_exporter)](https://goreportcard.com/report/github.com/percona/rds_exporter)
