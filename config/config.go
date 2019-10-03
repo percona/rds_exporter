@@ -27,7 +27,8 @@ type Instance struct {
 
 // Config contains configuration file information.
 type Config struct {
-	Instances []Instance `yaml:"instances"`
+	BasicInstances    []Instance `yaml:"basic"`
+	EnhancedInstances []Instance `yaml:"enhanced"`
 }
 
 // Load loads configuration from file.

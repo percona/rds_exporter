@@ -7,8 +7,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/config"
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/coinsph/rds_exporter/config"
+	"github.com/coinsph/rds_exporter/sessions"
 )
 
 //go:generate go run generate/main.go generate/utils.go
@@ -56,7 +56,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 
-	instances := e.config.Instances
+	instances := e.config.BasicInstances
 	wg.Add(len(instances))
 	for _, instance := range instances {
 		instance := instance
