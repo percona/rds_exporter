@@ -1,0 +1,24 @@
+# Services file is similar to docker-compose.yml
+# https://documentation.codeship.com/pro/builds-and-configuration/services/.
+rds_exporter:
+  build:
+    image: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/rds_exporter
+    dockerfile: docker/services.Dockerfile
+  cached: true
+
+rds_exporter_test:
+  build:
+    dockerfile: docker/test.Dockerfile
+  cached: true
+
+# The following service is used to deliver docker image to AWS ECR.
+#
+# We use encrypted environment variables, each repository has its own encryption key
+# https://documentation.codeship.com/pro/builds-and-configuration/environment-variables/#encrypted-environment-variables.
+# Ask devops team to add encrypted env vars to a Codeship project.
+
+# Service generates the AWS authentication token to authenticate in AWS ECR.
+dockercfg-generator:
+  image: codeship/aws-ecr-dockercfg-generator
+  add_docker: true
+  encrypted_env_file: codeship.env.encrypted

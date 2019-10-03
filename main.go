@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -9,11 +10,11 @@ import (
 	"github.com/prometheus/common/version"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/percona/rds_exporter/basic"
-	"github.com/percona/rds_exporter/client"
-	"github.com/percona/rds_exporter/config"
-	"github.com/percona/rds_exporter/enhanced"
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/coinsph/rds_exporter/basic"
+	"github.com/coinsph/rds_exporter/client"
+	"github.com/coinsph/rds_exporter/config"
+	"github.com/coinsph/rds_exporter/enhanced"
+	"github.com/coinsph/rds_exporter/sessions"
 )
 
 //nolint:lll
@@ -23,46 +24,59 @@ var (
 	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
 	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
 	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	checkF               = kingpin.Flag("check", "Binary check").Bool()
 )
 
 func main() {
 	log.AddFlags(kingpin.CommandLine)
+	kingpin.Parse()
+	if *checkF {
+		os.Exit(0)
+	}
 	log.Infoln("Starting RDS exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
-	kingpin.Parse()
 
 	cfg, err := config.Load(*configFileF)
 	if err != nil {
 		log.Fatalf("Can't read configuration file: %s", err)
 	}
 
-	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), *logTraceF)
-	if err != nil {
-		log.Fatalf("Can't create sessions: %s", err)
+	if len(cfg.BasicInstances) == 0 {
+		log.Fatalf("Basic instances must be present\n")
 	}
 
+	client := client.New()
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
+	sessBasic, err := sessions.New(cfg.BasicInstances, client.HTTP(), *logTraceF)
+	if err != nil {
+		log.Fatalf("Can't create basic sessions: %s", err)
+	}
 	{
-		prometheus.MustRegister(basic.New(cfg, sess))
+		prometheus.MustRegister(basic.New(cfg, sessBasic))
 		prometheus.MustRegister(client)
 		http.Handle(*basicMetricsPathF, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			ErrorLog:      log.NewErrorLogger(),
 			ErrorHandling: promhttp.ContinueOnError,
 		}))
 	}
+	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
 
 	// enhanced metrics
-	{
-		registry := prometheus.NewRegistry()
-		registry.MustRegister(enhanced.NewCollector(sess))
-		http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
-			ErrorLog:      log.NewErrorLogger(),
-			ErrorHandling: promhttp.ContinueOnError,
-		}))
+	if len(cfg.EnhancedInstances) > 0 {
+		sessEnhanced, err := sessions.New(cfg.EnhancedInstances, client.HTTP(), *logTraceF)
+		if err != nil {
+			log.Fatalf("Can't create basic sessions: %s", err)
+		}
+		{
+			registry := prometheus.NewRegistry()
+			registry.MustRegister(enhanced.NewCollector(sessEnhanced))
+			http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
+				ErrorLog:      log.NewErrorLogger(),
+				ErrorHandling: promhttp.ContinueOnError,
+			}))
+		}
+		log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
 	}
 
-	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
-	log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
 	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
 }
