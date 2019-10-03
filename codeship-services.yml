@@ -1,6 +1,6 @@
 # Services file is similar to docker-compose.yml
 # https://documentation.codeship.com/pro/builds-and-configuration/services/.
-pg_gatherer:
+rds_exporter:
   build:
     image: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/rds_exporter
     dockerfile: docker/services.Dockerfile
