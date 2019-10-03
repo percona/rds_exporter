@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,13 +24,17 @@ var (
 	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
 	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
 	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	checkF               = kingpin.Flag("check", "Binary check").Bool()
 )
 
 func main() {
 	log.AddFlags(kingpin.CommandLine)
+	kingpin.Parse()
+	if *checkF {
+		os.Exit(0)
+	}
 	log.Infoln("Starting RDS exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
-	kingpin.Parse()
 
 	cfg, err := config.Load(*configFileF)
 	if err != nil {
