@@ -1,5 +1,7 @@
 # RDS Exporter
 
+[![Codeship](https://app.codeship.com/projects/49ac2570-c7e6-0137-d88e-66f7c07c21b5/status?branch=master)](https://app.codeship.com/projects/367433)
+
 An [AWS RDS](https://aws.amazon.com/ru/rds/) exporter for [Prometheus](https://github.com/prometheus/prometheus).
 It gets metrics from both [basic CloudWatch Metrics](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MonitoringOverview.html)
 and [RDS Enhanced Monitoring via CloudWatch Logs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html).
