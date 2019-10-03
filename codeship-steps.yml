@@ -1,0 +1,26 @@
+# Steps file defines our continuous integration and delivery steps
+# https://documentation.codeship.com/pro/builds-and-configuration/steps/.
+- type: parallel
+  name: run-checks
+  steps:
+
+    - name: integration
+      service: pg_gatherer_test
+      command: make test_in_docker
+
+    # This step is required to make sure that the production image builds.
+    - name: build
+      service: pg_gatherer
+      command: pg_gatherer --version
+
+# Deliver image to AWS ECS
+# https://documentation.codeship.com/pro/continuous-deployment/aws-ecs/.
+- name: push-tagged-build
+  service: pg_gatherer
+  tag: "^v[0-9]+\\.[0-9]+\\.[0-9]+.*$"
+  type: push
+  # It generates AWS token.
+  dockercfg_service: dockercfg-generator
+  registry: https://463223921727.dkr.ecr.ap-southeast-1.amazonaws.com
+  image_name: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/pg_gatherer
+  image_tag: "{{.Branch}}"
