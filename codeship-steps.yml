@@ -5,22 +5,22 @@
   steps:
 
     - name: integration
-      service: pg_gatherer_test
-      command: make test_in_docker
+      service: rds_exporter_test
+      command: make test
 
     # This step is required to make sure that the production image builds.
     - name: build
-      service: pg_gatherer
-      command: pg_gatherer --version
+      service: rds_exporter
+      command: rds_exporter --check
 
 # Deliver image to AWS ECS
 # https://documentation.codeship.com/pro/continuous-deployment/aws-ecs/.
 - name: push-tagged-build
-  service: pg_gatherer
+  service: rds_exporter
   tag: "^v[0-9]+\\.[0-9]+\\.[0-9]+.*$"
   type: push
   # It generates AWS token.
   dockercfg_service: dockercfg-generator
   registry: https://463223921727.dkr.ecr.ap-southeast-1.amazonaws.com
-  image_name: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/pg_gatherer
+  image_name: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/rds_exporter
   image_tag: "{{.Branch}}"

@@ -15,7 +15,7 @@ import (
 
 func TestSession(t *testing.T) {
 	cfg := &config.Config{
-		Instances: []config.Instance{
+		BasicInstances: []config.Instance{
 			{
 				Region:   "us-east-1",
 				Instance: "rds-aurora1",
@@ -41,7 +41,7 @@ func TestSession(t *testing.T) {
 	}
 
 	client := client.New()
-	sessions, err := New(cfg.Instances, client.HTTP(), false)
+	sessions, err := New(cfg.BasicInstances, client.HTTP(), false)
 	require.NoError(t, err)
 
 	a1s, a1i := sessions.GetSession("us-east-1", "rds-aurora1")

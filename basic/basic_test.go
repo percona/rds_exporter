@@ -19,7 +19,7 @@ func getExporter(t *testing.T) *Exporter {
 	cfg, err := config.Load("../config.yml")
 	require.NoError(t, err)
 	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	sess, err := sessions.New(cfg.BasicInstances, client.HTTP(), false)
 	require.NoError(t, err)
 	return New(cfg, sess)
 }

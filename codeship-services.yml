@@ -2,11 +2,11 @@
 # https://documentation.codeship.com/pro/builds-and-configuration/services/.
 pg_gatherer:
   build:
-    image: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/pg_gatherer
+    image: 463223921727.dkr.ecr.ap-southeast-1.amazonaws.com/coinsph/rds_exporter
     dockerfile: docker/services.Dockerfile
   cached: true
 
-pg_gatherer_test:
+rds_exporter_test:
   build:
     dockerfile: docker/test.Dockerfile
   cached: true
