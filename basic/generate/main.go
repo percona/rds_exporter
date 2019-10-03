@@ -15,16 +15,16 @@ type Metric string
 func (m Metric) FqName() string {
 	switch m {
 	case "FreeStorageSpace":
-		return "node_filesystem_free"
+		return "aws_rds_basic_node_filesystem_free"
 	case "FreeableMemory":
-		return "node_memory_Cached"
+		return "aws_rds_basic_node_memory_Cached"
 	case "CPUUtilization":
-		return "node_cpu_average"
+		return "aws_rds_basic_node_cpu_average"
 	case "EngineUptime":
-		return "node_boot_time"
+		return "aws_rds_basic_node_boot_time"
 	}
 
-	return safeName("AWS/RDS_" + toSnakeCase(string(m)) + "_average")
+	return safeName("AWS/RDS_basic_" + toSnakeCase(string(m)) + "_average")
 }
 
 func (m Metric) Labels() []string {
@@ -114,7 +114,7 @@ var (
 	doc = map[string]string{
 		"BinLogDiskUsage":           "The amount of disk space occupied by binary logs on the master. Applies to MySQL read replicas. Units: Bytes",
 		"BurstBalance":              "The percent of General Purpose SSD (gp2) burst-bucket I/O credits available. Units: Percent",
-		"CPUUtilization":            "The percentage of CPU utilization. Units: Percent",
+		"CPUUtilization":            "The percentage of CPU utilization.",
 		"CPUCreditUsage":            "[T2 instances] The number of CPU credits consumed by the instance. One CPU credit equals one vCPU running at 100% utilization for one minute or an equivalent combination of vCPUs, utilization, and time (for example, one vCPU running at 50% utilization for two minutes or two vCPUs running at 25% utilization for two minutes). CPU credit metrics are available only at a 5 minute frequency. If you specify a period greater than five minutes, use the Sum statistic instead of the Average statistic. Units: Count",
 		"CPUCreditBalance":          "[T2 instances] The number of CPU credits available for the instance to burst beyond its base CPU utilization. Credits are stored in the credit balance after they are earned and removed from the credit balance after they expire. Credits expire 24 hours after they are earned. CPU credit metrics are available only at a 5 minute frequency. Units: Count",
 		"DatabaseConnections":       "The number of database connections in use. Units: Count",

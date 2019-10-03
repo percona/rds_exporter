@@ -215,7 +215,7 @@ func makeNodeCPUMetrics(s *cpuUtilization, constLabels prometheus.Labels) []prom
 	t := reflect.TypeOf(*s)
 	v := reflect.ValueOf(*s)
 	res := make([]prometheus.Metric, 0, t.NumField())
-	desc := prometheus.NewDesc("node_cpu_average", "The percentage of CPU utilization.", []string{"mode"}, labels)
+	desc := prometheus.NewDesc("aws_rds_enhanced_node_cpu_average", "The percentage of CPU utilization.", []string{"mode"}, labels)
 	for i := 0; i < t.NumField(); i++ {
 		tags := t.Field(i).Tag
 		mode := tags.Get("json")
@@ -242,7 +242,7 @@ func makeRDSDiskIOMetrics(s *diskIO, constLabels prometheus.Labels) []prometheus
 		if name == "device" {
 			continue
 		}
-		desc := prometheus.NewDesc("rdsosmetrics_diskIO_"+name, help, labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_os_disk_io_"+name, help, labelKeys, constLabels)
 		m := makeGauge(desc, labelValues, v.Field(i))
 		if m != nil {
 			res = append(res, m)
@@ -259,12 +259,12 @@ func makeNodeDiskMetrics(s *diskIO, constLabels prometheus.Labels) []prometheus.
 	res := make([]prometheus.Metric, 0, 2)
 
 	if s.ReadKb != nil {
-		desc := prometheus.NewDesc("node_disk_bytes_read", "The total number of bytes read successfully.", labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_node_disk_bytes_read", "The total number of bytes read successfully.", labelKeys, constLabels)
 		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.ReadKb*1024), labelValues...)
 		res = append(res, m)
 	}
 	if s.WriteKb != nil {
-		desc := prometheus.NewDesc("node_disk_bytes_written", "The total number of bytes written successfully.", labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_node_disk_bytes_written", "The total number of bytes written successfully.", labelKeys, constLabels)
 		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.WriteKb*1024), labelValues...)
 		res = append(res, m)
 	}
@@ -288,7 +288,7 @@ func makeRDSFileSysMetrics(s *fileSys, constLabels prometheus.Labels) []promethe
 		case "name", "mountPoint":
 			continue
 		}
-		desc := prometheus.NewDesc("rdsosmetrics_fileSys_"+name, help, labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_os_file_sys_"+name, help, labelKeys, constLabels)
 		m := makeGauge(desc, labelValues, v.Field(i))
 		if m != nil {
 			res = append(res, m)
@@ -304,17 +304,17 @@ func makeNodeFilesystemMetrics(s *fileSys, constLabels prometheus.Labels) []prom
 	labelValues := []string{s.Name, s.Name, s.MountPoint}
 	res := make([]prometheus.Metric, 0, 5)
 
-	desc := prometheus.NewDesc("node_filesystem_files", "Filesystem total file nodes.", labelKeys, constLabels)
+	desc := prometheus.NewDesc("aws_rds_enhanced_node_filesystem_files", "Filesystem total file nodes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(s.MaxFiles*1024), labelValues...))
-	desc = prometheus.NewDesc("node_filesystem_files_free", "Filesystem total free file nodes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("aws_rds_enhanced_node_filesystem_files_free", "Filesystem total free file nodes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.MaxFiles-s.UsedFiles)*1024), labelValues...))
 
 	// report the same value for node_filesystem_free and node_filesystem_avail because we use both metrics in our dashboards
-	desc = prometheus.NewDesc("node_filesystem_size", "Filesystem size in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("aws_rds_enhanced_node_filesystem_size", "Filesystem size in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(s.Total*1024), labelValues...))
-	desc = prometheus.NewDesc("node_filesystem_free", "Filesystem free space in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("aws_rds_enhanced_node_filesystem_free", "Filesystem free space in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.Total-s.Used)*1024), labelValues...))
-	desc = prometheus.NewDesc("node_filesystem_avail", "Filesystem space available to non-root users in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("aws_rds_enhanced_node_filesystem_avail", "Filesystem space available to non-root users in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.Total-s.Used)*1024), labelValues...))
 
 	return res
@@ -322,7 +322,7 @@ func makeNodeFilesystemMetrics(s *fileSys, constLabels prometheus.Labels) []prom
 
 // makeNodeLoadMetrics returns node_exporter-like node_load1 metric.
 func makeNodeLoadMetrics(s *loadAverageMinute, constLabels prometheus.Labels) []prometheus.Metric {
-	desc := prometheus.NewDesc("node_load1", "The number of processes requesting CPU time over the last minute.", nil, constLabels)
+	desc := prometheus.NewDesc("aws_rds_enhanced_node_load1", "The number of processes requesting CPU time over the last minute.", nil, constLabels)
 	m := prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, s.One)
 	return []prometheus.Metric{m}
 }
@@ -339,7 +339,7 @@ func makeNodeMemoryMetrics(s *memory, constLabels prometheus.Labels) []prometheu
 		if err != nil {
 			panic(err)
 		}
-		desc := prometheus.NewDesc("node_memory_"+suffix, "Memory information field "+suffix+".", nil, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_node_memory_"+suffix, "Memory information field "+suffix+".", nil, constLabels)
 		m := makeGauge(desc, nil, reflect.ValueOf(v.Field(i).Int()*multiplier))
 		if m != nil {
 			res = append(res, m)
@@ -363,7 +363,7 @@ func makeRDSNetworkMetrics(s *network, constLabels prometheus.Labels) []promethe
 		if name == "interface" {
 			continue
 		}
-		desc := prometheus.NewDesc("rdsosmetrics_network_"+name, help, labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_os_network_"+name, help, labelKeys, constLabels)
 		m := makeGauge(desc, labelValues, v.Field(i))
 		if m != nil {
 			res = append(res, m)
@@ -388,7 +388,7 @@ func makeRDSProcessListMetrics(s *processList, constLabels prometheus.Labels) []
 		case "name", "id", "parentID", "tgid":
 			continue
 		}
-		desc := prometheus.NewDesc("rdsosmetrics_processList_"+name, help, labelKeys, constLabels)
+		desc := prometheus.NewDesc("aws_rds_enhanced_os_process_list_"+name, help, labelKeys, constLabels)
 		m := makeGauge(desc, labelValues, v.Field(i))
 		if m != nil {
 			res = append(res, m)
@@ -421,9 +421,9 @@ func makeNodeMemorySwapMetrics(s *swap, constLabels prometheus.Labels) []prometh
 // makeNodeProcsMetrics returns node_exporter-like node_procs_ metrics.
 func makeNodeProcsMetrics(s *tasks, constLabels prometheus.Labels) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, 2)
-	desc := prometheus.NewDesc("node_procs_blocked", "Number of processes blocked waiting for I/O to complete.", nil, constLabels)
+	desc := prometheus.NewDesc("aws_rds_enhanced_node_procs_blocked", "Number of processes blocked waiting for I/O to complete.", nil, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(s.Blocked)))
-	desc = prometheus.NewDesc("node_procs_running", "Number of processes in runnable state.", nil, constLabels)
+	desc = prometheus.NewDesc("aws_rds_enhanced_node_procs_running", "Number of processes in runnable state.", nil, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(s.Running)))
 	return res
 }
@@ -437,20 +437,20 @@ func (m *osMetrics) makePrometheusMetrics(region string) []prometheus.Metric {
 	}
 
 	res = append(res, prometheus.MustNewConstMetric(
-		prometheus.NewDesc("rdsosmetrics_timestamp", "Metrics timestamp (UNIX seconds).", nil, constLabels),
+		prometheus.NewDesc("aws_rds_enhanced_os_timestamp", "Metrics timestamp (UNIX seconds).", nil, constLabels),
 		prometheus.CounterValue,
 		float64(m.Timestamp.Unix()),
 	))
 
 	res = append(res, prometheus.MustNewConstMetric(
-		prometheus.NewDesc("rdsosmetrics_General_numVCPUs", "The number of virtual CPUs for the DB instance.", nil, constLabels),
+		prometheus.NewDesc("aws_rds_enhanced_os_general_num_VCPUs", "The number of virtual CPUs for the DB instance.", nil, constLabels),
 		prometheus.GaugeValue,
 		float64(m.NumVCPUs)),
 	)
 
 	// always make both generic and node_exporter-like metrics
 
-	metrics := makeGenericMetrics(m.CPUUtilization, "rdsosmetrics_cpuUtilization_", constLabels)
+	metrics := makeGenericMetrics(m.CPUUtilization, "aws_rds_enhanced_os_cpu_utilization_", constLabels)
 	res = append(res, metrics...)
 	metrics = makeNodeCPUMetrics(&m.CPUUtilization, constLabels)
 	res = append(res, metrics...)
@@ -469,12 +469,12 @@ func (m *osMetrics) makePrometheusMetrics(region string) []prometheus.Metric {
 		res = append(res, metrics...)
 	}
 
-	metrics = makeGenericMetrics(m.LoadAverageMinute, "rdsosmetrics_loadAverageMinute_", constLabels)
+	metrics = makeGenericMetrics(m.LoadAverageMinute, "aws_rds_enhanced_os_load_average_minute_", constLabels)
 	res = append(res, metrics...)
 	metrics = makeNodeLoadMetrics(&m.LoadAverageMinute, constLabels)
 	res = append(res, metrics...)
 
-	metrics = makeGenericMetrics(m.Memory, "rdsosmetrics_memory_", constLabels)
+	metrics = makeGenericMetrics(m.Memory, "aws_rds_enhanced_os_memory_", constLabels)
 	res = append(res, metrics...)
 	metrics = makeNodeMemoryMetrics(&m.Memory, constLabels)
 	res = append(res, metrics...)
@@ -491,12 +491,12 @@ func (m *osMetrics) makePrometheusMetrics(region string) []prometheus.Metric {
 		// no node_exporter-like metrics
 	}
 
-	metrics = makeGenericMetrics(m.Swap, "rdsosmetrics_swap_", constLabels)
+	metrics = makeGenericMetrics(m.Swap, "aws_rds_enhanced_os_swap_", constLabels)
 	res = append(res, metrics...)
 	metrics = makeNodeMemorySwapMetrics(&m.Swap, constLabels)
 	res = append(res, metrics...)
 
-	metrics = makeGenericMetrics(m.Tasks, "rdsosmetrics_tasks_", constLabels)
+	metrics = makeGenericMetrics(m.Tasks, "aws_rds_enhanced_os_tasks_", constLabels)
 	res = append(res, metrics...)
 	metrics = makeNodeProcsMetrics(&m.Tasks, constLabels)
 	res = append(res, metrics...)

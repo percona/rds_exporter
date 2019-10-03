@@ -19,12 +19,11 @@ import (
 
 //nolint:lll
 var (
-	listenAddressF       = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9042").String()
-	basicMetricsPathF    = kingpin.Flag("web.basic-telemetry-path", "Path under which to expose exporter's basic metrics.").Default("/basic").String()
-	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
-	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
-	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
-	checkF               = kingpin.Flag("check", "Binary check").Bool()
+	listenAddressF = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9042").String()
+	metricsPathF   = kingpin.Flag("web.telemetry-path", "Path under which to expose exporter's metrics.").Default("/metrics").String()
+	configFileF    = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
+	logTraceF      = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	checkF         = kingpin.Flag("check", "Binary check").Default("false").Bool()
 )
 
 func main() {
@@ -54,28 +53,23 @@ func main() {
 	{
 		prometheus.MustRegister(basic.New(cfg, sessBasic))
 		prometheus.MustRegister(client)
-		http.Handle(*basicMetricsPathF, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+		http.Handle(*metricsPathF, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			ErrorLog:      log.NewErrorLogger(),
 			ErrorHandling: promhttp.ContinueOnError,
 		}))
 	}
-	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
+	log.Infof("Start listen metrics: http://%s%s", *listenAddressF, *metricsPathF)
 
 	// enhanced metrics
 	if len(cfg.EnhancedInstances) > 0 {
 		sessEnhanced, err := sessions.New(cfg.EnhancedInstances, client.HTTP(), *logTraceF)
 		if err != nil {
-			log.Fatalf("Can't create basic sessions: %s", err)
+			log.Fatalf("Can't create enhanced sessions: %s", err)
 		}
 		{
-			registry := prometheus.NewRegistry()
-			registry.MustRegister(enhanced.NewCollector(sessEnhanced))
-			http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
-				ErrorLog:      log.NewErrorLogger(),
-				ErrorHandling: promhttp.ContinueOnError,
-			}))
+			prometheus.MustRegister(enhanced.NewCollector(sessEnhanced))
 		}
-		log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
+		log.Infof("Enhanced metrics was enabled\n")
 	}
 
 	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
