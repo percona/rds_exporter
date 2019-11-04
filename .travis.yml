@@ -1,6 +1,27 @@
-dist: trusty
-sudo: required
+dist: bionic
 language: go
+
+services:
+  - docker
+
+go:
+  - 1.12.x
+  - 1.13.x
+  - master
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - go: master
+
+cache:
+  directories:
+    - /home/travis/.cache/go-build
+    # - /home/travis/gopath/pkg
+
+before_cache:
+  - go clean -testcache
+  # - go clean -cache
 
 env:
   global:
@@ -9,14 +30,6 @@ env:
     - secure: "yiT2b6FWyG2pUi8v2dHmCHG/6hgYqxnq+VGlR5OTvaaStj5oJOMAI4Jj4fVfEXVQOxuy9fWn+f1Q2ARlKkpZLO6rm6pfseXIAhkijcQ1dl8UjM5OV7s19egKeixKODD1WphBrKomOujyn6nuj71b8x1oIiZ5NOhgq9w51jdMAOI/aijz8BSBfmooARr2urNMlus8v59Y3t259ACTp+hAco8mR96BbFq7a33nQ0qgYLdro1FTdwel9EWvspMNhTSmi8I54zt0QVAeSqJ+DuqeYEudq01ZN+ya9HG/H2JvEnWPh1XO642tNh0Asg7dmtxsPp9XEHkEf8N/GUT6boQyagHsTmlo1TS9RjHMOtBK5Oa/HQ3lQ2Dqxpg1vnbBtYS2fgg6b/YEySv1ERV3kVvBc1N77YgnSdTrtMLopp3HbcA2xoRv0wv7IGn1uM8KBYDwBVOySjtXcAcCvNRVW+gnuVrqTA9z7GUREn1Rn8G38YcnYBDC7QkZTBM+Fh9ttAiD9J+DfdEg8tZ+0fhCfEBkAVkvAqtY+K/aNHBkcK0bE5KhLdcjORyQ4Q/vg9mEyqSyeN03mF5tCSIaljGWU/M/NWODzMC+0kSX2oLCWNiMLwNJqSzNS3OYTlnKLOUhtfNew7Qku10GtAI8zSOgjPPsqGTk3ZrRcRpqwXc7PGSJIKM="
     # AWS_SECRET_ACCESS_KEY
     - secure: "YsGaMb91LxFFrZa1+bfRQCM0LhKY1FDQKaBOegfMqhoOAe5skms9apYkum8/8GjEAn1I+zVfKQ69oTzRSxIIdt+in5I/wFpDp35PW3O56zS2E5jWBb6yIm3mv1aHBOYw3UB1prj/TDwsNs+UKNPMVGYob8lx5wri5NFVU7XTqUBSB1fRuxKYkadixlzBiN9aHO8Bz4pfPS0YE+9VZbmMgjGCOxnRWroBAQLhGxbJmhjreYmQ4xmpHYgAotAo9QjPiOHE1PiJyIPGOf6rQlWYYzW9dRfwqGmApoZKzF+xaG9IpGj+/zmrMUYov3ROsp0+X4vVeGXfbPqUdToVfE1m5ET+DfC59+V0tAyrfJoZjtQTplxKI4UN9TPtBKXqjhISiavViYlDyncAg4zBe6Mza8uTOog5phZhBVwq431IfKAIrJbKa58kblv4j7uzj/pwYPO9Vxhuzn6xM95I/7GAlPTUs1ARUMxkIDKXb2z/vQ5mmptJRHeC7d7vBqiuvc0juJ8BrGzmAVtNL3lDSH7HtrZuM0nxt+Vp9sL7cc4Biywi66HY8DV/MBzPCb3TC+qqMQ72NC5ZZC8zbb7O3P1x4e/uIs3qGDsS8Wq2QxlEMDV16f5p1tMnUJNloD6XQnu0IMWHs4lYX3vUcco9uBxc7uUuyxcCr0LMt6fUSuvR3eE="
-
-go:
-  - 1.12.x
-  - 1.11.x
-  - tip
-
-services:
-  - docker
 
 script:
   - make travis
