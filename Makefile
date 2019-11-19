@@ -11,9 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GO    := GO15VENDOREXPERIMENT=1 go
 PROMU := $(GOPATH)/bin/promu
-pkgs   = $(shell $(GO) list ./...)
+pkgs   = $(shell go list ./...)
 
 PREFIX                  ?= $(shell pwd)
 BIN_DIR                 ?= $(shell pwd)
@@ -29,19 +28,19 @@ style:
 
 test:
 	@echo ">> running tests"
-	@$(GO) test $(pkgs)
+	@go test $(pkgs)
 
 test-race:
 	@echo ">> running tests"
-	@$(GO) test -v -race $(pkgs)
+	@go test -v -race $(pkgs)
 
 format:
 	@echo ">> formatting code"
-	@$(GO) fmt $(pkgs)
+	@go fmt $(pkgs)
 
 vet:
 	@echo ">> vetting code"
-	@$(GO) vet $(pkgs)
+	@go vet $(pkgs)
 
 build: promu
 	@echo ">> building binaries"
@@ -58,7 +57,7 @@ docker:
 promu:
 	@GOOS=$(shell uname -s | tr A-Z a-z) \
 	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
-	        $(GO) get -u github.com/prometheus/promu
+	        go get -u github.com/prometheus/promu
 
 travis: build test-race codecov tarball docker
 
@@ -67,6 +66,6 @@ codecov: gocoverutil
 	@curl -s https://codecov.io/bash | bash -s - -X fix
 
 gocoverutil:
-	@$(GO) get -u github.com/AlekSi/gocoverutil
+	@go get -u github.com/AlekSi/gocoverutil
 
 .PHONY: all style format build test vet tarball docker promu
