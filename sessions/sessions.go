@@ -100,7 +100,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 			})
 			if err != nil {
 				logger.Errorf("Failed to get resource IDs: %s.", err)
-				break
+				return nil, err
 			}
 
 			for _, dbInstance := range output.DBInstances {
