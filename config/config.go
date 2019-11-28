@@ -30,6 +30,7 @@ func (i Instance) String() string {
 	if i.AWSAccessKey != "" {
 		res += " (" + i.AWSAccessKey + ")"
 	}
+
 	return res
 }
 
