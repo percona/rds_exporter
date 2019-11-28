@@ -24,8 +24,8 @@ func TestSession(t *testing.T) {
 			{
 				Region:       "us-east-1",
 				Instance:     "rds-aurora57",
-				AWSAccessKey: os.Getenv("AWS_ACCESS_KEY_ID"),
-				AWSSecretKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+				AWSAccessKey: os.Getenv("AWS_ACCESS_KEY"),
+				AWSSecretKey: os.Getenv("AWS_SECRET_KEY"),
 			},
 			{
 				Region:   "us-east-1",
