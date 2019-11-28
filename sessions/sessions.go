@@ -122,7 +122,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		newInstances := make([]Instance, 0, len(instances))
 		for _, instance := range instances {
 			if instance.ResourceID == "" {
-				logger.Errorf("Skipping instance %s/%s - can't determine resourceID.", instance.Region, instance.Instance)
+				logger.Errorf("Skipping %s - can't determine resourceID.", instance, instance)
 				continue
 			}
 			newInstances = append(newInstances, instance)

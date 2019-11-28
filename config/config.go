@@ -25,6 +25,14 @@ type Instance struct {
 	AWSSecretKey string `yaml:"aws_secret_key"` // may be empty
 }
 
+func (i Instance) String() string {
+	res := i.Region + "/" + i.Instance
+	if i.AWSAccessKey != "" {
+		res += " (" + i.AWSAccessKey + ")"
+	}
+	return res
+}
+
 // Config contains configuration file information.
 type Config struct {
 	Instances []Instance `yaml:"instances"`

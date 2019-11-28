@@ -61,8 +61,14 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 	for _, instance := range instances {
 		instance := instance
 		go func() {
-			NewScraper(&instance, e, ch).Scrape()
-			wg.Done()
+			defer wg.Done()
+
+			s := NewScraper(&instance, e, ch)
+			if s == nil {
+				e.l.Errorf("No scraper for %s, skipping.", instance)
+				return
+			}
+			s.Scrape()
 		}()
 	}
 }
