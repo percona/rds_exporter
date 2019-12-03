@@ -25,6 +25,15 @@ type Instance struct {
 	EnhancedMonitoringInterval time.Duration
 }
 
+func (i Instance) String() string {
+	res := i.Region + "/" + i.Instance
+	if i.ResourceID != "" {
+		res += " (" + i.ResourceID + ")"
+	}
+
+	return res
+}
+
 // Sessions is a pool of AWS sessions.
 type Sessions struct {
 	sessions map[*session.Session][]Instance

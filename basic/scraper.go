@@ -19,38 +19,44 @@ var (
 
 type Scraper struct {
 	// params
-	instance *config.Instance
-	exporter *Exporter
-	ch       chan<- prometheus.Metric
+	instance  *config.Instance
+	collector *Collector
+	ch        chan<- prometheus.Metric
 
 	// internal
-	svc    *cloudwatch.CloudWatch
-	labels []string
+	svc         *cloudwatch.CloudWatch
+	constLabels prometheus.Labels
 }
 
-func NewScraper(instance *config.Instance, exporter *Exporter, ch chan<- prometheus.Metric) *Scraper {
+func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric) *Scraper {
 	// Create CloudWatch client
-	sess, _ := exporter.sessions.GetSession(instance.Region, instance.Instance)
+	sess, _ := collector.sessions.GetSession(instance.Region, instance.Instance)
 	if sess == nil {
 		return nil
 	}
 	svc := cloudwatch.New(sess)
 
-	// Create labels for all metrics
-	labels := []string{
-		instance.Instance,
-		instance.Region,
+	constLabels := prometheus.Labels{
+		"region":   instance.Region,
+		"instance": instance.Instance,
+	}
+	for n, v := range instance.Labels {
+		if v == "" {
+			delete(constLabels, n)
+		} else {
+			constLabels[n] = v
+		}
 	}
 
 	return &Scraper{
 		// params
-		instance: instance,
-		exporter: exporter,
-		ch:       ch,
+		instance:  instance,
+		collector: collector,
+		ch:        ch,
 
 		// internal
-		svc:    svc,
-		labels: labels,
+		svc:         svc,
+		constLabels: constLabels,
 	}
 }
 
@@ -66,22 +72,22 @@ func getLatestDatapoint(datapoints []*cloudwatch.Datapoint) *cloudwatch.Datapoin
 	return latest
 }
 
-// Scrape makes the required calls to AWS CloudWatch by using the parameters in the Exporter.
+// Scrape makes the required calls to AWS CloudWatch by using the parameters in the Collector.
 // Once converted into Prometheus format, the metrics are pushed on the ch channel.
 func (s *Scraper) Scrape() {
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	wg.Add(len(s.exporter.metrics))
-	for _, metric := range s.exporter.metrics {
-		go func(metric Metric) {
-			err := s.scrapeMetric(metric)
-			if err != nil {
-				s.exporter.l.With("metric", metric.Name).Error(err)
-			}
+	wg.Add(len(s.collector.metrics))
+	for _, metric := range s.collector.metrics {
+		metric := metric
+		go func() {
+			defer wg.Done()
 
-			wg.Done()
-		}(metric)
+			if err := s.scrapeMetric(metric); err != nil {
+				s.collector.l.With("metric", metric.cwName).Error(err)
+			}
+		}()
 	}
 }
 
@@ -94,7 +100,7 @@ func (s *Scraper) scrapeMetric(metric Metric) error {
 		StartTime: aws.Time(end.Add(-Range)),
 
 		Period:     aws.Int64(int64(Period.Seconds())),
-		MetricName: aws.String(metric.Name),
+		MetricName: aws.String(metric.cwName),
 		Namespace:  aws.String("AWS/RDS"),
 		Dimensions: []*cloudwatch.Dimension{},
 		Statistics: aws.StringSlice([]string{"Average"}),
@@ -122,14 +128,18 @@ func (s *Scraper) scrapeMetric(metric Metric) error {
 
 	// Get the metric.
 	v := aws.Float64Value(dp.Average)
-	switch metric.Name {
+	switch metric.cwName {
 	case "EngineUptime":
 		// "Fake EngineUptime -> node_boot_time with time.Now().Unix() - EngineUptime."
 		v = float64(time.Now().Unix() - int64(v))
 	}
 
 	// Send metric.
-	s.ch <- prometheus.MustNewConstMetric(metric.Desc, prometheus.GaugeValue, v, s.labels...)
+	s.ch <- prometheus.MustNewConstMetric(
+		prometheus.NewDesc(metric.prometheusName, metric.prometheusHelp, nil, s.constLabels),
+		prometheus.GaugeValue,
+		v,
+	)
 
 	return nil
 }

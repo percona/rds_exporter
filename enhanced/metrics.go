@@ -433,8 +433,8 @@ func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]strin
 	res := make([]prometheus.Metric, 0, 100)
 
 	constLabels := prometheus.Labels{
-		"instance": m.InstanceID,
 		"region":   region,
+		"instance": m.InstanceID,
 	}
 	for n, v := range labels {
 		if v == "" {

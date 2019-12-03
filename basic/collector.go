@@ -23,20 +23,21 @@ var (
 )
 
 type Metric struct {
-	Name string
-	Desc *prometheus.Desc
+	cwName         string
+	prometheusName string
+	prometheusHelp string
 }
 
-type Exporter struct {
+type Collector struct {
 	config   *config.Config
 	sessions *sessions.Sessions
 	metrics  []Metric
 	l        log.Logger
 }
 
-// New creates a new instance of a Exporter.
-func New(config *config.Config, sessions *sessions.Sessions) *Exporter {
-	return &Exporter{
+// New creates a new instance of a Collector.
+func New(config *config.Config, sessions *sessions.Sessions) *Collector {
+	return &Collector{
 		config:   config,
 		sessions: sessions,
 		metrics:  Metrics,
@@ -44,7 +45,11 @@ func New(config *config.Config, sessions *sessions.Sessions) *Exporter {
 	}
 }
 
-func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+func (e *Collector) Describe(ch chan<- *prometheus.Desc) {
+	// unchecked collector
+}
+
+func (e *Collector) Collect(ch chan<- prometheus.Metric) {
 	now := time.Now()
 	e.collect(ch)
 
@@ -52,13 +57,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(scrapeTimeDesc, prometheus.GaugeValue, time.Since(now).Seconds())
 }
 
-func (e *Exporter) collect(ch chan<- prometheus.Metric) {
-	wg := &sync.WaitGroup{}
+func (e *Collector) collect(ch chan<- prometheus.Metric) {
+	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	instances := e.config.Instances
-	wg.Add(len(instances))
-	for _, instance := range instances {
+	wg.Add(len(e.config.Instances))
+	for _, instance := range e.config.Instances {
 		instance := instance
 		go func() {
 			defer wg.Done()
@@ -73,12 +77,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	// RDS metrics
-	for _, m := range e.metrics {
-		ch <- m.Desc
-	}
-
-	// Scrape time
-	ch <- scrapeTimeDesc
-}
+// check interfaces
+var (
+	_ prometheus.Collector = (*Collector)(nil)
+)

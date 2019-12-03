@@ -13,7 +13,7 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-func getExporter(t *testing.T) *Exporter {
+func getCollector(t *testing.T) *Collector {
 	t.Helper()
 
 	cfg, err := config.Load("../config.yml")
@@ -25,7 +25,7 @@ func getExporter(t *testing.T) *Exporter {
 }
 
 func TestCollector_Describe(t *testing.T) {
-	c := getExporter(t)
+	c := getCollector(t)
 	ch := make(chan *prometheus.Desc)
 	go func() {
 		c.Describe(ch)
@@ -42,7 +42,7 @@ func TestCollector_Describe(t *testing.T) {
 }
 
 func TestCollector_Collect(t *testing.T) {
-	c := getExporter(t)
+	c := getCollector(t)
 	ch := make(chan prometheus.Metric)
 	go func() {
 		c.Collect(ch)
