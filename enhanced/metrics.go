@@ -429,11 +429,19 @@ func makeNodeProcsMetrics(s *tasks, constLabels prometheus.Labels) []prometheus.
 }
 
 // makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
-func (m *osMetrics) makePrometheusMetrics(region string) []prometheus.Metric {
+func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]string) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, 100)
+
 	constLabels := prometheus.Labels{
 		"instance": m.InstanceID,
 		"region":   region,
+	}
+	for n, v := range labels {
+		if v == "" {
+			delete(constLabels, n)
+		} else {
+			constLabels[n] = v
+		}
 	}
 
 	res = append(res, prometheus.MustNewConstMetric(

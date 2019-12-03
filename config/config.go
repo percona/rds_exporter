@@ -18,11 +18,13 @@ import (
 
 // Instance represents a single RDS information from configuration file.
 type Instance struct {
-	Region   string `yaml:"region"`
-	Instance string `yaml:"instance"`
-	// Type InstanceType `yaml:"type"` // may be empty for old pmm-managed
-	AWSAccessKey string `yaml:"aws_access_key"` // may be empty
-	AWSSecretKey string `yaml:"aws_secret_key"` // may be empty
+	Region       string            `yaml:"region"`
+	Instance     string            `yaml:"instance"`
+	AWSAccessKey string            `yaml:"aws_access_key"` // may be empty
+	AWSSecretKey string            `yaml:"aws_secret_key"` // may be empty
+	Labels       map[string]string `yaml:"labels"`         // may be empty
+
+	// TODO Type InstanceType `yaml:"type"` // may be empty for old pmm-managed
 }
 
 func (i Instance) String() string {
@@ -41,7 +43,7 @@ type Config struct {
 
 // Load loads configuration from file.
 func Load(filename string) (*Config, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -50,5 +52,6 @@ func Load(filename string) (*Config, error) {
 	if err = yaml.Unmarshal(b, &config); err != nil {
 		return nil, err
 	}
+
 	return &config, nil
 }

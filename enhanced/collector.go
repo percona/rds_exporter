@@ -74,14 +74,7 @@ func (c *Collector) setMetrics(m map[string][]prometheus.Metric) {
 
 // Describe implements prometheus.Collector.
 func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
-	c.rw.RLock()
-	defer c.rw.RUnlock()
-
-	for _, metrics := range c.metrics {
-		for _, m := range metrics {
-			ch <- m.Desc()
-		}
-	}
+	// unchecked collector
 }
 
 // Collect implements prometheus.Collector.

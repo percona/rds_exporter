@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, time.Date(2018, 10, 3, 10, 43, 5, 0, time.UTC), m.Timestamp)
 
-		metrics := m.makePrometheusMetrics("us-east-1")
+		metrics := m.makePrometheusMetrics("us-east-1", nil)
 		actual := strings.Join(helpers.Format(metrics), "\n")
 		assert.Equal(t, dataMySQL56Expected, actual, "Actual:\n%s", actual)
 	})
@@ -27,7 +27,7 @@ func TestParse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, time.Date(2018, 9, 25, 8, 7, 3, 0, time.UTC), m.Timestamp)
 
-		metrics := m.makePrometheusMetrics("us-east-1")
+		metrics := m.makePrometheusMetrics("us-east-1", nil)
 		actual := strings.Join(helpers.Format(metrics), "\n")
 		assert.Equal(t, dataMySQL57Expected, actual, "Actual:\n%s", actual)
 	})
@@ -37,7 +37,7 @@ func TestParse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, time.Date(2018, 9, 25, 8, 16, 20, 0, time.UTC), m.Timestamp)
 
-		metrics := m.makePrometheusMetrics("us-east-1")
+		metrics := m.makePrometheusMetrics("us-east-1", nil)
 		actual := strings.Join(helpers.Format(metrics), "\n")
 		assert.Equal(t, dataAurora57Expected, actual, "Actual:\n%s", actual)
 	})
