@@ -26,6 +26,9 @@ instances:
     region: us-east-1
     aws_access_key: AKIAIOSFODNN7EXAMPLE
     aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    labels:
+      foo: bar
+      baz: qux
 ```
 
 If `aws_access_key` and `aws_secret_key` are present, they are used for that instance.
@@ -33,6 +36,7 @@ Otherwise, [default credential provider chain](https://docs.aws.amazon.com/sdk-f
 is used, which includes `AWS_ACCESS_KEY_ID`/`AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY`/`AWS_SECRET_KEY` environment variables, `~/.aws/credentials` file,
 and IAM role for EC2.
 
+Returned metrics contain `instance` and `region` labels set. They also contain extra labels specified in the configuration file.
 
 Start exporter by running:
 ```
