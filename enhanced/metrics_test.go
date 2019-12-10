@@ -38,9 +38,9 @@ func TestParse(t *testing.T) {
 		region    string
 		timestamp time.Time
 	}{
-		{"mysql56", "us-east-1", time.Date(2018, 10, 3, 10, 43, 5, 0, time.UTC)},
+		{"mysql56", "us-east-1", time.Date(2019, 12, 10, 16, 42, 21, 0, time.UTC)},
 		{"mysql57", "us-east-1", time.Date(2018, 9, 25, 8, 7, 3, 0, time.UTC)},
-		{"aurora57", "us-east-1", time.Date(2018, 9, 25, 8, 16, 20, 0, time.UTC)},
+		{"aurora1", "us-east-1", time.Date(2019, 12, 10, 16, 45, 42, 0, time.UTC)},
 	} {
 		data := data
 		t.Run(data.name, func(t *testing.T) {
@@ -53,6 +53,7 @@ func TestParse(t *testing.T) {
 			actualS := strings.Join(actual, "\n")
 
 			if *golden {
+				expected = actual
 				err = ioutil.WriteFile(filepath.Join("testdata", data.name+".txt"), []byte(actualS+"\n"), 0666)
 				require.NoError(t, err)
 			}
