@@ -20,10 +20,11 @@ Create configration file `config.yml`:
 ```yaml
 ---
 instances:
-  - instance: rds-aurora1
-    region: us-east-1
-  - instance: rds-mysql57
-    region: us-east-1
+  - region: us-east-1
+    instance: rds-aurora1
+
+  - region: us-east-1
+    instance: rds-mysql57
     aws_access_key: AKIAIOSFODNN7EXAMPLE
     aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
     labels:

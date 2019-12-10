@@ -98,22 +98,22 @@ type loadAverageMinute struct {
 
 //nolint:lll
 type memory struct {
-	Active         int `json:"active"         node:"Active"          m:"1024" help:"The amount of assigned memory, in kilobytes."`
-	Buffers        int `json:"buffers"        node:"Buffers"         m:"1024" help:"The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes."`
-	Cached         int `json:"cached"         node:"Cached"          m:"1024" help:"The amount of memory used for caching file system–based I/O."`
-	Dirty          int `json:"dirty"          node:"Dirty"           m:"1024" help:"The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes."`
-	Free           int `json:"free"           node:"MemFree"         m:"1024" help:"The amount of unassigned memory, in kilobytes."`
-	HugePagesFree  int `json:"hugePagesFree"  node:"HugePages_Free"  m:"1"    help:"The number of free huge pages. Huge pages are a feature of the Linux kernel."`
-	HugePagesRsvd  int `json:"hugePagesRsvd"  node:"HugePages_Rsvd"  m:"1"    help:"The number of committed huge pages."`
-	HugePagesSize  int `json:"hugePagesSize"  node:"Hugepagesize"    m:"1024" help:"The size for each huge pages unit, in kilobytes."`
-	HugePagesSurp  int `json:"hugePagesSurp"  node:"HugePages_Surp"  m:"1"    help:"The number of available surplus huge pages over the total."`
-	HugePagesTotal int `json:"hugePagesTotal" node:"HugePages_Total" m:"1"    help:"The total number of huge pages for the system."`
-	Inactive       int `json:"inactive"       node:"Inactive"        m:"1024" help:"The amount of least-frequently used memory pages, in kilobytes."`
-	Mapped         int `json:"mapped"         node:"Mapped"          m:"1024" help:"The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes."`
-	PageTables     int `json:"pageTables"     node:"PageTables"      m:"1024" help:"The amount of memory used by page tables, in kilobytes."`
-	Slab           int `json:"slab"           node:"Slab"            m:"1024" help:"The amount of reusable kernel data structures, in kilobytes."`
-	Total          int `json:"total"          node:"MemTotal"        m:"1024" help:"The total amount of memory, in kilobytes."`
-	Writeback      int `json:"writeback"      node:"Writeback"       m:"1024" help:"The amount of dirty pages in RAM that are still being written to the backing storage, in kilobytes."`
+	Active         int `json:"active"         node:"Active_bytes"       m:"1024" help:"The amount of assigned memory, in kilobytes."`
+	Buffers        int `json:"buffers"        node:"Buffers_bytes"      m:"1024" help:"The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes."`
+	Cached         int `json:"cached"         node:"Cached_bytes"       m:"1024" help:"The amount of memory used for caching file system–based I/O."`
+	Dirty          int `json:"dirty"          node:"Dirty_bytes"        m:"1024" help:"The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes."`
+	Free           int `json:"free"           node:"MemFree_bytes"      m:"1024" help:"The amount of unassigned memory, in kilobytes."`
+	HugePagesFree  int `json:"hugePagesFree"  node:"HugePages_Free"     m:"1"    help:"The number of free huge pages. Huge pages are a feature of the Linux kernel."`
+	HugePagesRsvd  int `json:"hugePagesRsvd"  node:"HugePages_Rsvd"     m:"1"    help:"The number of committed huge pages."`
+	HugePagesSize  int `json:"hugePagesSize"  node:"Hugepagesize_bytes" m:"1024" help:"The size for each huge pages unit, in kilobytes."`
+	HugePagesSurp  int `json:"hugePagesSurp"  node:"HugePages_Surp"     m:"1"    help:"The number of available surplus huge pages over the total."`
+	HugePagesTotal int `json:"hugePagesTotal" node:"HugePages_Total"    m:"1"    help:"The total number of huge pages for the system."`
+	Inactive       int `json:"inactive"       node:"Inactive_bytes"     m:"1024" help:"The amount of least-frequently used memory pages, in kilobytes."`
+	Mapped         int `json:"mapped"         node:"Mapped_bytes"       m:"1024" help:"The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes."`
+	PageTables     int `json:"pageTables"     node:"PageTables_bytes"   m:"1024" help:"The amount of memory used by page tables, in kilobytes."`
+	Slab           int `json:"slab"           node:"Slab_bytes"         m:"1024" help:"The amount of reusable kernel data structures, in kilobytes."`
+	Total          int `json:"total"          node:"MemTotal_bytes"     m:"1024" help:"The total amount of memory, in kilobytes."`
+	Writeback      int `json:"writeback"      node:"Writeback_bytes"    m:"1024" help:"The amount of dirty pages in RAM that are still being written to the backing storage, in kilobytes."`
 }
 
 type network struct {
@@ -136,9 +136,9 @@ type processList struct {
 
 //nolint:lll
 type swap struct {
-	Cached float64 `json:"cached" node:"node_memory_SwapCached" m:"1024" help:"The amount of swap memory, in kilobytes, used as cache memory."  nodehelp:"Memory information field SwapCached."`
-	Free   float64 `json:"free"   node:"node_memory_SwapFree"   m:"1024" help:"The total amount of swap memory free, in kilobytes."             nodehelp:"Memory information field SwapFree."`
-	Total  float64 `json:"total"  node:"node_memory_SwapTotal"  m:"1024" help:"The total amount of swap memory available, in kilobytes."        nodehelp:"Memory information field SwapTotal."`
+	Cached float64 `json:"cached" node:"node_memory_SwapCached_bytes" m:"1024" help:"The amount of swap memory, in kilobytes, used as cache memory."  nodehelp:"Memory information field SwapCached."`
+	Free   float64 `json:"free"   node:"node_memory_SwapFree_bytes"   m:"1024" help:"The total amount of swap memory free, in kilobytes."             nodehelp:"Memory information field SwapFree."`
+	Total  float64 `json:"total"  node:"node_memory_SwapTotal_bytes"  m:"1024" help:"The total amount of swap memory available, in kilobytes."        nodehelp:"Memory information field SwapTotal."`
 
 	// we use multiplier 0.25 to convert a number of kilobytes to a number of 4k pages (what our dashboards assume)
 	In  float64 `json:"in"  node:"node_vmstat_pswpin"  m:"0.25" help:"The total amount of memory, in kilobytes, swapped in from disk." nodehelp:"/proc/vmstat information field pswpin"`

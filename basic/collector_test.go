@@ -16,7 +16,7 @@ import (
 func getCollector(t *testing.T) *Collector {
 	t.Helper()
 
-	cfg, err := config.Load("../config.yml")
+	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
 	client := client.New()
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)

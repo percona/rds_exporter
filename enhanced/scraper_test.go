@@ -14,13 +14,15 @@ import (
 )
 
 func TestScraper(t *testing.T) {
-	cfg, err := config.Load("../config.yml")
+	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
 	client := client.New()
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
 	require.NoError(t, err)
 
-	session, instance := sess.GetSession("us-east-1", "rds-aurora57")
+	session, instance := sess.GetSession("us-east-1", "rds-mysql56")
+	require.NotNil(t, session)
+	require.NotNil(t, instance)
 	scraper := newScraper(session, []sessions.Instance{*instance})
 	scraper.scrape(context.Background())
 }

@@ -1,0 +1,12 @@
+---
+# Shared configuration for all tests.
+
+instances:
+  - region: us-east-1
+    instance: rds-aurora1
+  - region: us-east-1
+    instance: rds-aurora57
+  - region: us-east-1
+    instance: rds-mysql56
+  - region: us-west-1
+    instance: rds-mysql57

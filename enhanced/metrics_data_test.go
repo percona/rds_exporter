@@ -574,18 +574,18 @@ node_filesystem_size{device="rdsfilesys",fstype="rdsfilesys",instance="rds-mysql
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
 node_load1{instance="rds-mysql56",region="us-east-1"} 2.26
-# HELP node_memory_Active Memory information field Active.
-# TYPE node_memory_Active gauge
-node_memory_Active{instance="rds-mysql56",region="us-east-1"} 1.416998912e+09
-# HELP node_memory_Buffers Memory information field Buffers.
-# TYPE node_memory_Buffers gauge
-node_memory_Buffers{instance="rds-mysql56",region="us-east-1"} 1.0788864e+07
-# HELP node_memory_Cached Memory information field Cached.
-# TYPE node_memory_Cached gauge
-node_memory_Cached{instance="rds-mysql56",region="us-east-1"} 2.4133632e+07
-# HELP node_memory_Dirty Memory information field Dirty.
-# TYPE node_memory_Dirty gauge
-node_memory_Dirty{instance="rds-mysql56",region="us-east-1"} 225280
+# HELP node_memory_Active_bytes Memory information field Active_bytes.
+# TYPE node_memory_Active_bytes gauge
+node_memory_Active_bytes{instance="rds-mysql56",region="us-east-1"} 1.416998912e+09
+# HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
+# TYPE node_memory_Buffers_bytes gauge
+node_memory_Buffers_bytes{instance="rds-mysql56",region="us-east-1"} 1.0788864e+07
+# HELP node_memory_Cached_bytes Memory information field Cached_bytes.
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="rds-mysql56",region="us-east-1"} 2.4133632e+07
+# HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
+# TYPE node_memory_Dirty_bytes gauge
+node_memory_Dirty_bytes{instance="rds-mysql56",region="us-east-1"} 225280
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
 node_memory_HugePages_Free{instance="rds-mysql56",region="us-east-1"} 0
@@ -598,39 +598,39 @@ node_memory_HugePages_Surp{instance="rds-mysql56",region="us-east-1"} 0
 # HELP node_memory_HugePages_Total Memory information field HugePages_Total.
 # TYPE node_memory_HugePages_Total gauge
 node_memory_HugePages_Total{instance="rds-mysql56",region="us-east-1"} 0
-# HELP node_memory_Hugepagesize Memory information field Hugepagesize.
-# TYPE node_memory_Hugepagesize gauge
-node_memory_Hugepagesize{instance="rds-mysql56",region="us-east-1"} 2.097152e+06
-# HELP node_memory_Inactive Memory information field Inactive.
-# TYPE node_memory_Inactive gauge
-node_memory_Inactive{instance="rds-mysql56",region="us-east-1"} 4.78879744e+08
-# HELP node_memory_Mapped Memory information field Mapped.
-# TYPE node_memory_Mapped gauge
-node_memory_Mapped{instance="rds-mysql56",region="us-east-1"} 1.3746176e+07
-# HELP node_memory_MemFree Memory information field MemFree.
-# TYPE node_memory_MemFree gauge
-node_memory_MemFree{instance="rds-mysql56",region="us-east-1"} 1.03018496e+08
-# HELP node_memory_MemTotal Memory information field MemTotal.
-# TYPE node_memory_MemTotal gauge
-node_memory_MemTotal{instance="rds-mysql56",region="us-east-1"} 2.10075648e+09
-# HELP node_memory_PageTables Memory information field PageTables.
-# TYPE node_memory_PageTables gauge
-node_memory_PageTables{instance="rds-mysql56",region="us-east-1"} 7.888896e+06
-# HELP node_memory_Slab Memory information field Slab.
-# TYPE node_memory_Slab gauge
-node_memory_Slab{instance="rds-mysql56",region="us-east-1"} 3.3255424e+07
-# HELP node_memory_SwapCached Memory information field SwapCached.
-# TYPE node_memory_SwapCached gauge
-node_memory_SwapCached{instance="rds-mysql56",region="us-east-1"} 2.729984e+07
-# HELP node_memory_SwapFree Memory information field SwapFree.
-# TYPE node_memory_SwapFree gauge
-node_memory_SwapFree{instance="rds-mysql56",region="us-east-1"} 3.655856128e+09
-# HELP node_memory_SwapTotal Memory information field SwapTotal.
-# TYPE node_memory_SwapTotal gauge
-node_memory_SwapTotal{instance="rds-mysql56",region="us-east-1"} 4.194299904e+09
-# HELP node_memory_Writeback Memory information field Writeback.
-# TYPE node_memory_Writeback gauge
-node_memory_Writeback{instance="rds-mysql56",region="us-east-1"} 0
+# HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
+# TYPE node_memory_Hugepagesize_bytes gauge
+node_memory_Hugepagesize_bytes{instance="rds-mysql56",region="us-east-1"} 2.097152e+06
+# HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
+# TYPE node_memory_Inactive_bytes gauge
+node_memory_Inactive_bytes{instance="rds-mysql56",region="us-east-1"} 4.78879744e+08
+# HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
+# TYPE node_memory_Mapped_bytes gauge
+node_memory_Mapped_bytes{instance="rds-mysql56",region="us-east-1"} 1.3746176e+07
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes{instance="rds-mysql56",region="us-east-1"} 1.03018496e+08
+# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes{instance="rds-mysql56",region="us-east-1"} 2.10075648e+09
+# HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
+# TYPE node_memory_PageTables_bytes gauge
+node_memory_PageTables_bytes{instance="rds-mysql56",region="us-east-1"} 7.888896e+06
+# HELP node_memory_Slab_bytes Memory information field Slab_bytes.
+# TYPE node_memory_Slab_bytes gauge
+node_memory_Slab_bytes{instance="rds-mysql56",region="us-east-1"} 3.3255424e+07
+# HELP node_memory_SwapCached_bytes Memory information field SwapCached.
+# TYPE node_memory_SwapCached_bytes gauge
+node_memory_SwapCached_bytes{instance="rds-mysql56",region="us-east-1"} 2.729984e+07
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes{instance="rds-mysql56",region="us-east-1"} 3.655856128e+09
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes{instance="rds-mysql56",region="us-east-1"} 4.194299904e+09
+# HELP node_memory_Writeback_bytes Memory information field Writeback_bytes.
+# TYPE node_memory_Writeback_bytes gauge
+node_memory_Writeback_bytes{instance="rds-mysql56",region="us-east-1"} 0
 # HELP node_procs_blocked Number of processes blocked waiting for I/O to complete.
 # TYPE node_procs_blocked gauge
 node_procs_blocked{instance="rds-mysql56",region="us-east-1"} 1
@@ -915,18 +915,18 @@ node_filesystem_size{device="rdsfilesys",fstype="rdsfilesys",instance="rds-mysql
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
 node_load1{instance="rds-mysql57",region="us-east-1"} 1.61
-# HELP node_memory_Active Memory information field Active.
-# TYPE node_memory_Active gauge
-node_memory_Active{instance="rds-mysql57",region="us-east-1"} 1.35714816e+09
-# HELP node_memory_Buffers Memory information field Buffers.
-# TYPE node_memory_Buffers gauge
-node_memory_Buffers{instance="rds-mysql57",region="us-east-1"} 1.36609792e+08
-# HELP node_memory_Cached Memory information field Cached.
-# TYPE node_memory_Cached gauge
-node_memory_Cached{instance="rds-mysql57",region="us-east-1"} 8.359936e+07
-# HELP node_memory_Dirty Memory information field Dirty.
-# TYPE node_memory_Dirty gauge
-node_memory_Dirty{instance="rds-mysql57",region="us-east-1"} 167936
+# HELP node_memory_Active_bytes Memory information field Active_bytes.
+# TYPE node_memory_Active_bytes gauge
+node_memory_Active_bytes{instance="rds-mysql57",region="us-east-1"} 1.35714816e+09
+# HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
+# TYPE node_memory_Buffers_bytes gauge
+node_memory_Buffers_bytes{instance="rds-mysql57",region="us-east-1"} 1.36609792e+08
+# HELP node_memory_Cached_bytes Memory information field Cached_bytes.
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="rds-mysql57",region="us-east-1"} 8.359936e+07
+# HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
+# TYPE node_memory_Dirty_bytes gauge
+node_memory_Dirty_bytes{instance="rds-mysql57",region="us-east-1"} 167936
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
 node_memory_HugePages_Free{instance="rds-mysql57",region="us-east-1"} 0
@@ -939,39 +939,39 @@ node_memory_HugePages_Surp{instance="rds-mysql57",region="us-east-1"} 0
 # HELP node_memory_HugePages_Total Memory information field HugePages_Total.
 # TYPE node_memory_HugePages_Total gauge
 node_memory_HugePages_Total{instance="rds-mysql57",region="us-east-1"} 0
-# HELP node_memory_Hugepagesize Memory information field Hugepagesize.
-# TYPE node_memory_Hugepagesize gauge
-node_memory_Hugepagesize{instance="rds-mysql57",region="us-east-1"} 2.097152e+06
-# HELP node_memory_Inactive Memory information field Inactive.
-# TYPE node_memory_Inactive gauge
-node_memory_Inactive{instance="rds-mysql57",region="us-east-1"} 4.87530496e+08
-# HELP node_memory_Mapped Memory information field Mapped.
-# TYPE node_memory_Mapped gauge
-node_memory_Mapped{instance="rds-mysql57",region="us-east-1"} 1.8120704e+07
-# HELP node_memory_MemFree Memory information field MemFree.
-# TYPE node_memory_MemFree gauge
-node_memory_MemFree{instance="rds-mysql57",region="us-east-1"} 1.30084864e+08
-# HELP node_memory_MemTotal Memory information field MemTotal.
-# TYPE node_memory_MemTotal gauge
-node_memory_MemTotal{instance="rds-mysql57",region="us-east-1"} 2.10075648e+09
-# HELP node_memory_PageTables Memory information field PageTables.
-# TYPE node_memory_PageTables gauge
-node_memory_PageTables{instance="rds-mysql57",region="us-east-1"} 9.15456e+06
-# HELP node_memory_Slab Memory information field Slab.
-# TYPE node_memory_Slab gauge
-node_memory_Slab{instance="rds-mysql57",region="us-east-1"} 5.5218176e+07
-# HELP node_memory_SwapCached Memory information field SwapCached.
-# TYPE node_memory_SwapCached gauge
-node_memory_SwapCached{instance="rds-mysql57",region="us-east-1"} 4.767744e+06
-# HELP node_memory_SwapFree Memory information field SwapFree.
-# TYPE node_memory_SwapFree gauge
-node_memory_SwapFree{instance="rds-mysql57",region="us-east-1"} 3.845660672e+09
-# HELP node_memory_SwapTotal Memory information field SwapTotal.
-# TYPE node_memory_SwapTotal gauge
-node_memory_SwapTotal{instance="rds-mysql57",region="us-east-1"} 4.194299904e+09
-# HELP node_memory_Writeback Memory information field Writeback.
-# TYPE node_memory_Writeback gauge
-node_memory_Writeback{instance="rds-mysql57",region="us-east-1"} 0
+# HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
+# TYPE node_memory_Hugepagesize_bytes gauge
+node_memory_Hugepagesize_bytes{instance="rds-mysql57",region="us-east-1"} 2.097152e+06
+# HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
+# TYPE node_memory_Inactive_bytes gauge
+node_memory_Inactive_bytes{instance="rds-mysql57",region="us-east-1"} 4.87530496e+08
+# HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
+# TYPE node_memory_Mapped_bytes gauge
+node_memory_Mapped_bytes{instance="rds-mysql57",region="us-east-1"} 1.8120704e+07
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes{instance="rds-mysql57",region="us-east-1"} 1.30084864e+08
+# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes{instance="rds-mysql57",region="us-east-1"} 2.10075648e+09
+# HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
+# TYPE node_memory_PageTables_bytes gauge
+node_memory_PageTables_bytes{instance="rds-mysql57",region="us-east-1"} 9.15456e+06
+# HELP node_memory_Slab_bytes Memory information field Slab_bytes.
+# TYPE node_memory_Slab_bytes gauge
+node_memory_Slab_bytes{instance="rds-mysql57",region="us-east-1"} 5.5218176e+07
+# HELP node_memory_SwapCached_bytes Memory information field SwapCached.
+# TYPE node_memory_SwapCached_bytes gauge
+node_memory_SwapCached_bytes{instance="rds-mysql57",region="us-east-1"} 4.767744e+06
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes{instance="rds-mysql57",region="us-east-1"} 3.845660672e+09
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes{instance="rds-mysql57",region="us-east-1"} 4.194299904e+09
+# HELP node_memory_Writeback_bytes Memory information field Writeback_bytes.
+# TYPE node_memory_Writeback_bytes gauge
+node_memory_Writeback_bytes{instance="rds-mysql57",region="us-east-1"} 0
 # HELP node_procs_blocked Number of processes blocked waiting for I/O to complete.
 # TYPE node_procs_blocked gauge
 node_procs_blocked{instance="rds-mysql57",region="us-east-1"} 0
@@ -1246,18 +1246,18 @@ node_filesystem_size{device="rdsfilesys",fstype="rdsfilesys",instance="rds-auror
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
 node_load1{instance="rds-aurora57",region="us-east-1"} 3.73
-# HELP node_memory_Active Memory information field Active.
-# TYPE node_memory_Active gauge
-node_memory_Active{instance="rds-aurora57",region="us-east-1"} 1.058082816e+09
-# HELP node_memory_Buffers Memory information field Buffers.
-# TYPE node_memory_Buffers gauge
-node_memory_Buffers{instance="rds-aurora57",region="us-east-1"} 9.1144192e+07
-# HELP node_memory_Cached Memory information field Cached.
-# TYPE node_memory_Cached gauge
-node_memory_Cached{instance="rds-aurora57",region="us-east-1"} 1.42553088e+08
-# HELP node_memory_Dirty Memory information field Dirty.
-# TYPE node_memory_Dirty gauge
-node_memory_Dirty{instance="rds-aurora57",region="us-east-1"} 315392
+# HELP node_memory_Active_bytes Memory information field Active_bytes.
+# TYPE node_memory_Active_bytes gauge
+node_memory_Active_bytes{instance="rds-aurora57",region="us-east-1"} 1.058082816e+09
+# HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
+# TYPE node_memory_Buffers_bytes gauge
+node_memory_Buffers_bytes{instance="rds-aurora57",region="us-east-1"} 9.1144192e+07
+# HELP node_memory_Cached_bytes Memory information field Cached_bytes.
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="rds-aurora57",region="us-east-1"} 1.42553088e+08
+# HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
+# TYPE node_memory_Dirty_bytes gauge
+node_memory_Dirty_bytes{instance="rds-aurora57",region="us-east-1"} 315392
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
 node_memory_HugePages_Free{instance="rds-aurora57",region="us-east-1"} 2048
@@ -1270,39 +1270,39 @@ node_memory_HugePages_Surp{instance="rds-aurora57",region="us-east-1"} 0
 # HELP node_memory_HugePages_Total Memory information field HugePages_Total.
 # TYPE node_memory_HugePages_Total gauge
 node_memory_HugePages_Total{instance="rds-aurora57",region="us-east-1"} 737280
-# HELP node_memory_Hugepagesize Memory information field Hugepagesize.
-# TYPE node_memory_Hugepagesize gauge
-node_memory_Hugepagesize{instance="rds-aurora57",region="us-east-1"} 2.097152e+06
-# HELP node_memory_Inactive Memory information field Inactive.
-# TYPE node_memory_Inactive gauge
-node_memory_Inactive{instance="rds-aurora57",region="us-east-1"} 1.01310464e+08
-# HELP node_memory_Mapped Memory information field Mapped.
-# TYPE node_memory_Mapped gauge
-node_memory_Mapped{instance="rds-aurora57",region="us-east-1"} 4.0566784e+07
-# HELP node_memory_MemFree Memory information field MemFree.
-# TYPE node_memory_MemFree gauge
-node_memory_MemFree{instance="rds-aurora57",region="us-east-1"} 1.12713728e+08
-# HELP node_memory_MemTotal Memory information field MemTotal.
-# TYPE node_memory_MemTotal gauge
-node_memory_MemTotal{instance="rds-aurora57",region="us-east-1"} 2.100760576e+09
-# HELP node_memory_PageTables Memory information field PageTables.
-# TYPE node_memory_PageTables gauge
-node_memory_PageTables{instance="rds-aurora57",region="us-east-1"} 6.51264e+06
-# HELP node_memory_Slab Memory information field Slab.
-# TYPE node_memory_Slab gauge
-node_memory_Slab{instance="rds-aurora57",region="us-east-1"} 3.9079936e+07
-# HELP node_memory_SwapCached Memory information field SwapCached.
-# TYPE node_memory_SwapCached gauge
-node_memory_SwapCached{instance="rds-aurora57",region="us-east-1"} 0
-# HELP node_memory_SwapFree Memory information field SwapFree.
-# TYPE node_memory_SwapFree gauge
-node_memory_SwapFree{instance="rds-aurora57",region="us-east-1"} 0
-# HELP node_memory_SwapTotal Memory information field SwapTotal.
-# TYPE node_memory_SwapTotal gauge
-node_memory_SwapTotal{instance="rds-aurora57",region="us-east-1"} 0
-# HELP node_memory_Writeback Memory information field Writeback.
-# TYPE node_memory_Writeback gauge
-node_memory_Writeback{instance="rds-aurora57",region="us-east-1"} 0
+# HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
+# TYPE node_memory_Hugepagesize_bytes gauge
+node_memory_Hugepagesize_bytes{instance="rds-aurora57",region="us-east-1"} 2.097152e+06
+# HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
+# TYPE node_memory_Inactive_bytes gauge
+node_memory_Inactive_bytes{instance="rds-aurora57",region="us-east-1"} 1.01310464e+08
+# HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
+# TYPE node_memory_Mapped_bytes gauge
+node_memory_Mapped_bytes{instance="rds-aurora57",region="us-east-1"} 4.0566784e+07
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes{instance="rds-aurora57",region="us-east-1"} 1.12713728e+08
+# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes{instance="rds-aurora57",region="us-east-1"} 2.100760576e+09
+# HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
+# TYPE node_memory_PageTables_bytes gauge
+node_memory_PageTables_bytes{instance="rds-aurora57",region="us-east-1"} 6.51264e+06
+# HELP node_memory_Slab_bytes Memory information field Slab_bytes.
+# TYPE node_memory_Slab_bytes gauge
+node_memory_Slab_bytes{instance="rds-aurora57",region="us-east-1"} 3.9079936e+07
+# HELP node_memory_SwapCached_bytes Memory information field SwapCached.
+# TYPE node_memory_SwapCached_bytes gauge
+node_memory_SwapCached_bytes{instance="rds-aurora57",region="us-east-1"} 0
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes{instance="rds-aurora57",region="us-east-1"} 0
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes{instance="rds-aurora57",region="us-east-1"} 0
+# HELP node_memory_Writeback_bytes Memory information field Writeback_bytes.
+# TYPE node_memory_Writeback_bytes gauge
+node_memory_Writeback_bytes{instance="rds-aurora57",region="us-east-1"} 0
 # HELP node_procs_blocked Number of processes blocked waiting for I/O to complete.
 # TYPE node_procs_blocked gauge
 node_procs_blocked{instance="rds-aurora57",region="us-east-1"} 0
