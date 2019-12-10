@@ -1,0 +1,196 @@
+{
+    "engine": "MYSQL",
+    "instanceID": "rds-mysql57",
+    "instanceResourceID": "db-FE4Y2GIJU6UADBOXKULV3DBATY",
+    "timestamp": "2018-09-25T08:07:03Z",
+    "version": 1.00,
+    "uptime": "235 days, 17:17:40",
+    "numVCPUs": 1,
+    "cpuUtilization": {
+        "guest": 0.00,
+        "irq": 0.10,
+        "system": 1.28,
+        "wait": 56.35,
+        "idle": 38.95,
+        "user": 0.57,
+        "total": 61.04,
+        "steal": 0.33,
+        "nice": 2.41
+    },
+    "loadAverageMinute": {
+        "fifteen": 2.58,
+        "five": 1.66,
+        "one": 1.61
+    },
+    "memory": {
+        "writeback": 0,
+        "hugePagesFree": 0,
+        "hugePagesRsvd": 0,
+        "hugePagesSurp": 0,
+        "cached": 81640,
+        "hugePagesSize": 2048,
+        "free": 127036,
+        "hugePagesTotal": 0,
+        "inactive": 476104,
+        "pageTables": 8940,
+        "dirty": 164,
+        "mapped": 17696,
+        "active": 1325340,
+        "total": 2051520,
+        "slab": 53924,
+        "buffers": 133408
+    },
+    "tasks": {
+        "sleeping": 278,
+        "zombie": 0,
+        "running": 3,
+        "stopped": 0,
+        "total": 281,
+        "blocked": 0
+    },
+    "swap": {
+        "cached": 4656,
+        "total": 4095996,
+        "out": 0.00,
+        "free": 3755528,
+        "in": 0.00
+    },
+    "network": [
+        {
+            "interface": "eth0",
+            "rx": 50482.42,
+            "tx": 792009.65
+        }
+    ],
+    "diskIO": [
+        {
+            "writeKbPS": 1667.47,
+            "readIOsPS": 190.98,
+            "await": 4.68,
+            "readKbPS": 3055.73,
+            "rrqmPS": 0.00,
+            "util": 60.63,
+            "avgQueueLen": 96.96,
+            "tps": 345.52,
+            "readKb": 183344,
+            "device": "rdsdev",
+            "writeKb": 100048,
+            "avgReqSz": 13.67,
+            "wrqmPS": 0.00,
+            "writeIOsPS": 154.53
+        }
+    ],
+    "fileSys": [
+        {
+            "used": 25990072,
+            "name": "rdsfilesys",
+            "usedFiles": 728,
+            "usedFilePercent": 0.02,
+            "maxFiles": 3932160,
+            "mountPoint": "/rdsdbdata",
+            "total": 61774768,
+            "usedPercent": 42.07
+        }
+    ],
+    "processList": [
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.00,
+            "id": 3603,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.22,
+            "id": 23950,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.20,
+            "id": 23953,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.23,
+            "id": 23958,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.22,
+            "id": 23990,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.20,
+            "id": 24000,
+            "rss": 1366964
+        },
+        {
+            "vss": 2965052,
+            "name": "mysqld",
+            "tgid": 3603,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 66.63,
+            "cpuUsedPc": 0.17,
+            "id": 24014,
+            "rss": 1366964
+        },
+        {
+            "vss": 628412,
+            "name": "OS processes",
+            "tgid": 0,
+            "vmlimit": "",
+            "parentID": 0,
+            "memoryUsedPc": 0.30,
+            "cpuUsedPc": 0.16,
+            "id": 0,
+            "rss": 6324
+        },
+        {
+            "vss": 2419092,
+            "name": "RDS processes",
+            "tgid": 0,
+            "vmlimit": "",
+            "parentID": 0,
+            "memoryUsedPc": 10.77,
+            "cpuUsedPc": 0.06,
+            "id": 0,
+            "rss": 220940
+        }
+    ]
+}

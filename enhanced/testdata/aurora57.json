@@ -1,0 +1,123 @@
+{
+    "engine": "Aurora",
+    "instanceID": "rds-aurora57",
+    "instanceResourceID": "db-CDBSN4EK5SMBQCSXI4UPZVF3W4",
+    "timestamp": "2018-09-25T08:16:20Z",
+    "version": 1.00,
+    "uptime": "186 days, 16:05:22",
+    "numVCPUs": 1,
+    "cpuUtilization": {
+        "guest": 0.00,
+        "irq": 0.03,
+        "system": 2.22,
+        "wait": 0.00,
+        "idle": 0.00,
+        "user": 3.38,
+        "total": 100.00,
+        "steal": 44.14,
+        "nice": 50.23
+    },
+    "loadAverageMinute": {
+        "fifteen": 3.99,
+        "five": 3.84,
+        "one": 3.73
+    },
+    "memory": {
+        "writeback": 0,
+        "hugePagesFree": 2048,
+        "hugePagesRsvd": 0,
+        "hugePagesSurp": 0,
+        "cached": 139212,
+        "hugePagesSize": 2048,
+        "free": 110072,
+        "hugePagesTotal": 737280,
+        "inactive": 98936,
+        "pageTables": 6360,
+        "dirty": 308,
+        "mapped": 39616,
+        "active": 1033284,
+        "total": 2051524,
+        "slab": 38164,
+        "buffers": 89008
+    },
+    "tasks": {
+        "sleeping": 254,
+        "zombie": 0,
+        "running": 6,
+        "stopped": 0,
+        "total": 260,
+        "blocked": 0
+    },
+    "swap": {
+        "cached": 0,
+        "total": 0,
+        "out": 0.00,
+        "free": 0,
+        "in": 0.00
+    },
+    "network": [
+        {
+            "interface": "eth0",
+            "rx": 736.93,
+            "tx": 5464.83
+        }
+    ],
+    "diskIO": [
+        {
+            "readLatency": 0.00,
+            "writeLatency": 24.59,
+            "writeThroughput": 551.58,
+            "readThroughput": 0.00,
+            "readIOsPS": 0.00,
+            "diskQueueDepth": 0,
+            "writeIOsPS": 1.67
+        }
+    ],
+    "fileSys": [
+        {
+            "used": 3904152,
+            "name": "rdsfilesys",
+            "usedFiles": 1575,
+            "usedFilePercent": 0.08,
+            "maxFiles": 2097152,
+            "mountPoint": "/rdsdbdata",
+            "total": 32892784,
+            "usedPercent": 11.87
+        }
+    ],
+    "processList": [
+        {
+            "vss": 1362404,
+            "name": "aurora",
+            "tgid": 31606,
+            "vmlimit": "unlimited",
+            "parentID": 1,
+            "memoryUsedPc": 14.26,
+            "cpuUsedPc": 0.00,
+            "id": 31606,
+            "rss": 292536
+        },
+        {
+            "vss": 693404,
+            "name": "OS processes",
+            "tgid": 0,
+            "vmlimit": "",
+            "parentID": 0,
+            "memoryUsedPc": 0.46,
+            "cpuUsedPc": 0.12,
+            "id": 0,
+            "rss": 9952
+        },
+        {
+            "vss": 5656964,
+            "name": "RDS processes",
+            "tgid": 0,
+            "vmlimit": "",
+            "parentID": 0,
+            "memoryUsedPc": 30.51,
+            "cpuUsedPc": 91.11,
+            "id": 0,
+            "rss": 625684
+        }
+    ]
+}

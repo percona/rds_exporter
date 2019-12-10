@@ -259,12 +259,12 @@ func makeNodeDiskMetrics(s *diskIO, constLabels prometheus.Labels) []prometheus.
 	res := make([]prometheus.Metric, 0, 2)
 
 	if s.ReadKb != nil {
-		desc := prometheus.NewDesc("node_disk_bytes_read", "The total number of bytes read successfully.", labelKeys, constLabels)
+		desc := prometheus.NewDesc("node_disk_read_bytes_total", "The total number of bytes read successfully.", labelKeys, constLabels)
 		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.ReadKb*1024), labelValues...)
 		res = append(res, m)
 	}
 	if s.WriteKb != nil {
-		desc := prometheus.NewDesc("node_disk_bytes_written", "The total number of bytes written successfully.", labelKeys, constLabels)
+		desc := prometheus.NewDesc("node_disk_written_bytes_total", "The total number of bytes written successfully.", labelKeys, constLabels)
 		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.WriteKb*1024), labelValues...)
 		res = append(res, m)
 	}
@@ -310,11 +310,11 @@ func makeNodeFilesystemMetrics(s *fileSys, constLabels prometheus.Labels) []prom
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.MaxFiles-s.UsedFiles)*1024), labelValues...))
 
 	// report the same value for node_filesystem_free and node_filesystem_avail because we use both metrics in our dashboards
-	desc = prometheus.NewDesc("node_filesystem_size", "Filesystem size in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("node_filesystem_size_bytes", "Filesystem size in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(s.Total*1024), labelValues...))
-	desc = prometheus.NewDesc("node_filesystem_free", "Filesystem free space in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("node_filesystem_free_bytes", "Filesystem free space in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.Total-s.Used)*1024), labelValues...))
-	desc = prometheus.NewDesc("node_filesystem_avail", "Filesystem space available to non-root users in bytes.", labelKeys, constLabels)
+	desc = prometheus.NewDesc("node_filesystem_avail_bytes", "Filesystem space available to non-root users in bytes.", labelKeys, constLabels)
 	res = append(res, prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64((s.Total-s.Used)*1024), labelValues...))
 
 	return res
