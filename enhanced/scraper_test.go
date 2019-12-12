@@ -20,7 +20,7 @@ func TestScraper(t *testing.T) {
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
 	require.NoError(t, err)
 
-	session, instance := sess.GetSession("us-east-1", "rds-mysql56")
+	session, instance := sess.GetSession("us-west-2", "autotest-mysql-57")
 	require.NotNil(t, session)
 	require.NotNil(t, instance)
 	scraper := newScraper(session, []sessions.Instance{*instance})
@@ -36,32 +36,32 @@ func TestBetterTimes(t *testing.T) {
 	for _, td := range []testdata{
 		{
 			allTimes: map[string][]time.Time{
-				"db-CDBSN4EK5SMBQCSXI4UPZVF3W4": {
+				"1": {
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
 				},
-				"db-J6JH3LJAWBZ6MXDDWYRG4RRJ6A": {
+				"2": {
 					time.Date(2018, 9, 29, 16, 25, 46, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 46, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
 				},
-				"db-P5QCHK64NWDD5BLLBVT5NPQS2Q": {
+				"3": {
 					time.Date(2018, 9, 29, 16, 25, 51, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 51, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
 				},
-				"db-FE4Y2GIJU6UADBOXKULV3DBATY": {
+				"4": {
 					time.Date(2018, 9, 29, 16, 26, 3, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 3, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
 				},
 			},
 			expectedTimes: map[string]time.Time{
-				"db-CDBSN4EK5SMBQCSXI4UPZVF3W4": time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
-				"db-J6JH3LJAWBZ6MXDDWYRG4RRJ6A": time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
-				"db-P5QCHK64NWDD5BLLBVT5NPQS2Q": time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
-				"db-FE4Y2GIJU6UADBOXKULV3DBATY": time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
+				"1": time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
+				"2": time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
+				"3": time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
+				"4": time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
 			},
 			expectedNextStartTime: time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
 		},

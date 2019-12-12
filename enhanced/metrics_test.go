@@ -38,9 +38,10 @@ func TestParse(t *testing.T) {
 		region    string
 		timestamp time.Time
 	}{
-		{"mysql56", "us-east-1", time.Date(2019, 12, 10, 16, 42, 21, 0, time.UTC)},
-		{"mysql57", "us-east-1", time.Date(2018, 9, 25, 8, 7, 3, 0, time.UTC)},
-		{"aurora1", "us-east-1", time.Date(2019, 12, 10, 16, 45, 42, 0, time.UTC)},
+		{"aurora-mysql-56", "us-east-1", time.Date(2019, 12, 12, 12, 31, 31, 0, time.UTC)},
+		{"psql-10", "us-west-1", time.Date(2019, 12, 12, 12, 32, 17, 0, time.UTC)},
+		{"mysql-57", "us-west-2", time.Date(2019, 12, 12, 12, 32, 13, 0, time.UTC)},
+		{"aurora-psql-11", "us-west-2", time.Date(2019, 12, 12, 12, 32, 7, 0, time.UTC)},
 	} {
 		data := data
 		t.Run(data.name, func(t *testing.T) {
