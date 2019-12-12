@@ -30,10 +30,10 @@ before_cache:
 
 env:
   global:
-    # AWS - PMM Autotest account. TODO https://jira.percona.com/browse/PMM-4896
+    # AWS - PMM Autotest account.
     # Travis secrets are not exposed to pull requests from forks: https://docs.travis-ci.com/user/pull-requests#pull-requests-and-security-restrictions
-    - AWS_ACCESS_KEY=AKIAZPBRO3QWKASXOQEZ
-    - secure: "ZsqWjlnthwiHrMCytHeYLzC6pasDzBYZAL4vPdx7+viGiahIoYDeN+FkoXASYP4Z9RachE3GKquXeTPKCjAJ0elvYKHe1PC6+BsZrQWVOIMMqa1vMOuPVAMk7ohDsE4JqzjxdWYAErxE/GgcE7+7F/s79d+x+zpg0c0DVkNiprFWYnz2liKX0Ya926anDUAfT1fsHfSjDETufrNs06jfNMroFbEN22ebxiKL8Xbip6f3fY2SEasmiQ5MhmjMreDTY1zemnTvsaMNzjzSou3z+zqV6Z/Xt/FrS4t42vmo37w9wLYUlREPR0FJ6Z+c5PI4l/+RdBKQfvlilZDIq60ZeF3uHE2tVlSMXaOtNS7EVO9vJjxWb2qSLWeh8kmGsT87sBocUVILFG3ibmnbPiGtW4rDxqgtYPnAaxDU8yQL72K1EDkuJytQIXXDefHZ/FA5/+UTzv3cCIF2OviIVx2oEHrnkbq+YPvyjLGzp+eg8/In8m5Mc63UoepknLvlz5JrUKYePj2IUuyI2Dvl7+O4qm5o+SvNutoeYJYsWrKkPiaDXfAJ+J4QMerO2qbF2AWCQHHfeTRK8Sn6geK0ZK8SXEVeIty5IA95Bt/pBZJ4ZCn8ehK3nvepLOwhy/gGyejrjMlG9rcAvAyvnSN8aT1cHJJaKkAlF22chLVQ1pIcukE="
+    - AWS_ACCESS_KEY=AKIAZPBRO3QWGCO72MJZ
+    - secure: "X8jXCbsnCkyEsZN11AQ5NgF5Wl84ZTWxr8LuWXgVZ/3QwRvY7rK25FZVwf8TQqF3wch92WFnSwF9jQ37cz0H6SOa+tQ0NHDhUGIqEfdIlIfb8lGvEEPsD3OPenqRZWDRFFoywgkqu+PZU2uuFW5gC93RbClgBGv4oy+NrJF+Etkikv6E+mMZQc0O/UtEZUyXvRnfKY0/zPAHPsSNtEBvk3Q2lAIsl31pfMn6m1rBxPmuHShsigo+smMZTGXkijIa/aXUNOxz5lXppjvMmbNAg4/3+46MHTDXLmX7irGaUMvKKi4Ya6Hvu9+6UGjInrothVN98Y2k2J+ERZooM7ND7kv3vn3RilYbBhnpsdmmpL0nEQYTsJBvaaWKRZMIxS0Xd21CKOSGN+8Omq9iBgiW1L87xKxYD78OF+2Z9VwzHHk+Oaq2ky3LT/z3WGtnMWpURSxvjw76neFIxoIMHFVIZh0kywrmObZy3mgF0zzC/jRU2PK/ie9k0LJhxuHoEeb4b55f1PmUfhCJ7KblE3x13SlUUQqnvIL7qscKL1nEtFl/kidHtBYJAZzi0ctb2mHduzi89VYKqu6w3S93HpQQLkqpg9+i+i890mQrpytFGrcGVj4SikIE1fwlv/V8MS9zZukvizSV9l/Z0hV5YDqqHPX0UICrf7w/u9vkZSsz45g="
 
 script:
   - make travis
