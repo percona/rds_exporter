@@ -3,10 +3,10 @@
 
 instances:
   - region: us-east-1
-    instance: rds-aurora1
+    instance: autotest-aurora-mysql-56
   - region: us-east-1
-    instance: rds-aurora57
-  - region: us-east-1
-    instance: rds-mysql56
-  - region: us-west-1
-    instance: rds-mysql57
+    instance: autotest-psql-10
+  - region: us-west-2
+    instance: autotest-mysql-57
+  - region: us-west-2
+    instance: autotest-aurora-psql-11
