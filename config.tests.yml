@@ -10,3 +10,5 @@ instances:
     instance: autotest-mysql-57
   - region: us-west-2
     instance: autotest-aurora-psql-11
+  - region: us-west-2
+    instance: no-such-instance
