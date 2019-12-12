@@ -15,11 +15,12 @@ import (
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
-	instances      []sessions.Instance
-	logStreamNames []string
-	svc            *cloudwatchlogs.CloudWatchLogs
-	nextStartTime  time.Time
-	logger         log.Logger
+	instances             []sessions.Instance
+	logStreamNames        []string
+	svc                   *cloudwatchlogs.CloudWatchLogs
+	nextStartTime         time.Time
+	logger                log.Logger
+	disallowUnknownFields bool // for tests
 }
 
 func newScraper(session *session.Session, instances []sessions.Instance) *scraper {
@@ -87,7 +88,7 @@ func (s *scraper) scrape(ctx context.Context) map[string][]prometheus.Metric {
 			l = l.With("region", instance.Region).With("instance", instance.Instance)
 
 			// l.Debugf("Message:\n%s", *event.Message)
-			osMetrics, err := parseOSMetrics([]byte(*event.Message))
+			osMetrics, err := parseOSMetrics([]byte(*event.Message), s.disallowUnknownFields)
 			if err != nil {
 				l.Errorf("Failed to parse metrics: %s.", err)
 				continue

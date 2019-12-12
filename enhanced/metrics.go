@@ -1,6 +1,7 @@
 package enhanced
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -36,6 +37,9 @@ type osMetrics struct {
 	ProcessList       []processList     `json:"processList"`
 	Swap              swap              `json:"swap"`
 	Tasks             tasks             `json:"tasks"`
+
+	// TODO Handle this: https://jira.percona.com/browse/PMM-3835
+	PhysicalDeviceIO []diskIO `json:"physicalDeviceIO"`
 }
 
 type cpuUtilization struct {
@@ -132,6 +136,9 @@ type processList struct {
 	RSS          int     `json:"rss"          help:"The amount of RAM allocated to the process, in kilobytes."`
 	TGID         int     `json:"tgid"         help:"The thread group identifier, which is a number representing the process ID to which a thread belongs. This identifier is used to group threads from the same process."`
 	VSS          int     `json:"vss"          help:"The amount of virtual memory allocated to the process, in kilobytes."`
+
+	// TODO Handle this.
+	VMLimit interface{} `json:"vmlimit" help:"-"`
 }
 
 //nolint:lll
@@ -155,9 +162,14 @@ type tasks struct {
 }
 
 // parseOSMetrics parses OS metrics from given JSON data.
-func parseOSMetrics(b []byte) (*osMetrics, error) {
+func parseOSMetrics(b []byte, disallowUnknownFields bool) (*osMetrics, error) {
+	d := json.NewDecoder(bytes.NewReader(b))
+	if disallowUnknownFields {
+		d.DisallowUnknownFields()
+	}
+
 	var m osMetrics
-	if err := json.Unmarshal(b, &m); err != nil {
+	if err := d.Decode(&m); err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -180,7 +192,7 @@ func makeGauge(desc *prometheus.Desc, labelValues []string, value reflect.Value)
 	case reflect.Int, reflect.Int64:
 		f = float64(value.Int())
 	default:
-		panic(fmt.Errorf("can't make a metric value from %v (%s)", value, kind))
+		panic(fmt.Errorf("can't make a metric value for %s from %v (%s)", desc, value, kind))
 	}
 
 	return prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, f, labelValues...)
@@ -384,6 +396,10 @@ func makeRDSProcessListMetrics(s *processList, constLabels prometheus.Labels) []
 	for i := 0; i < t.NumField(); i++ {
 		tags := t.Field(i).Tag
 		name, help := tags.Get("json"), tags.Get("help")
+		if help == "-" {
+			continue
+		}
+
 		switch name {
 		case "name", "id", "parentID", "tgid":
 			continue

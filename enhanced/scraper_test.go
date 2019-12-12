@@ -2,6 +2,8 @@ package enhanced
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,11 +22,27 @@ func TestScraper(t *testing.T) {
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
 	require.NoError(t, err)
 
-	session, instance := sess.GetSession("us-west-2", "autotest-mysql-57")
-	require.NotNil(t, session)
-	require.NotNil(t, instance)
-	scraper := newScraper(session, []sessions.Instance{*instance})
-	scraper.scrape(context.Background())
+	for session, instances := range sess.AllSessions() {
+		session, instances := session, instances
+		t.Run(fmt.Sprint(instances), func(t *testing.T) {
+			// do not update files concurrently
+			if !*golden {
+				t.Parallel()
+			}
+
+			s := newScraper(session, instances)
+			s.disallowUnknownFields = true
+			allMetrics := s.scrape(context.Background())
+			assert.Len(t, allMetrics, len(instances))
+
+			for _, instance := range instances {
+				expected := readMetrics(t, strings.TrimPrefix(instance.Instance, "autotest-"))
+
+				// TODO
+				_ = expected
+			}
+		})
+	}
 }
 
 func TestBetterTimes(t *testing.T) {
