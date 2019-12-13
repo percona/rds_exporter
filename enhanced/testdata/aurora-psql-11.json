@@ -2,103 +2,103 @@
     "engine": "aurora-postgresql",
     "instanceID": "autotest-aurora-psql-11",
     "instanceResourceID": "db-MZ2RNFOFFZTGHAE2QR46PD2CH4",
-    "timestamp": "2019-12-13T18:08:07Z",
+    "timestamp": "2019-12-13T20:00:07Z",
     "version": 1,
-    "uptime": "1 day, 07:37:32",
+    "uptime": "1 day, 09:29:32",
     "numVCPUs": 2,
     "cpuUtilization": {
         "guest": 0.0,
         "irq": 0.0,
-        "system": 1.9,
+        "system": 2.0,
         "wait": 0.3,
-        "idle": 94.3,
-        "user": 2.0,
-        "total": 5.7,
-        "steal": 1.1,
+        "idle": 93.3,
+        "user": 2.5,
+        "total": 6.5,
+        "steal": 1.3,
         "nice": 0.4
     },
     "loadAverageMinute": {
         "one": 0.15,
-        "five": 0.22,
-        "fifteen": 0.17
+        "five": 0.17,
+        "fifteen": 0.12
     },
     "memory": {
         "writeback": 0,
         "hugePagesFree": 14,
         "hugePagesRsvd": 7,
         "hugePagesSurp": 0,
-        "cached": 567680,
+        "cached": 560336,
         "hugePagesSize": 2048,
-        "free": 235596,
+        "free": 238348,
         "hugePagesTotal": 1119,
-        "inactive": 282116,
-        "pageTables": 8032,
-        "dirty": 660,
-        "mapped": 248144,
-        "active": 1022948,
+        "inactive": 272940,
+        "pageTables": 8140,
+        "dirty": 3168,
+        "mapped": 248708,
+        "active": 1028280,
         "total": 3980392,
-        "slab": 87800,
-        "buffers": 237848
+        "slab": 89052,
+        "buffers": 240548
     },
     "tasks": {
         "sleeping": 103,
         "zombie": 0,
-        "running": 2,
+        "running": 1,
         "stopped": 0,
-        "total": 105,
+        "total": 104,
         "blocked": 0
     },
     "swap": {
-        "cached": 0,
+        "cached": 4,
         "total": 2093052,
-        "free": 2093052,
+        "free": 2092796,
         "in": 0.0,
         "out": 0.0
     },
     "network": [
         {
             "interface": "eth0",
-            "rx": 599.47,
-            "tx": 3689.73
+            "rx": 583.13,
+            "tx": 3550.38
         }
     ],
     "diskIO": [
         {
             "readLatency": 0.0,
-            "writeLatency": 1.53,
-            "writeThroughput": 573.0,
+            "writeLatency": 1.64,
+            "writeThroughput": 604.72,
             "readThroughput": 0.0,
             "readIOsPS": 0.0,
-            "writeIOsPS": 3.05,
+            "writeIOsPS": 3.13,
             "diskQueueDepth": 0
         },
         {
-            "writeKbPS": 21.4,
+            "writeKbPS": 20.47,
             "readIOsPS": 0.0,
-            "await": 1.0,
+            "await": 0.12,
             "readKbPS": 0.0,
             "rrqmPS": 0.0,
-            "util": 0.09,
+            "util": 0.02,
             "avgQueueLen": 0.0,
-            "tps": 4.68,
+            "tps": 4.47,
             "readKb": 0,
             "device": "rdstemp",
-            "writeKb": 1284,
-            "avgReqSz": 9.14,
+            "writeKb": 1228,
+            "avgReqSz": 9.16,
             "wrqmPS": 0.0,
-            "writeIOsPS": 4.68
+            "writeIOsPS": 4.47
         }
     ],
     "fileSys": [
         {
-            "used": 228744,
+            "used": 234240,
             "name": "",
-            "usedFiles": 3351,
-            "usedFilePercent": 0.64,
+            "usedFiles": 3467,
+            "usedFilePercent": 0.66,
             "maxFiles": 524288,
             "mountPoint": "/rdsdbdata",
             "total": 8121784,
-            "usedPercent": 2.82
+            "usedPercent": 2.88
         }
     ],
     "processList": [
@@ -108,20 +108,20 @@
             "tgid": 0,
             "parentID": 0,
             "memoryUsedPc": 1.16,
-            "cpuUsedPc": 0.02,
+            "cpuUsedPc": 0.01,
             "id": 0,
-            "rss": 46364,
+            "rss": 46360,
             "vmlimit": 0
         },
         {
-            "vss": 5517536,
+            "vss": 5501968,
             "name": "RDS processes",
             "tgid": 0,
             "parentID": 0,
-            "memoryUsedPc": 12.55,
-            "cpuUsedPc": 1.74,
+            "memoryUsedPc": 12.57,
+            "cpuUsedPc": 2.3,
             "id": 0,
-            "rss": 499372,
+            "rss": 500212,
             "vmlimit": 0
         },
         {
@@ -130,7 +130,7 @@
             "tgid": 8620,
             "parentID": 1,
             "memoryUsedPc": 4.84,
-            "cpuUsedPc": 0.37,
+            "cpuUsedPc": 0.38,
             "id": 8620,
             "rss": 192508,
             "vmlimit": "unlimited"
@@ -141,7 +141,7 @@
             "tgid": 8666,
             "parentID": 1,
             "memoryUsedPc": 3.55,
-            "cpuUsedPc": 0.01,
+            "cpuUsedPc": 0.0,
             "id": 8666,
             "rss": 141148,
             "vmlimit": "unlimited"
@@ -152,7 +152,7 @@
             "tgid": 8667,
             "parentID": 8666,
             "memoryUsedPc": 0.73,
-            "cpuUsedPc": 0.0,
+            "cpuUsedPc": 0.01,
             "id": 8667,
             "rss": 29056,
             "vmlimit": "unlimited"
@@ -163,9 +163,9 @@
             "tgid": 8670,
             "parentID": 8666,
             "memoryUsedPc": 3.39,
-            "cpuUsedPc": 0.11,
+            "cpuUsedPc": 0.1,
             "id": 8670,
-            "rss": 134828,
+            "rss": 134944,
             "vmlimit": "unlimited"
         },
         {
@@ -240,7 +240,7 @@
             "tgid": 9945,
             "parentID": 8666,
             "memoryUsedPc": 0.42,
-            "cpuUsedPc": 0.01,
+            "cpuUsedPc": 0.0,
             "id": 9945,
             "rss": 16532,
             "vmlimit": "unlimited"

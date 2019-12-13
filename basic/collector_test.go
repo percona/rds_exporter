@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/percona/exporter_shared/helpers"
@@ -21,21 +22,27 @@ func TestCollector(t *testing.T) {
 
 	c := New(cfg, sess)
 
-	metrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
-	for _, m := range metrics {
-		m.Value = 0
-	}
-	actual := helpers.Format(helpers.WriteMetrics(metrics))
+	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
+	sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
+	actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 	if *goldenTXT {
-		writeTestDataMetrics(t, actual)
+		writeTestDataMetrics(t, actualLines)
 	}
 
-	metrics = helpers.ReadMetrics(helpers.Parse(readTestDataMetrics(t)))
-	for _, m := range metrics {
+	for _, m := range actualMetrics {
 		m.Value = 0
 	}
-	expected := helpers.Format(helpers.WriteMetrics(metrics))
+	actualLines = helpers.Format(helpers.WriteMetrics(actualMetrics))
 
-	assert.Equal(t, expected, actual)
+	expectedMetrics := helpers.ReadMetrics(helpers.Parse(readTestDataMetrics(t)))
+	sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
+	for _, m := range expectedMetrics {
+		m.Value = 0
+	}
+	expectedLines := helpers.Format(helpers.WriteMetrics(expectedMetrics))
+
+	// compare both to try to avoid go-difflib bug
+	assert.Equal(t, expectedLines, actualLines)
+	assert.Equal(t, expectedMetrics, actualMetrics)
 }

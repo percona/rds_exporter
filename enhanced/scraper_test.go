@@ -3,6 +3,7 @@ package enhanced
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -39,10 +40,12 @@ func TestScraper(t *testing.T) {
 
 				instanceName := strings.TrimPrefix(instance.Instance, "autotest-")
 
-				actual := helpers.ReadMetrics(metrics[instance.ResourceID])
-				for _, m := range actual {
+				actualMetrics := helpers.ReadMetrics(metrics[instance.ResourceID])
+				sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
+				for _, m := range actualMetrics {
 					m.Value = 0
 				}
+				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 				if *golden {
 					writeTestDataJSON(t, instanceName, []byte(messages[instance.ResourceID]))
@@ -50,12 +53,16 @@ func TestScraper(t *testing.T) {
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
 				require.NoError(t, err)
-				expected := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, nil))
-				for _, m := range expected {
+				expectedMetrics := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, nil))
+				sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
+				for _, m := range expectedMetrics {
 					m.Value = 0
 				}
+				expectedLines := helpers.Format(helpers.WriteMetrics(expectedMetrics))
 
-				assert.Equal(t, expected, actual)
+				// compare both to try to avoid go-difflib bug
+				assert.Equal(t, expectedLines, actualLines)
+				assert.Equal(t, expectedMetrics, actualMetrics)
 			}
 		})
 	}

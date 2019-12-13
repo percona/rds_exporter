@@ -47,6 +47,10 @@ type Metric struct {
 	Value  float64
 }
 
+func (m *Metric) String() string {
+	return fmt.Sprintf("%+v", *m)
+}
+
 // Less returns true if m < m2 in some stable order. Can be used for sorting.
 func (m *Metric) Less(m2 *Metric) bool {
 	if m.Name != m2.Name {

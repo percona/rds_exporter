@@ -1,6 +1,7 @@
 package enhanced
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/percona/exporter_shared/helpers"
@@ -25,15 +26,21 @@ func TestParse(t *testing.T) {
 			m, err := parseOSMetrics(readTestDataJSON(t, data.instance), true)
 			require.NoError(t, err)
 
-			actual := helpers.Format(m.makePrometheusMetrics(data.region, nil))
+			actualMetrics := helpers.ReadMetrics(m.makePrometheusMetrics(data.region, nil))
+			sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
+			actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 			if *goldenTXT {
-				writeTestDataMetrics(t, data.instance, actual)
+				writeTestDataMetrics(t, data.instance, actualLines)
 			}
 
-			expected := readTestDataMetrics(t, data.instance)
+			expectedLines := readTestDataMetrics(t, data.instance)
+			expectedMetrics := helpers.ReadMetrics(helpers.Parse(expectedLines))
+			sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
 
-			assert.Equal(t, expected, actual)
+			// compare both to try to avoid go-difflib bug
+			assert.Equal(t, expectedLines, actualLines)
+			assert.Equal(t, expectedMetrics, actualMetrics)
 		})
 	}
 }

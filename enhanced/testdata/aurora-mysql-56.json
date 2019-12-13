@@ -2,43 +2,43 @@
     "engine": "Aurora",
     "instanceID": "autotest-aurora-mysql-56",
     "instanceResourceID": "db-OQT42DPIZWWQBVXQ2LH2BW3SV4",
-    "timestamp": "2019-12-13T18:07:31Z",
+    "timestamp": "2019-12-13T20:00:31Z",
     "version": 1,
-    "uptime": "1 day, 07:21:58",
+    "uptime": "1 day, 09:14:58",
     "numVCPUs": 2,
     "cpuUtilization": {
         "guest": 0.0,
         "irq": 0.0,
         "system": 1.1,
         "wait": 0.3,
-        "idle": 96.7,
-        "user": 1.8,
-        "total": 3.4,
+        "idle": 95.9,
+        "user": 2.6,
+        "total": 4.2,
         "steal": 0.2,
         "nice": 0.0
     },
     "loadAverageMinute": {
-        "one": 0.0,
-        "five": 0.03,
-        "fifteen": 0.06
+        "one": 0.09,
+        "five": 0.17,
+        "fifteen": 0.12
     },
     "memory": {
         "writeback": 0,
         "hugePagesFree": 3,
         "hugePagesRsvd": 0,
         "hugePagesSurp": 0,
-        "cached": 590124,
+        "cached": 600576,
         "hugePagesSize": 2048,
-        "free": 185980,
+        "free": 167528,
         "hugePagesTotal": 789,
-        "inactive": 271228,
-        "pageTables": 7444,
-        "dirty": 276,
-        "mapped": 135092,
-        "active": 1861448,
+        "inactive": 259300,
+        "pageTables": 7392,
+        "dirty": 168,
+        "mapped": 130632,
+        "active": 1887856,
         "total": 4049872,
-        "slab": 75740,
-        "buffers": 237432
+        "slab": 77208,
+        "buffers": 241792
     },
     "tasks": {
         "sleeping": 101,
@@ -58,47 +58,47 @@
     "network": [
         {
             "interface": "eth0",
-            "rx": 557.68,
-            "tx": 6271.28
+            "rx": 615.12,
+            "tx": 6498.3
         }
     ],
     "diskIO": [
         {
             "readLatency": 0.0,
-            "writeLatency": 1.38,
-            "writeThroughput": 1413.97,
+            "writeLatency": 1.39,
+            "writeThroughput": 1358.48,
             "readThroughput": 0.0,
             "readIOsPS": 0.0,
-            "writeIOsPS": 4.63,
+            "writeIOsPS": 4.52,
             "diskQueueDepth": 0
         },
         {
-            "writeKbPS": 7.2,
-            "readIOsPS": 0.0,
-            "await": 1.18,
-            "readKbPS": 0.0,
+            "writeKbPS": 7.87,
+            "readIOsPS": 0.2,
+            "await": 0.43,
+            "readKbPS": 0.8,
             "rrqmPS": 0.0,
-            "util": 0.04,
+            "util": 0.03,
             "avgQueueLen": 0.0,
-            "tps": 1.7,
-            "readKb": 0,
+            "tps": 2.03,
+            "readKb": 48,
             "device": "rdstemp",
-            "writeKb": 432,
-            "avgReqSz": 8.47,
+            "writeKb": 472,
+            "avgReqSz": 8.52,
             "wrqmPS": 0.0,
-            "writeIOsPS": 1.7
+            "writeIOsPS": 1.83
         }
     ],
     "fileSys": [
         {
-            "used": 203544,
+            "used": 211040,
             "name": "",
-            "usedFiles": 308,
+            "usedFiles": 314,
             "usedFilePercent": 0.01,
             "maxFiles": 2097152,
             "mountPoint": "/rdsdbdata",
             "total": 32888592,
-            "usedPercent": 0.62
+            "usedPercent": 0.64
         }
     ],
     "processList": [
@@ -108,20 +108,20 @@
             "tgid": 0,
             "parentID": 0,
             "memoryUsedPc": 1.09,
-            "cpuUsedPc": 0.08,
+            "cpuUsedPc": 0.06,
             "id": 0,
             "rss": 43996,
             "vmlimit": 0
         },
         {
-            "vss": 5020256,
+            "vss": 5015796,
             "name": "RDS processes",
             "tgid": 0,
             "parentID": 0,
-            "memoryUsedPc": 12.06,
-            "cpuUsedPc": 1.43,
+            "memoryUsedPc": 11.96,
+            "cpuUsedPc": 2.12,
             "id": 0,
-            "rss": 488432,
+            "rss": 484188,
             "vmlimit": 0
         },
         {
@@ -130,9 +130,9 @@
             "tgid": 14666,
             "parentID": 1,
             "memoryUsedPc": 2.15,
-            "cpuUsedPc": 0.43,
+            "cpuUsedPc": 0.47,
             "id": 14666,
-            "rss": 87248,
+            "rss": 87268,
             "vmlimit": "unlimited"
         },
         {
@@ -140,10 +140,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14773,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": "unlimited"
         },
         {
@@ -151,10 +151,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14774,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -162,10 +162,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14775,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -173,10 +173,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14776,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -184,10 +184,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14777,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -195,10 +195,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.04,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.05,
             "id": 14808,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -206,10 +206,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.04,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.05,
             "id": 14809,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -217,10 +217,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14854,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -228,10 +228,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14857,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -239,10 +239,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14858,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -250,10 +250,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14859,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -261,10 +261,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14860,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -272,10 +272,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14861,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -283,10 +283,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14862,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -294,10 +294,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14863,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -305,10 +305,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14864,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -316,10 +316,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14865,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -327,10 +327,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14866,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -338,10 +338,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14867,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -349,10 +349,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 14868,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -360,10 +360,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15060,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -371,10 +371,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15061,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -382,10 +382,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.03,
             "id": 15062,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -393,10 +393,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15063,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -404,10 +404,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15064,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -415,10 +415,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.02,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.01,
             "id": 15065,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -426,10 +426,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.01,
             "id": 15091,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -437,10 +437,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15092,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -448,10 +448,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15093,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -459,10 +459,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15094,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -470,10 +470,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.05,
             "id": 15095,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -481,10 +481,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15098,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -492,10 +492,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15117,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -503,10 +503,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.45,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.46,
             "id": 15137,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -514,10 +514,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.46,
             "id": 15138,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -525,10 +525,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15139,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -536,10 +536,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15140,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -547,10 +547,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15141,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -558,10 +558,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15142,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -569,10 +569,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15143,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -580,10 +580,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15144,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -591,10 +591,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 15145,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -602,10 +602,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.01,
             "id": 15146,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -613,10 +613,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15148,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -624,10 +624,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 15150,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -635,10 +635,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.02,
             "id": 15151,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -646,10 +646,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.06,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.07,
             "id": 15152,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -657,10 +657,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 2303,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -668,10 +668,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.01,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.02,
             "id": 2304,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -679,10 +679,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.01,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.02,
             "id": 2305,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -690,10 +690,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.01,
             "id": 2318,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -701,10 +701,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.01,
             "id": 2319,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -712,10 +712,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 2320,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -723,10 +723,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.01,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.02,
             "id": 2337,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -734,10 +734,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.02,
             "id": 2338,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -745,10 +745,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.01,
             "id": 2363,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -756,10 +756,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 2364,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -767,10 +767,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 2365,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -778,10 +778,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.01,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.0,
             "id": 28556,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -789,10 +789,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.0,
             "id": 28557,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -800,21 +800,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
-            "id": 28558,
-            "rss": 902496,
-            "vmlimit": 0
-        },
-        {
-            "vss": 2963916,
-            "name": "aurora",
-            "tgid": 14773,
-            "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.01,
-            "id": 30057,
-            "rss": 902496,
+            "id": 28558,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -822,10 +811,21 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.02,
+            "id": 30057,
+            "rss": 903024,
+            "vmlimit": 0
+        },
+        {
+            "vss": 2963916,
+            "name": "aurora",
+            "tgid": 14773,
+            "parentID": 14757,
+            "memoryUsedPc": 22.3,
             "cpuUsedPc": 0.01,
             "id": 30058,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         },
         {
@@ -833,10 +833,10 @@
             "name": "aurora",
             "tgid": 14773,
             "parentID": 14757,
-            "memoryUsedPc": 22.28,
-            "cpuUsedPc": 0.0,
+            "memoryUsedPc": 22.3,
+            "cpuUsedPc": 0.01,
             "id": 30059,
-            "rss": 902496,
+            "rss": 903024,
             "vmlimit": 0
         }
     ]
