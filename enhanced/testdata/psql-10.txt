@@ -1,57 +1,57 @@
 # HELP node_cpu_average The percentage of CPU utilization.
 # TYPE node_cpu_average gauge
 node_cpu_average{cpu="All",instance="autotest-psql-10",mode="guest",region="us-west-1"} 0
-node_cpu_average{cpu="All",instance="autotest-psql-10",mode="idle",region="us-west-1"} 97
+node_cpu_average{cpu="All",instance="autotest-psql-10",mode="idle",region="us-west-1"} 95.6
 node_cpu_average{cpu="All",instance="autotest-psql-10",mode="irq",region="us-west-1"} 0
 node_cpu_average{cpu="All",instance="autotest-psql-10",mode="nice",region="us-west-1"} 0
 node_cpu_average{cpu="All",instance="autotest-psql-10",mode="steal",region="us-west-1"} 0
-node_cpu_average{cpu="All",instance="autotest-psql-10",mode="system",region="us-west-1"} 0.8
-node_cpu_average{cpu="All",instance="autotest-psql-10",mode="total",region="us-west-1"} 2.9
-node_cpu_average{cpu="All",instance="autotest-psql-10",mode="user",region="us-west-1"} 1.4
-node_cpu_average{cpu="All",instance="autotest-psql-10",mode="wait",region="us-west-1"} 0.7
+node_cpu_average{cpu="All",instance="autotest-psql-10",mode="system",region="us-west-1"} 0.6
+node_cpu_average{cpu="All",instance="autotest-psql-10",mode="total",region="us-west-1"} 4.3
+node_cpu_average{cpu="All",instance="autotest-psql-10",mode="user",region="us-west-1"} 1.2
+node_cpu_average{cpu="All",instance="autotest-psql-10",mode="wait",region="us-west-1"} 2.5
 # HELP node_disk_read_bytes_total The total number of bytes read successfully.
 # TYPE node_disk_read_bytes_total counter
 node_disk_read_bytes_total{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0
 node_disk_read_bytes_total{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0
 # HELP node_disk_written_bytes_total The total number of bytes written successfully.
 # TYPE node_disk_written_bytes_total counter
-node_disk_written_bytes_total{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1.581056e+06
-node_disk_written_bytes_total{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 528384
+node_disk_written_bytes_total{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1.45408e+06
+node_disk_written_bytes_total{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 540672
 # HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
 # TYPE node_filesystem_avail_bytes gauge
-node_filesystem_avail_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 8.466837504e+09
-node_filesystem_avail_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 6.2748901376e+10
+node_filesystem_avail_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 7.793831936e+09
+node_filesystem_avail_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 6.2597677056e+10
 # HELP node_filesystem_files Filesystem total file nodes.
 # TYPE node_filesystem_files gauge
 node_filesystem_files{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 6.7108864e+08
 node_filesystem_files{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 4.02653184e+09
 # HELP node_filesystem_files_free Filesystem total free file nodes.
 # TYPE node_filesystem_files_free gauge
-node_filesystem_files_free{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 5.94583552e+08
-node_filesystem_files_free{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 4.025155584e+09
+node_filesystem_files_free{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 5.94427904e+08
+node_filesystem_files_free{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 4.0251136e+09
 # HELP node_filesystem_free_bytes Filesystem free space in bytes.
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 8.466837504e+09
-node_filesystem_free_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 6.2748901376e+10
+node_filesystem_free_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 7.793831936e+09
+node_filesystem_free_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 6.2597677056e+10
 # HELP node_filesystem_size_bytes Filesystem size in bytes.
 # TYPE node_filesystem_size_bytes gauge
 node_filesystem_size_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/",region="us-west-1"} 1.0434666496e+10
 node_filesystem_size_bytes{device="",fstype="",instance="autotest-psql-10",mountpoint="/rdsdbdata",region="us-west-1"} 6.3257362432e+10
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
-node_load1{instance="autotest-psql-10",region="us-west-1"} 0.15
+node_load1{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP node_memory_Active_bytes Memory information field Active_bytes.
 # TYPE node_memory_Active_bytes gauge
-node_memory_Active_bytes{instance="autotest-psql-10",region="us-west-1"} 5.30694144e+08
+node_memory_Active_bytes{instance="autotest-psql-10",region="us-west-1"} 4.79531008e+08
 # HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
 # TYPE node_memory_Buffers_bytes gauge
-node_memory_Buffers_bytes{instance="autotest-psql-10",region="us-west-1"} 6.4176128e+07
+node_memory_Buffers_bytes{instance="autotest-psql-10",region="us-west-1"} 1.59408128e+08
 # HELP node_memory_Cached_bytes Memory information field Cached_bytes.
 # TYPE node_memory_Cached_bytes gauge
-node_memory_Cached_bytes{instance="autotest-psql-10",region="us-west-1"} 4.07269376e+08
+node_memory_Cached_bytes{instance="autotest-psql-10",region="us-west-1"} 4.21736448e+08
 # HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
 # TYPE node_memory_Dirty_bytes gauge
-node_memory_Dirty_bytes{instance="autotest-psql-10",region="us-west-1"} 204800
+node_memory_Dirty_bytes{instance="autotest-psql-10",region="us-west-1"} 299008
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
 node_memory_HugePages_Free{instance="autotest-psql-10",region="us-west-1"} 0
@@ -69,22 +69,22 @@ node_memory_HugePages_Total{instance="autotest-psql-10",region="us-west-1"} 0
 node_memory_Hugepagesize_bytes{instance="autotest-psql-10",region="us-west-1"} 2.097152e+06
 # HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
 # TYPE node_memory_Inactive_bytes gauge
-node_memory_Inactive_bytes{instance="autotest-psql-10",region="us-west-1"} 1.67870464e+08
+node_memory_Inactive_bytes{instance="autotest-psql-10",region="us-west-1"} 3.32230656e+08
 # HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
 # TYPE node_memory_Mapped_bytes gauge
-node_memory_Mapped_bytes{instance="autotest-psql-10",region="us-west-1"} 6.4847872e+07
+node_memory_Mapped_bytes{instance="autotest-psql-10",region="us-west-1"} 4.5580288e+07
 # HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
 # TYPE node_memory_MemFree_bytes gauge
-node_memory_MemFree_bytes{instance="autotest-psql-10",region="us-west-1"} 2.40099328e+08
+node_memory_MemFree_bytes{instance="autotest-psql-10",region="us-west-1"} 1.1524096e+08
 # HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
 # TYPE node_memory_MemTotal_bytes gauge
 node_memory_MemTotal_bytes{instance="autotest-psql-10",region="us-west-1"} 1.043791872e+09
 # HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
 # TYPE node_memory_PageTables_bytes gauge
-node_memory_PageTables_bytes{instance="autotest-psql-10",region="us-west-1"} 4.468736e+06
+node_memory_PageTables_bytes{instance="autotest-psql-10",region="us-west-1"} 4.48512e+06
 # HELP node_memory_Slab_bytes Memory information field Slab_bytes.
 # TYPE node_memory_Slab_bytes gauge
-node_memory_Slab_bytes{instance="autotest-psql-10",region="us-west-1"} 4.2274816e+07
+node_memory_Slab_bytes{instance="autotest-psql-10",region="us-west-1"} 4.9954816e+07
 # HELP node_memory_SwapCached_bytes Memory information field SwapCached.
 # TYPE node_memory_SwapCached_bytes gauge
 node_memory_SwapCached_bytes{instance="autotest-psql-10",region="us-west-1"} 0
@@ -102,7 +102,7 @@ node_memory_Writeback_bytes{instance="autotest-psql-10",region="us-west-1"} 0
 node_procs_blocked{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP node_procs_running Number of processes in runnable state.
 # TYPE node_procs_running gauge
-node_procs_running{instance="autotest-psql-10",region="us-west-1"} 0
+node_procs_running{instance="autotest-psql-10",region="us-west-1"} 1
 # HELP node_vmstat_pswpin /proc/vmstat information field pswpin
 # TYPE node_vmstat_pswpin gauge
 node_vmstat_pswpin{instance="autotest-psql-10",region="us-west-1"} 0
@@ -117,7 +117,7 @@ rdsosmetrics_General_numVCPUs{instance="autotest-psql-10",region="us-west-1"} 1
 rdsosmetrics_cpuUtilization_guest{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_cpuUtilization_idle The percentage of CPU that is idle.
 # TYPE rdsosmetrics_cpuUtilization_idle gauge
-rdsosmetrics_cpuUtilization_idle{instance="autotest-psql-10",region="us-west-1"} 97
+rdsosmetrics_cpuUtilization_idle{instance="autotest-psql-10",region="us-west-1"} 95.6
 # HELP rdsosmetrics_cpuUtilization_irq The percentage of CPU in use by software interrupts.
 # TYPE rdsosmetrics_cpuUtilization_irq gauge
 rdsosmetrics_cpuUtilization_irq{instance="autotest-psql-10",region="us-west-1"} 0
@@ -129,28 +129,28 @@ rdsosmetrics_cpuUtilization_nice{instance="autotest-psql-10",region="us-west-1"}
 rdsosmetrics_cpuUtilization_steal{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_cpuUtilization_system The percentage of CPU in use by the kernel.
 # TYPE rdsosmetrics_cpuUtilization_system gauge
-rdsosmetrics_cpuUtilization_system{instance="autotest-psql-10",region="us-west-1"} 0.8
+rdsosmetrics_cpuUtilization_system{instance="autotest-psql-10",region="us-west-1"} 0.6
 # HELP rdsosmetrics_cpuUtilization_total The total percentage of the CPU in use. This value includes the nice value.
 # TYPE rdsosmetrics_cpuUtilization_total gauge
-rdsosmetrics_cpuUtilization_total{instance="autotest-psql-10",region="us-west-1"} 2.9
+rdsosmetrics_cpuUtilization_total{instance="autotest-psql-10",region="us-west-1"} 4.3
 # HELP rdsosmetrics_cpuUtilization_user The percentage of CPU in use by user programs.
 # TYPE rdsosmetrics_cpuUtilization_user gauge
-rdsosmetrics_cpuUtilization_user{instance="autotest-psql-10",region="us-west-1"} 1.4
+rdsosmetrics_cpuUtilization_user{instance="autotest-psql-10",region="us-west-1"} 1.2
 # HELP rdsosmetrics_cpuUtilization_wait The percentage of CPU unused while waiting for I/O access.
 # TYPE rdsosmetrics_cpuUtilization_wait gauge
-rdsosmetrics_cpuUtilization_wait{instance="autotest-psql-10",region="us-west-1"} 0.7
+rdsosmetrics_cpuUtilization_wait{instance="autotest-psql-10",region="us-west-1"} 2.5
 # HELP rdsosmetrics_diskIO_avgQueueLen The number of requests waiting in the I/O device's queue.
 # TYPE rdsosmetrics_diskIO_avgQueueLen gauge
 rdsosmetrics_diskIO_avgQueueLen{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0
-rdsosmetrics_diskIO_avgQueueLen{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0.04
+rdsosmetrics_diskIO_avgQueueLen{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0.13
 # HELP rdsosmetrics_diskIO_avgReqSz The average request size, in kilobytes.
 # TYPE rdsosmetrics_diskIO_avgReqSz gauge
-rdsosmetrics_diskIO_avgReqSz{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 17.85
-rdsosmetrics_diskIO_avgReqSz{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 8
+rdsosmetrics_diskIO_avgReqSz{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 14.56
+rdsosmetrics_diskIO_avgReqSz{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 8.06
 # HELP rdsosmetrics_diskIO_await The number of milliseconds required to respond to requests, including queue time and service time.
 # TYPE rdsosmetrics_diskIO_await gauge
-rdsosmetrics_diskIO_await{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0.46
-rdsosmetrics_diskIO_await{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 17.67
+rdsosmetrics_diskIO_await{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0.53
+rdsosmetrics_diskIO_await{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 58.93
 # HELP rdsosmetrics_diskIO_readIOsPS The number of read operations per second.
 # TYPE rdsosmetrics_diskIO_readIOsPS gauge
 rdsosmetrics_diskIO_readIOsPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0
@@ -169,27 +169,27 @@ rdsosmetrics_diskIO_rrqmPS{device="filesystem",instance="autotest-psql-10",regio
 rdsosmetrics_diskIO_rrqmPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_diskIO_tps The number of I/O transactions per second.
 # TYPE rdsosmetrics_diskIO_tps gauge
-rdsosmetrics_diskIO_tps{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 2.88
-rdsosmetrics_diskIO_tps{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 2.15
+rdsosmetrics_diskIO_tps{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 3.25
+rdsosmetrics_diskIO_tps{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 2.18
 # HELP rdsosmetrics_diskIO_util The percentage of CPU time during which requests were issued.
 # TYPE rdsosmetrics_diskIO_util gauge
-rdsosmetrics_diskIO_util{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0.13
-rdsosmetrics_diskIO_util{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0.74
+rdsosmetrics_diskIO_util{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 0.17
+rdsosmetrics_diskIO_util{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 2.37
 # HELP rdsosmetrics_diskIO_writeIOsPS The number of write operations per second.
 # TYPE rdsosmetrics_diskIO_writeIOsPS gauge
-rdsosmetrics_diskIO_writeIOsPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 2.88
-rdsosmetrics_diskIO_writeIOsPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 2.15
+rdsosmetrics_diskIO_writeIOsPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 3.25
+rdsosmetrics_diskIO_writeIOsPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 2.18
 # HELP rdsosmetrics_diskIO_writeKb The total number of kilobytes written.
 # TYPE rdsosmetrics_diskIO_writeKb gauge
-rdsosmetrics_diskIO_writeKb{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1544
-rdsosmetrics_diskIO_writeKb{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 516
+rdsosmetrics_diskIO_writeKb{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1420
+rdsosmetrics_diskIO_writeKb{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 528
 # HELP rdsosmetrics_diskIO_writeKbPS The number of kilobytes written per second.
 # TYPE rdsosmetrics_diskIO_writeKbPS gauge
-rdsosmetrics_diskIO_writeKbPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 25.73
-rdsosmetrics_diskIO_writeKbPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 8.6
+rdsosmetrics_diskIO_writeKbPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 23.67
+rdsosmetrics_diskIO_writeKbPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 8.8
 # HELP rdsosmetrics_diskIO_wrqmPS The number of merged write requests queued per second.
 # TYPE rdsosmetrics_diskIO_wrqmPS gauge
-rdsosmetrics_diskIO_wrqmPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1.85
+rdsosmetrics_diskIO_wrqmPS{device="filesystem",instance="autotest-psql-10",region="us-west-1"} 1.75
 rdsosmetrics_diskIO_wrqmPS{device="rdsdev",instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_fileSys_maxFiles The maximum number of files that can be created for the file system.
 # TYPE rdsosmetrics_fileSys_maxFiles gauge
@@ -201,44 +201,44 @@ rdsosmetrics_fileSys_total{instance="autotest-psql-10",mount_point="/",name="",r
 rdsosmetrics_fileSys_total{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 6.1774768e+07
 # HELP rdsosmetrics_fileSys_used The amount of disk space used by files in the file system, in kilobytes.
 # TYPE rdsosmetrics_fileSys_used gauge
-rdsosmetrics_fileSys_used{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 1.921708e+06
-rdsosmetrics_fileSys_used{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 496544
+rdsosmetrics_fileSys_used{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 2.57894e+06
+rdsosmetrics_fileSys_used{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 644224
 # HELP rdsosmetrics_fileSys_usedFilePercent The percentage of available files in use.
 # TYPE rdsosmetrics_fileSys_usedFilePercent gauge
-rdsosmetrics_fileSys_usedFilePercent{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 11.4
-rdsosmetrics_fileSys_usedFilePercent{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 0.03
+rdsosmetrics_fileSys_usedFilePercent{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 11.42
+rdsosmetrics_fileSys_usedFilePercent{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 0.04
 # HELP rdsosmetrics_fileSys_usedFiles The number of files in the file system.
 # TYPE rdsosmetrics_fileSys_usedFiles gauge
-rdsosmetrics_fileSys_usedFiles{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 74712
-rdsosmetrics_fileSys_usedFiles{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 1344
+rdsosmetrics_fileSys_usedFiles{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 74864
+rdsosmetrics_fileSys_usedFiles{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 1385
 # HELP rdsosmetrics_fileSys_usedPercent The percentage of the file-system disk space in use.
 # TYPE rdsosmetrics_fileSys_usedPercent gauge
-rdsosmetrics_fileSys_usedPercent{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 18.86
-rdsosmetrics_fileSys_usedPercent{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 0.8
+rdsosmetrics_fileSys_usedPercent{instance="autotest-psql-10",mount_point="/",name="",region="us-west-1"} 25.31
+rdsosmetrics_fileSys_usedPercent{instance="autotest-psql-10",mount_point="/rdsdbdata",name="",region="us-west-1"} 1.04
 # HELP rdsosmetrics_loadAverageMinute_fifteen The number of processes requesting CPU time over the last 15 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_fifteen gauge
-rdsosmetrics_loadAverageMinute_fifteen{instance="autotest-psql-10",region="us-west-1"} 0.01
+rdsosmetrics_loadAverageMinute_fifteen{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_loadAverageMinute_five The number of processes requesting CPU time over the last 5 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_five gauge
-rdsosmetrics_loadAverageMinute_five{instance="autotest-psql-10",region="us-west-1"} 0.04
+rdsosmetrics_loadAverageMinute_five{instance="autotest-psql-10",region="us-west-1"} 0.02
 # HELP rdsosmetrics_loadAverageMinute_one The number of processes requesting CPU time over the last minute.
 # TYPE rdsosmetrics_loadAverageMinute_one gauge
-rdsosmetrics_loadAverageMinute_one{instance="autotest-psql-10",region="us-west-1"} 0.15
+rdsosmetrics_loadAverageMinute_one{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_memory_active The amount of assigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_active gauge
-rdsosmetrics_memory_active{instance="autotest-psql-10",region="us-west-1"} 518256
+rdsosmetrics_memory_active{instance="autotest-psql-10",region="us-west-1"} 468292
 # HELP rdsosmetrics_memory_buffers The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes.
 # TYPE rdsosmetrics_memory_buffers gauge
-rdsosmetrics_memory_buffers{instance="autotest-psql-10",region="us-west-1"} 62672
+rdsosmetrics_memory_buffers{instance="autotest-psql-10",region="us-west-1"} 155672
 # HELP rdsosmetrics_memory_cached The amount of memory used for caching file system–based I/O.
 # TYPE rdsosmetrics_memory_cached gauge
-rdsosmetrics_memory_cached{instance="autotest-psql-10",region="us-west-1"} 397724
+rdsosmetrics_memory_cached{instance="autotest-psql-10",region="us-west-1"} 411852
 # HELP rdsosmetrics_memory_dirty The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes.
 # TYPE rdsosmetrics_memory_dirty gauge
-rdsosmetrics_memory_dirty{instance="autotest-psql-10",region="us-west-1"} 200
+rdsosmetrics_memory_dirty{instance="autotest-psql-10",region="us-west-1"} 292
 # HELP rdsosmetrics_memory_free The amount of unassigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_free gauge
-rdsosmetrics_memory_free{instance="autotest-psql-10",region="us-west-1"} 234472
+rdsosmetrics_memory_free{instance="autotest-psql-10",region="us-west-1"} 112540
 # HELP rdsosmetrics_memory_hugePagesFree The number of free huge pages. Huge pages are a feature of the Linux kernel.
 # TYPE rdsosmetrics_memory_hugePagesFree gauge
 rdsosmetrics_memory_hugePagesFree{instance="autotest-psql-10",region="us-west-1"} 0
@@ -256,16 +256,16 @@ rdsosmetrics_memory_hugePagesSurp{instance="autotest-psql-10",region="us-west-1"
 rdsosmetrics_memory_hugePagesTotal{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_memory_inactive The amount of least-frequently used memory pages, in kilobytes.
 # TYPE rdsosmetrics_memory_inactive gauge
-rdsosmetrics_memory_inactive{instance="autotest-psql-10",region="us-west-1"} 163936
+rdsosmetrics_memory_inactive{instance="autotest-psql-10",region="us-west-1"} 324444
 # HELP rdsosmetrics_memory_mapped The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes.
 # TYPE rdsosmetrics_memory_mapped gauge
-rdsosmetrics_memory_mapped{instance="autotest-psql-10",region="us-west-1"} 63328
+rdsosmetrics_memory_mapped{instance="autotest-psql-10",region="us-west-1"} 44512
 # HELP rdsosmetrics_memory_pageTables The amount of memory used by page tables, in kilobytes.
 # TYPE rdsosmetrics_memory_pageTables gauge
-rdsosmetrics_memory_pageTables{instance="autotest-psql-10",region="us-west-1"} 4364
+rdsosmetrics_memory_pageTables{instance="autotest-psql-10",region="us-west-1"} 4380
 # HELP rdsosmetrics_memory_slab The amount of reusable kernel data structures, in kilobytes.
 # TYPE rdsosmetrics_memory_slab gauge
-rdsosmetrics_memory_slab{instance="autotest-psql-10",region="us-west-1"} 41284
+rdsosmetrics_memory_slab{instance="autotest-psql-10",region="us-west-1"} 48784
 # HELP rdsosmetrics_memory_total The total amount of memory, in kilobytes.
 # TYPE rdsosmetrics_memory_total gauge
 rdsosmetrics_memory_total{instance="autotest-psql-10",region="us-west-1"} 1.019328e+06
@@ -274,53 +274,53 @@ rdsosmetrics_memory_total{instance="autotest-psql-10",region="us-west-1"} 1.0193
 rdsosmetrics_memory_writeback{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_network_rx The number of bytes received per second.
 # TYPE rdsosmetrics_network_rx gauge
-rdsosmetrics_network_rx{instance="autotest-psql-10",interface="eth0",region="us-west-1"} 484.8
+rdsosmetrics_network_rx{instance="autotest-psql-10",interface="eth0",region="us-west-1"} 479.2
 # HELP rdsosmetrics_network_tx The number of bytes uploaded per second.
 # TYPE rdsosmetrics_network_tx gauge
-rdsosmetrics_network_tx{instance="autotest-psql-10",interface="eth0",region="us-west-1"} 2878.72
+rdsosmetrics_network_tx{instance="autotest-psql-10",interface="eth0",region="us-west-1"} 2822.25
 # HELP rdsosmetrics_processList_cpuUsedPc The percentage of CPU used by the process.
 # TYPE rdsosmetrics_processList_cpuUsedPc gauge
-rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 1.25
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 0
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 1.13
 rdsosmetrics_processList_cpuUsedPc{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 0
 rdsosmetrics_processList_cpuUsedPc{id="6874",instance="autotest-psql-10",name="postgres: logger process   ",parentID="6873",region="us-west-1",tgid="6874"} 0
 rdsosmetrics_processList_cpuUsedPc{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 0
 rdsosmetrics_processList_cpuUsedPc{id="6877",instance="autotest-psql-10",name="postgres: writer process   ",parentID="6873",region="us-west-1",tgid="6877"} 0
 rdsosmetrics_processList_cpuUsedPc{id="6878",instance="autotest-psql-10",name="postgres: wal writer process   ",parentID="6873",region="us-west-1",tgid="6878"} 0
-rdsosmetrics_processList_cpuUsedPc{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 0
-rdsosmetrics_processList_cpuUsedPc{id="6880",instance="autotest-psql-10",name="postgres: stats collector process   ",parentID="6873",region="us-west-1",tgid="6880"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="6880",instance="autotest-psql-10",name="postgres: stats collector process   ",parentID="6873",region="us-west-1",tgid="6880"} 0.02
 rdsosmetrics_processList_cpuUsedPc{id="6881",instance="autotest-psql-10",name="postgres: bgworker: logical replication launcher   ",parentID="6873",region="us-west-1",tgid="6881"} 0
 rdsosmetrics_processList_cpuUsedPc{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 0
 # HELP rdsosmetrics_processList_memoryUsedPc The amount of memory used by the process, in kilobytes.
 # TYPE rdsosmetrics_processList_memoryUsedPc gauge
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 3.79
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 26.17
-rdsosmetrics_processList_memoryUsedPc{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 2.35
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 3.92
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 24.05
+rdsosmetrics_processList_memoryUsedPc{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 2.32
 rdsosmetrics_processList_memoryUsedPc{id="6874",instance="autotest-psql-10",name="postgres: logger process   ",parentID="6873",region="us-west-1",tgid="6874"} 0.42
-rdsosmetrics_processList_memoryUsedPc{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 1.34
+rdsosmetrics_processList_memoryUsedPc{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 1.71
 rdsosmetrics_processList_memoryUsedPc{id="6877",instance="autotest-psql-10",name="postgres: writer process   ",parentID="6873",region="us-west-1",tgid="6877"} 0.42
 rdsosmetrics_processList_memoryUsedPc{id="6878",instance="autotest-psql-10",name="postgres: wal writer process   ",parentID="6873",region="us-west-1",tgid="6878"} 1.12
 rdsosmetrics_processList_memoryUsedPc{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 0.71
 rdsosmetrics_processList_memoryUsedPc{id="6880",instance="autotest-psql-10",name="postgres: stats collector process   ",parentID="6873",region="us-west-1",tgid="6880"} 0.45
 rdsosmetrics_processList_memoryUsedPc{id="6881",instance="autotest-psql-10",name="postgres: bgworker: logical replication launcher   ",parentID="6873",region="us-west-1",tgid="6881"} 0.63
-rdsosmetrics_processList_memoryUsedPc{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 1.76
+rdsosmetrics_processList_memoryUsedPc{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 2.25
 # HELP rdsosmetrics_processList_rss The amount of RAM allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_rss gauge
-rdsosmetrics_processList_rss{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 38588
-rdsosmetrics_processList_rss{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 266776
-rdsosmetrics_processList_rss{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 23964
+rdsosmetrics_processList_rss{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 39948
+rdsosmetrics_processList_rss{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 245192
+rdsosmetrics_processList_rss{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 23684
 rdsosmetrics_processList_rss{id="6874",instance="autotest-psql-10",name="postgres: logger process   ",parentID="6873",region="us-west-1",tgid="6874"} 4296
-rdsosmetrics_processList_rss{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 13616
+rdsosmetrics_processList_rss{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 17392
 rdsosmetrics_processList_rss{id="6877",instance="autotest-psql-10",name="postgres: writer process   ",parentID="6873",region="us-west-1",tgid="6877"} 4312
 rdsosmetrics_processList_rss{id="6878",instance="autotest-psql-10",name="postgres: wal writer process   ",parentID="6873",region="us-west-1",tgid="6878"} 11376
-rdsosmetrics_processList_rss{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 7272
+rdsosmetrics_processList_rss{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 7276
 rdsosmetrics_processList_rss{id="6880",instance="autotest-psql-10",name="postgres: stats collector process   ",parentID="6873",region="us-west-1",tgid="6880"} 4620
 rdsosmetrics_processList_rss{id="6881",instance="autotest-psql-10",name="postgres: bgworker: logical replication launcher   ",parentID="6873",region="us-west-1",tgid="6881"} 6436
-rdsosmetrics_processList_rss{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 17952
+rdsosmetrics_processList_rss{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 22888
 # HELP rdsosmetrics_processList_vss The amount of virtual memory allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_vss gauge
-rdsosmetrics_processList_vss{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 825924
-rdsosmetrics_processList_vss{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 2.157408e+06
+rdsosmetrics_processList_vss{id="0",instance="autotest-psql-10",name="OS processes",parentID="0",region="us-west-1",tgid="0"} 826312
+rdsosmetrics_processList_vss{id="0",instance="autotest-psql-10",name="RDS processes",parentID="0",region="us-west-1",tgid="0"} 2.152748e+06
 rdsosmetrics_processList_vss{id="6873",instance="autotest-psql-10",name="postgres",parentID="1",region="us-west-1",tgid="6873"} 312232
 rdsosmetrics_processList_vss{id="6874",instance="autotest-psql-10",name="postgres: logger process   ",parentID="6873",region="us-west-1",tgid="6874"} 91112
 rdsosmetrics_processList_vss{id="6876",instance="autotest-psql-10",name="postgres: checkpointer process   ",parentID="6873",region="us-west-1",tgid="6876"} 312364
@@ -329,7 +329,7 @@ rdsosmetrics_processList_vss{id="6878",instance="autotest-psql-10",name="postgre
 rdsosmetrics_processList_vss{id="6879",instance="autotest-psql-10",name="postgres: autovacuum launcher process   ",parentID="6873",region="us-west-1",tgid="6879"} 312772
 rdsosmetrics_processList_vss{id="6880",instance="autotest-psql-10",name="postgres: stats collector process   ",parentID="6873",region="us-west-1",tgid="6880"} 91244
 rdsosmetrics_processList_vss{id="6881",instance="autotest-psql-10",name="postgres: bgworker: logical replication launcher   ",parentID="6873",region="us-west-1",tgid="6881"} 312536
-rdsosmetrics_processList_vss{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 418120
+rdsosmetrics_processList_vss{id="7505",instance="autotest-psql-10",name="postgres: rdsadmin rdsadmin localhost(54945) idle",parentID="6873",region="us-west-1",tgid="7505"} 418256
 # HELP rdsosmetrics_swap_cached The amount of swap memory, in kilobytes, used as cache memory.
 # TYPE rdsosmetrics_swap_cached gauge
 rdsosmetrics_swap_cached{instance="autotest-psql-10",region="us-west-1"} 0
@@ -350,10 +350,10 @@ rdsosmetrics_swap_total{instance="autotest-psql-10",region="us-west-1"} 4.095996
 rdsosmetrics_tasks_blocked{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_tasks_running The number of tasks that are running.
 # TYPE rdsosmetrics_tasks_running gauge
-rdsosmetrics_tasks_running{instance="autotest-psql-10",region="us-west-1"} 0
+rdsosmetrics_tasks_running{instance="autotest-psql-10",region="us-west-1"} 1
 # HELP rdsosmetrics_tasks_sleeping The number of tasks that are sleeping.
 # TYPE rdsosmetrics_tasks_sleeping gauge
-rdsosmetrics_tasks_sleeping{instance="autotest-psql-10",region="us-west-1"} 108
+rdsosmetrics_tasks_sleeping{instance="autotest-psql-10",region="us-west-1"} 107
 # HELP rdsosmetrics_tasks_stopped The number of tasks that are stopped.
 # TYPE rdsosmetrics_tasks_stopped gauge
 rdsosmetrics_tasks_stopped{instance="autotest-psql-10",region="us-west-1"} 0
@@ -365,4 +365,4 @@ rdsosmetrics_tasks_total{instance="autotest-psql-10",region="us-west-1"} 108
 rdsosmetrics_tasks_zombie{instance="autotest-psql-10",region="us-west-1"} 0
 # HELP rdsosmetrics_timestamp Metrics timestamp (UNIX seconds).
 # TYPE rdsosmetrics_timestamp counter
-rdsosmetrics_timestamp{instance="autotest-psql-10",region="us-west-1"} 1.576153937e+09
+rdsosmetrics_timestamp{instance="autotest-psql-10",region="us-west-1"} 1.576260498e+09

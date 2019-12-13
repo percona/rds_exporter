@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/percona/exporter_shared/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,23 +26,44 @@ func TestScraper(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			// do not update files concurrently
-			if !*golden {
-				t.Parallel()
-			}
-
+			// test that there are no new metrics
 			s := newScraper(session, instances)
-			s.disallowUnknownFields = true
-			allMetrics := s.scrape(context.Background())
-			assert.Len(t, allMetrics, len(instances))
+			s.testDisallowUnknownFields = true
+			metrics, messages := s.scrape(context.Background())
+			require.Len(t, metrics, len(instances))
+			require.Len(t, messages, len(instances))
 
 			for _, instance := range instances {
-				expected := readMetrics(t, strings.TrimPrefix(instance.Instance, "autotest-"))
+				// Test that actually received JSON matches expected JSON.
+				// We can't do that directly, so we do it by comparing produced metrics (minus values).
 
-				// TODO
-				_ = expected
+				instanceName := strings.TrimPrefix(instance.Instance, "autotest-")
+
+				actual := helpers.ReadMetrics(metrics[instance.ResourceID])
+				for _, m := range actual {
+					m.Value = 0
+				}
+
+				if *golden {
+					writeTestDataJSON(t, instanceName, []byte(messages[instance.ResourceID]))
+				}
+
+				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
+				require.NoError(t, err)
+				expected := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, nil))
+				for _, m := range expected {
+					m.Value = 0
+				}
+
+				assert.Equal(t, expected, actual)
 			}
 		})
+	}
+
+	// if JSON was updated, update metrics too
+	if !t.Failed() && *golden {
+		*goldenTXT = true
+		TestParse(t)
 	}
 }
 
