@@ -11,7 +11,7 @@ build:
 tarball:
     files:
         - LICENSE
-        - config.yml
+        # - config.yml
 crossbuild:
     platforms:
         - linux/amd64
