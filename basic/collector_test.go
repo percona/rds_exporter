@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/percona/exporter_shared/helpers"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -13,47 +12,30 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-func getCollector(t *testing.T) *Collector {
-	t.Helper()
-
+func TestCollector(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
 	client := client.New()
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
 	require.NoError(t, err)
-	return New(cfg, sess)
-}
 
-func TestCollector_Describe(t *testing.T) {
-	c := getCollector(t)
-	ch := make(chan *prometheus.Desc)
-	go func() {
-		c.Describe(ch)
-		close(ch)
-	}()
+	c := New(cfg, sess)
 
-	const expected = 50
-	descs := make([]*prometheus.Desc, 0, expected)
-	for d := range ch {
-		descs = append(descs, d)
+	metrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
+	for _, m := range metrics {
+		m.Value = 0
+	}
+	actual := helpers.Format(helpers.WriteMetrics(metrics))
+
+	if *goldenTXT {
+		writeTestDataMetrics(t, actual)
 	}
 
-	assert.Equal(t, expected, len(descs), "%+v", descs)
-}
-
-func TestCollector_Collect(t *testing.T) {
-	c := getCollector(t)
-	ch := make(chan prometheus.Metric)
-	go func() {
-		c.Collect(ch)
-		close(ch)
-	}()
-
-	const expected = 101
-	metrics := make([]helpers.Metric, 0, expected)
-	for m := range ch {
-		metrics = append(metrics, *helpers.ReadMetric(m))
+	metrics = helpers.ReadMetrics(helpers.Parse(readTestDataMetrics(t)))
+	for _, m := range metrics {
+		m.Value = 0
 	}
+	expected := helpers.Format(helpers.WriteMetrics(metrics))
 
-	assert.Equal(t, expected, len(metrics), "%+v", metrics)
+	assert.Equal(t, expected, actual)
 }

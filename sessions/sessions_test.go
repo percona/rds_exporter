@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"flag"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +12,11 @@ import (
 
 	"github.com/percona/rds_exporter/client"
 	"github.com/percona/rds_exporter/config"
+)
+
+var (
+	golden    = flag.Bool("golden", false, "does nothing; exists only for compatibility with other packages")
+	goldenTXT = flag.Bool("golden-txt", false, "does nothing; exists only for compatibility with other packages")
 )
 
 func TestSession(t *testing.T) {
