@@ -28,6 +28,8 @@ before_cache:
   - go clean -testcache
   # - go clean -cache
 
+go_import_path: github.com/percona/rds_exporter
+
 env:
   global:
     # AWS - PMM Autotest account. TODO https://jira.percona.com/browse/PMM-4896
