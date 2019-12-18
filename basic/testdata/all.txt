@@ -150,26 +150,26 @@ aws_rds_write_latency_average{instance="autotest-psql-10",region="us-east-1"} 0.
 aws_rds_write_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 606.8671102439675
 aws_rds_write_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 1.7282965432181072e+06
 aws_rds_write_throughput_average{instance="autotest-psql-10",region="us-east-1"} 8942.486209022882
-# HELP node_boot_time EngineUptime
-# TYPE node_boot_time gauge
-node_boot_time{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.576149092e+09
-node_boot_time{instance="autotest-aurora-psql-11",region="us-west-2"} 1.576147548e+09
+# HELP node_boot_time_seconds EngineUptime
+# TYPE node_boot_time_seconds gauge
+node_boot_time_seconds{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.576149092e+09
+node_boot_time_seconds{instance="autotest-aurora-psql-11",region="us-west-2"} 1.576147548e+09
 # HELP node_cpu_average The percentage of CPU utilization. Units: Percent
 # TYPE node_cpu_average gauge
 node_cpu_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 5.67796610169553
 node_cpu_average{instance="autotest-aurora-psql-11",region="us-west-2"} 4
 node_cpu_average{instance="autotest-mysql-57",region="us-west-2"} 2.95081967213145
 node_cpu_average{instance="autotest-psql-10",region="us-east-1"} 2.29508196721326
-# HELP node_filesystem_free The amount of available storage space. Units: Bytes
-# TYPE node_filesystem_free gauge
-node_filesystem_free{instance="autotest-mysql-57",region="us-west-2"} 6.1639360512e+10
-node_filesystem_free{instance="autotest-psql-10",region="us-east-1"} 6.1936873472e+10
-# HELP node_memory_Cached The amount of available random access memory. Units: Bytes
-# TYPE node_memory_Cached gauge
-node_memory_Cached{instance="autotest-aurora-mysql-56",region="us-east-1"} 8.89040896e+08
-node_memory_Cached{instance="autotest-aurora-psql-11",region="us-west-2"} 5.85375744e+08
-node_memory_Cached{instance="autotest-mysql-57",region="us-west-2"} 8.6335488e+07
-node_memory_Cached{instance="autotest-psql-10",region="us-east-1"} 5.24898304e+08
+# HELP node_filesystem_free_bytes The amount of available storage space. Units: Bytes
+# TYPE node_filesystem_free_bytes gauge
+node_filesystem_free_bytes{instance="autotest-mysql-57",region="us-west-2"} 6.1639360512e+10
+node_filesystem_free_bytes{instance="autotest-psql-10",region="us-east-1"} 6.1936873472e+10
+# HELP node_memory_Cached_bytes The amount of available random access memory. Units: Bytes
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="autotest-aurora-mysql-56",region="us-east-1"} 8.89040896e+08
+node_memory_Cached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 5.85375744e+08
+node_memory_Cached_bytes{instance="autotest-mysql-57",region="us-west-2"} 8.6335488e+07
+node_memory_Cached_bytes{instance="autotest-psql-10",region="us-east-1"} 5.24898304e+08
 # HELP rds_exporter_scrape_duration_seconds Time this RDS scrape took, in seconds.
 # TYPE rds_exporter_scrape_duration_seconds gauge
 rds_exporter_scrape_duration_seconds 1.3998536129999999
