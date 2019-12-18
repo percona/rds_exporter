@@ -19,8 +19,19 @@ import (
 
 func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 	res := make([]*helpers.Metric, 0, len(metrics))
+	processList := make(map[string]struct{})
+
 	for _, m := range metrics {
 		m.Value = 0
+
+		// skip processList metrics that contain process IDs in labels that change too often
+		if strings.Contains(m.Name, "_processList_") {
+			if _, ok := processList[m.Name]; ok {
+				continue
+			}
+			processList[m.Name] = struct{}{}
+		}
+
 		res = append(res, m)
 	}
 	return res
