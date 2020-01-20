@@ -50,6 +50,8 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 
 	sharedSessions := make(map[string]*session.Session) // region/key => session
 	for _, instance := range instances {
+		sessionKey := makeSessionKey(instance)
+
 		// re-use session for the same region and key (explicit or empty for implicit) pair
 		if s := sharedSessions[instance.Region+"/"+sessionKey]; s != nil {
 			res.sessions[s] = append(res.sessions[s], Instance{
@@ -91,7 +93,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		if err != nil {
 			return nil, err
 		}
-		sharedSessions[instance.Region+"/"+makeSessionKey(instance)] = s
+		sharedSessions[instance.Region+"/"+sessionKey] = s
 		res.sessions[s] = append(res.sessions[s], Instance{
 			Region:   instance.Region,
 			Instance: instance.Instance,
