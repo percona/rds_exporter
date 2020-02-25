@@ -23,6 +23,7 @@ type Instance struct {
 	ResourceID                 string
 	Labels                     map[string]string
 	EnhancedMonitoringInterval time.Duration
+	LastEventTimestamp         int64
 }
 
 func (i Instance) String() string {

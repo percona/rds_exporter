@@ -23,12 +23,20 @@ func TestParse(t *testing.T) {
 		t.Run(data.instance, func(t *testing.T) {
 			// Test that metrics created from fixed testdata JSON produce expected result.
 
-			m, err := parseOSMetrics(readTestDataJSON(t, data.instance), true)
+			d := readTestDataJSON(t, data.instance)
+
+			m, err := parseOSMetrics(d, true)
+			require.NoError(t, err)
+
+			m2, err := parseOSMetrics(d, true)
 			require.NoError(t, err)
 
 			actualMetrics := helpers.ReadMetrics(m.makePrometheusMetrics(data.region, nil))
 			sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
 			actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
+
+			actualMetrics2 := helpers.ReadMetrics(m2.makePrometheusMetrics(data.region, nil))
+			sort.Slice(actualMetrics2, func(i, j int) bool { return actualMetrics2[i].Less(actualMetrics2[j]) })
 
 			if *goldenTXT {
 				writeTestDataMetrics(t, data.instance, actualLines)
@@ -41,6 +49,15 @@ func TestParse(t *testing.T) {
 			// compare both to try to avoid go-difflib bug
 			assert.Equal(t, expectedLines, actualLines)
 			assert.Equal(t, expectedMetrics, actualMetrics)
+
+			for i, v := range actualMetrics {
+				switch v.Name {
+				case "node_disk_read_bytes_total", "node_disk_written_bytes_total":
+					assert.Equal(t, 2*v.Value, actualMetrics2[i].Value)
+				default:
+					assert.Equal(t, v.Value, actualMetrics2[i].Value)
+				}
+			}
 		})
 	}
 }

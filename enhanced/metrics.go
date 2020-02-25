@@ -11,6 +11,27 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var (
+	diskRead = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "node",
+			Subsystem: "disk",
+			Name:      "read_bytes_total",
+			Help:      "The total number of bytes read successfully.",
+		},
+		[]string{"region", "instance", "device"},
+	)
+	diskWritten = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "node",
+			Subsystem: "disk",
+			Name:      "written_bytes_total",
+			Help:      "The total number of bytes written successfully.",
+		},
+		[]string{"region", "instance", "device"},
+	)
+)
+
 // osMetrics represents available Enhanced Monitoring OS metrics from CloudWatch Logs.
 //
 // See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html#USER_Monitoring.OS.CloudWatchLogs
@@ -265,19 +286,23 @@ func makeRDSDiskIOMetrics(s *diskIO, constLabels prometheus.Labels) []prometheus
 
 // makeNodeDiskMetrics returns node_exporter-like node_disk_ metrics.
 func makeNodeDiskMetrics(s *diskIO, constLabels prometheus.Labels) []prometheus.Metric {
-	// move device name to label
-	labelKeys := []string{"device"}
-	labelValues := []string{s.Device}
+	labels := make(prometheus.Labels, len(constLabels)+1)
+
+	for k, v := range constLabels {
+		labels[k] = v
+	}
+
+	labels["device"] = s.Device
 	res := make([]prometheus.Metric, 0, 2)
 
 	if s.ReadKb != nil {
-		desc := prometheus.NewDesc("node_disk_read_bytes_total", "The total number of bytes read successfully.", labelKeys, constLabels)
-		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.ReadKb*1024), labelValues...)
+		m := diskRead.With(labels)
+		m.Add(float64(*s.ReadKb * 1024))
 		res = append(res, m)
 	}
 	if s.WriteKb != nil {
-		desc := prometheus.NewDesc("node_disk_written_bytes_total", "The total number of bytes written successfully.", labelKeys, constLabels)
-		m := prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(*s.WriteKb*1024), labelValues...)
+		m := diskWritten.With(labels)
+		m.Add(float64(*s.WriteKb * 1024))
 		res = append(res, m)
 	}
 
