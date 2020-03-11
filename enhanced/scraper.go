@@ -89,6 +89,11 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 				l.Errorf("Failed to find instance.")
 				continue
 			}
+
+			if instance.DisableEnhancedMetrics {
+				l.Debugf("Enhanced Metrics are dissabled for instance %v.", instance)
+				continue
+			}
 			l = l.With("region", instance.Region).With("instance", instance.Instance)
 
 			// l.Debugf("Message:\n%s", *event.Message)

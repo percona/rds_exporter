@@ -20,6 +20,8 @@ import (
 type Instance struct {
 	Region                     string
 	Instance                   string
+	DisableBasicMetrics        bool
+	DisableEnhancedMetrics     bool
 	ResourceID                 string
 	Labels                     map[string]string
 	EnhancedMonitoringInterval time.Duration
@@ -52,9 +54,11 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		// re-use session for the same region and key (explicit or empty for implicit) pair
 		if s := sharedSessions[instance.Region+"/"+instance.AWSAccessKey]; s != nil {
 			res.sessions[s] = append(res.sessions[s], Instance{
-				Region:   instance.Region,
-				Instance: instance.Instance,
-				Labels:   instance.Labels,
+				Region:                 instance.Region,
+				Instance:               instance.Instance,
+				Labels:                 instance.Labels,
+				DisableBasicMetrics:    instance.DisableBasicMetrics,
+				DisableEnhancedMetrics: instance.DisableEnhancedMetrics,
 			})
 			continue
 		}
@@ -96,9 +100,11 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		}
 		sharedSessions[instance.Region+"/"+instance.AWSAccessKey] = s
 		res.sessions[s] = append(res.sessions[s], Instance{
-			Region:   instance.Region,
-			Instance: instance.Instance,
-			Labels:   instance.Labels,
+			Region:                 instance.Region,
+			Instance:               instance.Instance,
+			Labels:                 instance.Labels,
+			DisableBasicMetrics:    instance.DisableBasicMetrics,
+			DisableEnhancedMetrics: instance.DisableEnhancedMetrics,
 		})
 	}
 

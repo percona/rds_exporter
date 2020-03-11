@@ -61,9 +61,13 @@ func (e *Collector) collect(ch chan<- prometheus.Metric) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	wg.Add(len(e.config.Instances))
 	for _, instance := range e.config.Instances {
+		if instance.DisableBasicMetrics {
+			e.l.Debugf("Instance %s has disabled basic metrics, skipping.", instance)
+			continue
+		}
 		instance := instance
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
