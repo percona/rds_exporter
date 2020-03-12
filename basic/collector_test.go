@@ -2,6 +2,7 @@ package basic
 
 import (
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/percona/exporter_shared/helpers"
@@ -45,4 +46,31 @@ func TestCollector(t *testing.T) {
 	// compare both to try to avoid go-difflib bug
 	assert.Equal(t, expectedLines, actualLines)
 	assert.Equal(t, expectedMetrics, actualMetrics)
+}
+
+func TestCollectorDisableBasicMetrics(t *testing.T) {
+	cfg, err := config.Load("../config.tests.yml")
+	require.NoError(t, err)
+	client := client.New()
+	for i := range cfg.Instances {
+		cfg.Instances[i].DisableBasicMetrics = true
+	}
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	require.NoError(t, err)
+
+	c := New(cfg, sess)
+
+	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
+	actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
+	for _, line := range actualLines {
+		for _, inst := range cfg.Instances {
+			assert.Falsef(
+				t,
+				strings.Contains(inst.Instance, line),
+				"Instance %s with disabled metrics reseive: %s",
+				inst.Instance,
+				line,
+			)
+		}
+	}
 }
