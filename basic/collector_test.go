@@ -55,8 +55,9 @@ func TestCollectorDisableBasicMetrics(t *testing.T) {
 	client := client.New()
 	instanceGroups := make(map[bool][]string, 2)
 	for i := range cfg.Instances {
-		// Disable basic metrics in odd instances.
-		isDisabled := i%2 == 1
+		// Disable basic metrics in even instances.
+		// This disable instance: no-such-instance.
+		isDisabled := i%2 == 0
 		cfg.Instances[i].DisableBasicMetrics = isDisabled
 		// Groups instance names by disabled or enabled metrics.
 		instanceGroups[isDisabled] = append(instanceGroups[isDisabled], cfg.Instances[i].Instance)
@@ -72,7 +73,7 @@ func TestCollectorDisableBasicMetrics(t *testing.T) {
 	// Check if all collected metrics do not contain metrics for instance whare disabled metrics.
 	hasMetricForInstance := func(lines []string, instanceName string) bool {
 		for _, line := range lines {
-			if strings.Contains(fmt.Sprintf("instance=%q", instanceName), line) {
+			if strings.Contains(line, fmt.Sprintf("instance=%q", instanceName)) {
 				return true
 			}
 		}
