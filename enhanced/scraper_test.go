@@ -135,3 +135,47 @@ func TestBetterTimes(t *testing.T) {
 		assert.Equal(t, td.expectedNextStartTime, nextStartTime)
 	}
 }
+
+func TestScraperDisableEnhancedMetrics(t *testing.T) {
+	cfg, err := config.Load("../config.tests.yml")
+	require.NoError(t, err)
+	client := client.New()
+	for i := range cfg.Instances {
+		// Disable enhanced metrics in even instances.
+		// This disable instance: no-such-instance.
+		isDisabled := i%2 == 0
+		cfg.Instances[i].DisableEnhancedMetrics = isDisabled
+	}
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	require.NoError(t, err)
+
+	// Check if all collected metrics do not contain metrics for instance with disabled metrics.
+	hasMetricForInstance := func(lines []string, instanceName string) bool {
+		for _, line := range lines {
+			if strings.Contains(line, fmt.Sprintf("instance=%q", instanceName)) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for session, instances := range sess.AllSessions() {
+		session, instances := session, instances
+		t.Run(fmt.Sprint(instances), func(t *testing.T) {
+			s := newScraper(session, instances)
+			s.testDisallowUnknownFields = true
+			metrics, _ := s.scrape(context.Background())
+
+			for _, instance := range instances {
+				actualMetrics := helpers.ReadMetrics(metrics[instance.ResourceID])
+				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
+				name := instance.Instance
+				if instance.DisableEnhancedMetrics {
+					assert.Falsef(t, hasMetricForInstance(actualLines, name), "Found metrics for disabled instance %s", name)
+					continue
+				}
+				assert.Truef(t, hasMetricForInstance(actualLines, name), "Did not find metrics for enabled instance %s", name)
+			}
+		})
+	}
+}
