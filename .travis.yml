@@ -36,5 +36,14 @@ env:
     - AWS_ACCESS_KEY=AKIAZPBRO3QWGCO72MJZ
     - secure: "X8jXCbsnCkyEsZN11AQ5NgF5Wl84ZTWxr8LuWXgVZ/3QwRvY7rK25FZVwf8TQqF3wch92WFnSwF9jQ37cz0H6SOa+tQ0NHDhUGIqEfdIlIfb8lGvEEPsD3OPenqRZWDRFFoywgkqu+PZU2uuFW5gC93RbClgBGv4oy+NrJF+Etkikv6E+mMZQc0O/UtEZUyXvRnfKY0/zPAHPsSNtEBvk3Q2lAIsl31pfMn6m1rBxPmuHShsigo+smMZTGXkijIa/aXUNOxz5lXppjvMmbNAg4/3+46MHTDXLmX7irGaUMvKKi4Ya6Hvu9+6UGjInrothVN98Y2k2J+ERZooM7ND7kv3vn3RilYbBhnpsdmmpL0nEQYTsJBvaaWKRZMIxS0Xd21CKOSGN+8Omq9iBgiW1L87xKxYD78OF+2Z9VwzHHk+Oaq2ky3LT/z3WGtnMWpURSxvjw76neFIxoIMHFVIZh0kywrmObZy3mgF0zzC/jRU2PK/ie9k0LJhxuHoEeb4b55f1PmUfhCJ7KblE3x13SlUUQqnvIL7qscKL1nEtFl/kidHtBYJAZzi0ctb2mHduzi89VYKqu6w3S93HpQQLkqpg9+i+i890mQrpytFGrcGVj4SikIE1fwlv/V8MS9zZukvizSV9l/Z0hV5YDqqHPX0UICrf7w/u9vkZSsz45g="
 
+install:
+  # install reviewdog and golangci-lin
+    - curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh| sh -s
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
+
+before_script:
+  # static analyze
+  - bin/golangci-lint run -c=.golangci.yml --out-format=line-number | bin/reviewdog -f=golangci-lint -level=error -reporter=github-pr-check
+
 script:
   - make travis
