@@ -15,7 +15,8 @@ Nothing yet.
 - `disable_basic_metrics` and `disable_enhanced_metrics` configuration options.
 
 ### Changed
-- Major changes in `node_exporter`-like metrics. See [here](https://github.com/percona/rds_exporter#metrics).
+- Major changes in `node_exporter`-like metrics. See [PR #33](https://github.com/percona/rds_exporter/pull/33)
+  and [here](https://github.com/percona/rds_exporter#metrics).
 - `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables are honored now
   ([PR #43](https://github.com/percona/rds_exporter/pull/43) by [@ahmgeek](https://github.com/ahmgeek)).
 - Tests and linting improvements.
