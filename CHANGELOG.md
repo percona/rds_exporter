@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Nothing yet.
 
 
-## [0.7.0] - 2020-06-01
+## [0.7.0] - 2020-06-02
 ### Added
 - `disable_basic_metrics` and `disable_enhanced_metrics` configuration options.
 
