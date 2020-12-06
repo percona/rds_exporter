@@ -1,57 +1,57 @@
 # HELP node_cpu_average The percentage of CPU utilization.
 # TYPE node_cpu_average gauge
 node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="guest",region="us-west-2"} 0
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="idle",region="us-west-2"} 87.7
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="irq",region="us-west-2"} 0.1
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="nice",region="us-west-2"} 0.9
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="steal",region="us-west-2"} 5.3
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="system",region="us-west-2"} 0.7
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="total",region="us-west-2"} 12.4
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="user",region="us-west-2"} 1.4
-node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="wait",region="us-west-2"} 4
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="idle",region="us-west-2"} 82.2
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="irq",region="us-west-2"} 0
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="nice",region="us-west-2"} 0.6
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="steal",region="us-west-2"} 0.2
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="system",region="us-west-2"} 0.9
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="total",region="us-west-2"} 17.8
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="user",region="us-west-2"} 1.3
+node_cpu_average{cpu="All",instance="autotest-mysql-57",mode="wait",region="us-west-2"} 14.8
 # HELP node_disk_read_bytes_total The total number of bytes read successfully.
 # TYPE node_disk_read_bytes_total counter
-node_disk_read_bytes_total{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.478656e+06
-node_disk_read_bytes_total{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 36864
+node_disk_read_bytes_total{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.646592e+06
+node_disk_read_bytes_total{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP node_disk_written_bytes_total The total number of bytes written successfully.
 # TYPE node_disk_written_bytes_total counter
-node_disk_written_bytes_total{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.232896e+06
-node_disk_written_bytes_total{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 1.05660416e+08
+node_disk_written_bytes_total{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.216512e+06
+node_disk_written_bytes_total{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 9.7181696e+07
 # HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
 # TYPE node_filesystem_avail_bytes gauge
-node_filesystem_avail_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 7.569276928e+09
-node_filesystem_avail_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 6.230016e+10
+node_filesystem_avail_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 5.20953856e+09
+node_filesystem_avail_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 6.230011904e+10
 # HELP node_filesystem_files Filesystem total file nodes.
 # TYPE node_filesystem_files gauge
 node_filesystem_files{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 6.7108864e+08
 node_filesystem_files{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 4.02653184e+09
 # HELP node_filesystem_files_free Filesystem total free file nodes.
 # TYPE node_filesystem_files_free gauge
-node_filesystem_files_free{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 5.9428864e+08
-node_filesystem_files_free{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 4.025787392e+09
+node_filesystem_files_free{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 5.93210368e+08
+node_filesystem_files_free{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 4.025786368e+09
 # HELP node_filesystem_free_bytes Filesystem free space in bytes.
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 7.569276928e+09
-node_filesystem_free_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 6.230016e+10
+node_filesystem_free_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 5.20953856e+09
+node_filesystem_free_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 6.230011904e+10
 # HELP node_filesystem_size_bytes Filesystem size in bytes.
 # TYPE node_filesystem_size_bytes gauge
 node_filesystem_size_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/",region="us-west-2"} 1.0434666496e+10
 node_filesystem_size_bytes{device="",fstype="",instance="autotest-mysql-57",mountpoint="/rdsdbdata",region="us-west-2"} 6.3257362432e+10
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
-node_load1{instance="autotest-mysql-57",region="us-west-2"} 0.63
+node_load1{instance="autotest-mysql-57",region="us-west-2"} 0.12
 # HELP node_memory_Active_bytes Memory information field Active_bytes.
 # TYPE node_memory_Active_bytes gauge
-node_memory_Active_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.19168256e+08
+node_memory_Active_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.3687936e+08
 # HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
 # TYPE node_memory_Buffers_bytes gauge
-node_memory_Buffers_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.6272512e+07
+node_memory_Buffers_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.18448128e+08
 # HELP node_memory_Cached_bytes Memory information field Cached_bytes.
 # TYPE node_memory_Cached_bytes gauge
-node_memory_Cached_bytes{instance="autotest-mysql-57",region="us-west-2"} 5.8187776e+07
+node_memory_Cached_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.12316416e+08
 # HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
 # TYPE node_memory_Dirty_bytes gauge
-node_memory_Dirty_bytes{instance="autotest-mysql-57",region="us-west-2"} 360448
+node_memory_Dirty_bytes{instance="autotest-mysql-57",region="us-west-2"} 335872
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
 node_memory_HugePages_Free{instance="autotest-mysql-57",region="us-west-2"} 0
@@ -69,28 +69,28 @@ node_memory_HugePages_Total{instance="autotest-mysql-57",region="us-west-2"} 0
 node_memory_Hugepagesize_bytes{instance="autotest-mysql-57",region="us-west-2"} 2.097152e+06
 # HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
 # TYPE node_memory_Inactive_bytes gauge
-node_memory_Inactive_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.15305728e+08
+node_memory_Inactive_bytes{instance="autotest-mysql-57",region="us-west-2"} 3.96853248e+08
 # HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
 # TYPE node_memory_Mapped_bytes gauge
-node_memory_Mapped_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.8608128e+07
+node_memory_Mapped_bytes{instance="autotest-mysql-57",region="us-west-2"} 2.1909504e+07
 # HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
 # TYPE node_memory_MemFree_bytes gauge
-node_memory_MemFree_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.09510656e+08
+node_memory_MemFree_bytes{instance="autotest-mysql-57",region="us-west-2"} 9.9926016e+07
 # HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
 # TYPE node_memory_MemTotal_bytes gauge
 node_memory_MemTotal_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.043791872e+09
 # HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
 # TYPE node_memory_PageTables_bytes gauge
-node_memory_PageTables_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.722688e+06
+node_memory_PageTables_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.583424e+06
 # HELP node_memory_Slab_bytes Memory information field Slab_bytes.
 # TYPE node_memory_Slab_bytes gauge
-node_memory_Slab_bytes{instance="autotest-mysql-57",region="us-west-2"} 3.667968e+07
+node_memory_Slab_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.6526464e+07
 # HELP node_memory_SwapCached_bytes Memory information field SwapCached.
 # TYPE node_memory_SwapCached_bytes gauge
-node_memory_SwapCached_bytes{instance="autotest-mysql-57",region="us-west-2"} 4096
+node_memory_SwapCached_bytes{instance="autotest-mysql-57",region="us-west-2"} 6.7416064e+07
 # HELP node_memory_SwapFree_bytes Memory information field SwapFree.
 # TYPE node_memory_SwapFree_bytes gauge
-node_memory_SwapFree_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.132933632e+09
+node_memory_SwapFree_bytes{instance="autotest-mysql-57",region="us-west-2"} 3.87766272e+09
 # HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
 # TYPE node_memory_SwapTotal_bytes gauge
 node_memory_SwapTotal_bytes{instance="autotest-mysql-57",region="us-west-2"} 4.194299904e+09
@@ -117,79 +117,79 @@ rdsosmetrics_General_numVCPUs{instance="autotest-mysql-57",region="us-west-2"} 1
 rdsosmetrics_cpuUtilization_guest{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_cpuUtilization_idle The percentage of CPU that is idle.
 # TYPE rdsosmetrics_cpuUtilization_idle gauge
-rdsosmetrics_cpuUtilization_idle{instance="autotest-mysql-57",region="us-west-2"} 87.7
+rdsosmetrics_cpuUtilization_idle{instance="autotest-mysql-57",region="us-west-2"} 82.2
 # HELP rdsosmetrics_cpuUtilization_irq The percentage of CPU in use by software interrupts.
 # TYPE rdsosmetrics_cpuUtilization_irq gauge
-rdsosmetrics_cpuUtilization_irq{instance="autotest-mysql-57",region="us-west-2"} 0.1
+rdsosmetrics_cpuUtilization_irq{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_cpuUtilization_nice The percentage of CPU in use by programs running at lowest priority.
 # TYPE rdsosmetrics_cpuUtilization_nice gauge
-rdsosmetrics_cpuUtilization_nice{instance="autotest-mysql-57",region="us-west-2"} 0.9
+rdsosmetrics_cpuUtilization_nice{instance="autotest-mysql-57",region="us-west-2"} 0.6
 # HELP rdsosmetrics_cpuUtilization_steal The percentage of CPU in use by other virtual machines.
 # TYPE rdsosmetrics_cpuUtilization_steal gauge
-rdsosmetrics_cpuUtilization_steal{instance="autotest-mysql-57",region="us-west-2"} 5.3
+rdsosmetrics_cpuUtilization_steal{instance="autotest-mysql-57",region="us-west-2"} 0.2
 # HELP rdsosmetrics_cpuUtilization_system The percentage of CPU in use by the kernel.
 # TYPE rdsosmetrics_cpuUtilization_system gauge
-rdsosmetrics_cpuUtilization_system{instance="autotest-mysql-57",region="us-west-2"} 0.7
+rdsosmetrics_cpuUtilization_system{instance="autotest-mysql-57",region="us-west-2"} 0.9
 # HELP rdsosmetrics_cpuUtilization_total The total percentage of the CPU in use. This value includes the nice value.
 # TYPE rdsosmetrics_cpuUtilization_total gauge
-rdsosmetrics_cpuUtilization_total{instance="autotest-mysql-57",region="us-west-2"} 12.4
+rdsosmetrics_cpuUtilization_total{instance="autotest-mysql-57",region="us-west-2"} 17.8
 # HELP rdsosmetrics_cpuUtilization_user The percentage of CPU in use by user programs.
 # TYPE rdsosmetrics_cpuUtilization_user gauge
-rdsosmetrics_cpuUtilization_user{instance="autotest-mysql-57",region="us-west-2"} 1.4
+rdsosmetrics_cpuUtilization_user{instance="autotest-mysql-57",region="us-west-2"} 1.3
 # HELP rdsosmetrics_cpuUtilization_wait The percentage of CPU unused while waiting for I/O access.
 # TYPE rdsosmetrics_cpuUtilization_wait gauge
-rdsosmetrics_cpuUtilization_wait{instance="autotest-mysql-57",region="us-west-2"} 4
+rdsosmetrics_cpuUtilization_wait{instance="autotest-mysql-57",region="us-west-2"} 14.8
 # HELP rdsosmetrics_diskIO_avgQueueLen The number of requests waiting in the I/O device's queue.
 # TYPE rdsosmetrics_diskIO_avgQueueLen gauge
 rdsosmetrics_diskIO_avgQueueLen{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 0
-rdsosmetrics_diskIO_avgQueueLen{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0.6
+rdsosmetrics_diskIO_avgQueueLen{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0.69
 # HELP rdsosmetrics_diskIO_avgReqSz The average request size, in kilobytes.
 # TYPE rdsosmetrics_diskIO_avgReqSz gauge
-rdsosmetrics_diskIO_avgReqSz{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 21.98
-rdsosmetrics_diskIO_avgReqSz{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 47.27
+rdsosmetrics_diskIO_avgReqSz{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 29.59
+rdsosmetrics_diskIO_avgReqSz{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 39.74
 # HELP rdsosmetrics_diskIO_await The number of milliseconds required to respond to requests, including queue time and service time.
 # TYPE rdsosmetrics_diskIO_await gauge
-rdsosmetrics_diskIO_await{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.1
-rdsosmetrics_diskIO_await{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 8.24
+rdsosmetrics_diskIO_await{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 0.55
+rdsosmetrics_diskIO_await{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 8.71
 # HELP rdsosmetrics_diskIO_readIOsPS The number of read operations per second.
 # TYPE rdsosmetrics_diskIO_readIOsPS gauge
-rdsosmetrics_diskIO_readIOsPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 2.07
-rdsosmetrics_diskIO_readIOsPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0.15
+rdsosmetrics_diskIO_readIOsPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.12
+rdsosmetrics_diskIO_readIOsPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_readKb The total number of kilobytes read.
 # TYPE rdsosmetrics_diskIO_readKb gauge
-rdsosmetrics_diskIO_readKb{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1444
-rdsosmetrics_diskIO_readKb{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 36
+rdsosmetrics_diskIO_readKb{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1608
+rdsosmetrics_diskIO_readKb{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_readKbPS The number of kilobytes read per second.
 # TYPE rdsosmetrics_diskIO_readKbPS gauge
-rdsosmetrics_diskIO_readKbPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 24.07
-rdsosmetrics_diskIO_readKbPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0.6
+rdsosmetrics_diskIO_readKbPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 26.8
+rdsosmetrics_diskIO_readKbPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_rrqmPS The number of merged read requests queued per second.
 # TYPE rdsosmetrics_diskIO_rrqmPS gauge
 rdsosmetrics_diskIO_rrqmPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 0
 rdsosmetrics_diskIO_rrqmPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_tps The number of I/O transactions per second.
 # TYPE rdsosmetrics_diskIO_tps gauge
-rdsosmetrics_diskIO_tps{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 4.02
-rdsosmetrics_diskIO_tps{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 72.78
+rdsosmetrics_diskIO_tps{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 3.15
+rdsosmetrics_diskIO_tps{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 79.6
 # HELP rdsosmetrics_diskIO_util The percentage of CPU time during which requests were issued.
 # TYPE rdsosmetrics_diskIO_util gauge
 rdsosmetrics_diskIO_util{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 0.17
-rdsosmetrics_diskIO_util{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 6.13
+rdsosmetrics_diskIO_util{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 16.79
 # HELP rdsosmetrics_diskIO_writeIOsPS The number of write operations per second.
 # TYPE rdsosmetrics_diskIO_writeIOsPS gauge
-rdsosmetrics_diskIO_writeIOsPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.95
-rdsosmetrics_diskIO_writeIOsPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 72.63
+rdsosmetrics_diskIO_writeIOsPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 2.03
+rdsosmetrics_diskIO_writeIOsPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 79.6
 # HELP rdsosmetrics_diskIO_writeKb The total number of kilobytes written.
 # TYPE rdsosmetrics_diskIO_writeKb gauge
-rdsosmetrics_diskIO_writeKb{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1204
-rdsosmetrics_diskIO_writeKb{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 103184
+rdsosmetrics_diskIO_writeKb{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1188
+rdsosmetrics_diskIO_writeKb{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 94904
 # HELP rdsosmetrics_diskIO_writeKbPS The number of kilobytes written per second.
 # TYPE rdsosmetrics_diskIO_writeKbPS gauge
-rdsosmetrics_diskIO_writeKbPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 20.07
-rdsosmetrics_diskIO_writeKbPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 1719.73
+rdsosmetrics_diskIO_writeKbPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 19.8
+rdsosmetrics_diskIO_writeKbPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 1581.73
 # HELP rdsosmetrics_diskIO_wrqmPS The number of merged write requests queued per second.
 # TYPE rdsosmetrics_diskIO_wrqmPS gauge
-rdsosmetrics_diskIO_wrqmPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 1.83
+rdsosmetrics_diskIO_wrqmPS{device="filesystem",instance="autotest-mysql-57",region="us-west-2"} 2.02
 rdsosmetrics_diskIO_wrqmPS{device="rdsdev",instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_fileSys_maxFiles The maximum number of files that can be created for the file system.
 # TYPE rdsosmetrics_fileSys_maxFiles gauge
@@ -201,44 +201,44 @@ rdsosmetrics_fileSys_total{instance="autotest-mysql-57",mount_point="/",name="",
 rdsosmetrics_fileSys_total{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 6.1774768e+07
 # HELP rdsosmetrics_fileSys_used The amount of disk space used by files in the file system, in kilobytes.
 # TYPE rdsosmetrics_fileSys_used gauge
-rdsosmetrics_fileSys_used{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 2.798232e+06
-rdsosmetrics_fileSys_used{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 934768
+rdsosmetrics_fileSys_used{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 5.102664e+06
+rdsosmetrics_fileSys_used{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 934808
 # HELP rdsosmetrics_fileSys_usedFilePercent The percentage of available files in use.
 # TYPE rdsosmetrics_fileSys_usedFilePercent gauge
-rdsosmetrics_fileSys_usedFilePercent{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 11.44
+rdsosmetrics_fileSys_usedFilePercent{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 11.6
 rdsosmetrics_fileSys_usedFilePercent{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 0.02
 # HELP rdsosmetrics_fileSys_usedFiles The number of files in the file system.
 # TYPE rdsosmetrics_fileSys_usedFiles gauge
-rdsosmetrics_fileSys_usedFiles{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 75000
-rdsosmetrics_fileSys_usedFiles{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 727
+rdsosmetrics_fileSys_usedFiles{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 76053
+rdsosmetrics_fileSys_usedFiles{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 728
 # HELP rdsosmetrics_fileSys_usedPercent The percentage of the file-system disk space in use.
 # TYPE rdsosmetrics_fileSys_usedPercent gauge
-rdsosmetrics_fileSys_usedPercent{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 27.46
+rdsosmetrics_fileSys_usedPercent{instance="autotest-mysql-57",mount_point="/",name="",region="us-west-2"} 50.07
 rdsosmetrics_fileSys_usedPercent{instance="autotest-mysql-57",mount_point="/rdsdbdata",name="",region="us-west-2"} 1.51
 # HELP rdsosmetrics_loadAverageMinute_fifteen The number of processes requesting CPU time over the last 15 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_fifteen gauge
-rdsosmetrics_loadAverageMinute_fifteen{instance="autotest-mysql-57",region="us-west-2"} 0.27
+rdsosmetrics_loadAverageMinute_fifteen{instance="autotest-mysql-57",region="us-west-2"} 0.23
 # HELP rdsosmetrics_loadAverageMinute_five The number of processes requesting CPU time over the last 5 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_five gauge
-rdsosmetrics_loadAverageMinute_five{instance="autotest-mysql-57",region="us-west-2"} 0.46
+rdsosmetrics_loadAverageMinute_five{instance="autotest-mysql-57",region="us-west-2"} 0.2
 # HELP rdsosmetrics_loadAverageMinute_one The number of processes requesting CPU time over the last minute.
 # TYPE rdsosmetrics_loadAverageMinute_one gauge
-rdsosmetrics_loadAverageMinute_one{instance="autotest-mysql-57",region="us-west-2"} 0.63
+rdsosmetrics_loadAverageMinute_one{instance="autotest-mysql-57",region="us-west-2"} 0.12
 # HELP rdsosmetrics_memory_active The amount of assigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_active gauge
-rdsosmetrics_memory_active{instance="autotest-mysql-57",region="us-west-2"} 409344
+rdsosmetrics_memory_active{instance="autotest-mysql-57",region="us-west-2"} 426640
 # HELP rdsosmetrics_memory_buffers The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes.
 # TYPE rdsosmetrics_memory_buffers gauge
-rdsosmetrics_memory_buffers{instance="autotest-mysql-57",region="us-west-2"} 45188
+rdsosmetrics_memory_buffers{instance="autotest-mysql-57",region="us-west-2"} 115672
 # HELP rdsosmetrics_memory_cached The amount of memory used for caching file system–based I/O.
 # TYPE rdsosmetrics_memory_cached gauge
-rdsosmetrics_memory_cached{instance="autotest-mysql-57",region="us-west-2"} 56824
+rdsosmetrics_memory_cached{instance="autotest-mysql-57",region="us-west-2"} 109684
 # HELP rdsosmetrics_memory_dirty The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes.
 # TYPE rdsosmetrics_memory_dirty gauge
-rdsosmetrics_memory_dirty{instance="autotest-mysql-57",region="us-west-2"} 352
+rdsosmetrics_memory_dirty{instance="autotest-mysql-57",region="us-west-2"} 328
 # HELP rdsosmetrics_memory_free The amount of unassigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_free gauge
-rdsosmetrics_memory_free{instance="autotest-mysql-57",region="us-west-2"} 106944
+rdsosmetrics_memory_free{instance="autotest-mysql-57",region="us-west-2"} 97584
 # HELP rdsosmetrics_memory_hugePagesFree The number of free huge pages. Huge pages are a feature of the Linux kernel.
 # TYPE rdsosmetrics_memory_hugePagesFree gauge
 rdsosmetrics_memory_hugePagesFree{instance="autotest-mysql-57",region="us-west-2"} 0
@@ -256,16 +256,16 @@ rdsosmetrics_memory_hugePagesSurp{instance="autotest-mysql-57",region="us-west-2
 rdsosmetrics_memory_hugePagesTotal{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_inactive The amount of least-frequently used memory pages, in kilobytes.
 # TYPE rdsosmetrics_memory_inactive gauge
-rdsosmetrics_memory_inactive{instance="autotest-mysql-57",region="us-west-2"} 405572
+rdsosmetrics_memory_inactive{instance="autotest-mysql-57",region="us-west-2"} 387552
 # HELP rdsosmetrics_memory_mapped The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes.
 # TYPE rdsosmetrics_memory_mapped gauge
-rdsosmetrics_memory_mapped{instance="autotest-mysql-57",region="us-west-2"} 18172
+rdsosmetrics_memory_mapped{instance="autotest-mysql-57",region="us-west-2"} 21396
 # HELP rdsosmetrics_memory_pageTables The amount of memory used by page tables, in kilobytes.
 # TYPE rdsosmetrics_memory_pageTables gauge
-rdsosmetrics_memory_pageTables{instance="autotest-mysql-57",region="us-west-2"} 4612
+rdsosmetrics_memory_pageTables{instance="autotest-mysql-57",region="us-west-2"} 4476
 # HELP rdsosmetrics_memory_slab The amount of reusable kernel data structures, in kilobytes.
 # TYPE rdsosmetrics_memory_slab gauge
-rdsosmetrics_memory_slab{instance="autotest-mysql-57",region="us-west-2"} 35820
+rdsosmetrics_memory_slab{instance="autotest-mysql-57",region="us-west-2"} 45436
 # HELP rdsosmetrics_memory_total The total amount of memory, in kilobytes.
 # TYPE rdsosmetrics_memory_total gauge
 rdsosmetrics_memory_total{instance="autotest-mysql-57",region="us-west-2"} 1.019328e+06
@@ -274,392 +274,432 @@ rdsosmetrics_memory_total{instance="autotest-mysql-57",region="us-west-2"} 1.019
 rdsosmetrics_memory_writeback{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_network_rx The number of bytes received per second.
 # TYPE rdsosmetrics_network_rx gauge
-rdsosmetrics_network_rx{instance="autotest-mysql-57",interface="eth0",region="us-west-2"} 11161.13
+rdsosmetrics_network_rx{instance="autotest-mysql-57",interface="eth0",region="us-west-2"} 11323.37
 # HELP rdsosmetrics_network_tx The number of bytes uploaded per second.
 # TYPE rdsosmetrics_network_tx gauge
-rdsosmetrics_network_tx{instance="autotest-mysql-57",interface="eth0",region="us-west-2"} 207190.88
+rdsosmetrics_network_tx{instance="autotest-mysql-57",interface="eth0",region="us-west-2"} 207315.81
 # HELP rdsosmetrics_processList_cpuUsedPc The percentage of CPU used by the process.
 # TYPE rdsosmetrics_processList_cpuUsedPc gauge
-rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 0.05
-rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 2.32
-rdsosmetrics_processList_cpuUsedPc{id="10027",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.23
-rdsosmetrics_processList_cpuUsedPc{id="10028",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.2
-rdsosmetrics_processList_cpuUsedPc{id="10029",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.3
-rdsosmetrics_processList_cpuUsedPc{id="10030",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10031",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.22
-rdsosmetrics_processList_cpuUsedPc{id="10032",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.1
-rdsosmetrics_processList_cpuUsedPc{id="10033",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10034",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10035",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.05
-rdsosmetrics_processList_cpuUsedPc{id="10036",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10037",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10038",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10039",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10040",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10041",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10042",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.2
-rdsosmetrics_processList_cpuUsedPc{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.3
-rdsosmetrics_processList_cpuUsedPc{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10054",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10055",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10056",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.07
-rdsosmetrics_processList_cpuUsedPc{id="10057",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.35
-rdsosmetrics_processList_cpuUsedPc{id="10058",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10059",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10060",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10061",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10062",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10063",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10064",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10065",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10066",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10067",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10068",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10069",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10070",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10071",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10072",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10073",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10074",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10075",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.2
-rdsosmetrics_processList_cpuUsedPc{id="10076",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10077",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="10078",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10079",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10080",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.07
-rdsosmetrics_processList_cpuUsedPc{id="10081",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10082",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.17
-rdsosmetrics_processList_cpuUsedPc{id="10083",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.2
-rdsosmetrics_processList_cpuUsedPc{id="10084",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10085",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.18
-rdsosmetrics_processList_cpuUsedPc{id="10086",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10087",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.35
-rdsosmetrics_processList_cpuUsedPc{id="10088",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="10089",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="10760",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5784",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5809",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5823",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5825",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5826",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5827",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5828",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5829",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5830",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="5831",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5832",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.12
-rdsosmetrics_processList_cpuUsedPc{id="5833",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5834",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.08
-rdsosmetrics_processList_cpuUsedPc{id="5865",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5866",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5867",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5868",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="5869",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
-rdsosmetrics_processList_cpuUsedPc{id="5870",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5871",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5872",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5873",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5874",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5875",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0
-rdsosmetrics_processList_cpuUsedPc{id="5879",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.03
-rdsosmetrics_processList_cpuUsedPc{id="5950",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 1.27
+rdsosmetrics_processList_cpuUsedPc{id="10012",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10013",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10014",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10015",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10016",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10017",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10018",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10019",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10020",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10021",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10022",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10023",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10024",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.08
+rdsosmetrics_processList_cpuUsedPc{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10242",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10243",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10244",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10245",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10246",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10247",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10248",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10249",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10250",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10251",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10252",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10253",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10254",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10255",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10256",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10257",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10258",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10259",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10260",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10261",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10262",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10263",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10264",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10265",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10266",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.05
+rdsosmetrics_processList_cpuUsedPc{id="10267",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10268",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10269",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10270",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10271",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10272",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10273",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10275",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10277",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10278",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10279",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10280",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10283",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10284",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10285",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10286",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10288",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10289",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10290",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10291",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10292",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.17
+rdsosmetrics_processList_cpuUsedPc{id="10293",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.05
+rdsosmetrics_processList_cpuUsedPc{id="10295",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="10296",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10297",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10298",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10299",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10300",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.18
+rdsosmetrics_processList_cpuUsedPc{id="10301",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10302",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="10303",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10304",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="10305",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.1
+rdsosmetrics_processList_cpuUsedPc{id="13169",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13170",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13171",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13172",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13173",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13174",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="13180",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="21281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="21282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="21287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="21294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="31380",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="31382",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
+rdsosmetrics_processList_cpuUsedPc{id="31386",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 0
 # HELP rdsosmetrics_processList_memoryUsedPc The amount of memory used by the process, in kilobytes.
 # TYPE rdsosmetrics_processList_memoryUsedPc gauge
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 3.14
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 23.86
-rdsosmetrics_processList_memoryUsedPc{id="10027",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10028",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10029",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10030",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10031",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10032",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10033",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10034",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10035",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10036",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10037",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10038",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10039",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10040",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10041",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10042",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10054",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10055",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10056",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10057",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10058",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10059",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10060",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10061",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10062",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10063",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10064",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10065",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10066",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10067",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10068",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10069",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10070",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10071",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10072",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10073",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10074",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10075",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10076",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10077",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10078",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10079",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10080",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10081",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10082",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10083",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10084",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10085",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10086",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10087",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10088",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10089",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="10760",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5784",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5809",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5823",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5825",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5826",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5827",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5828",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5829",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5830",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5831",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5832",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5833",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5834",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5865",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5866",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5867",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5868",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5869",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5870",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5871",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5872",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5873",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5874",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5875",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5879",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
-rdsosmetrics_processList_memoryUsedPc{id="5950",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 47.05
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 1.49
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 24.02
+rdsosmetrics_processList_memoryUsedPc{id="10012",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10013",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10014",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10015",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10016",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10017",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10018",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10019",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10020",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10021",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10022",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10023",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10024",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10242",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10243",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10244",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10245",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10246",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10247",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10248",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10249",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10250",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10251",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10252",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10253",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10254",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10255",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10256",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10257",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10258",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10259",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10260",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10261",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10262",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10263",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10264",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10265",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10266",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10267",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10268",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10269",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10270",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10271",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10272",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10273",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10275",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10277",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10278",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10279",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10280",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10283",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10284",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10285",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10286",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10288",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10289",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10290",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10291",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10292",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10293",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10295",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10296",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10297",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10298",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10299",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10300",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10301",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10302",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10303",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10304",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="10305",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13169",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13170",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13171",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13172",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13173",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13174",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="13180",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="21281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="21282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="21287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="21294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="31380",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="31382",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
+rdsosmetrics_processList_memoryUsedPc{id="31386",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 32.89
 # HELP rdsosmetrics_processList_rss The amount of RAM allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_rss gauge
-rdsosmetrics_processList_rss{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 31980
-rdsosmetrics_processList_rss{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 243240
-rdsosmetrics_processList_rss{id="10027",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10028",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10029",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10030",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10031",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10032",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10033",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10034",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10035",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10036",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10037",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10038",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10039",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10040",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10041",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10042",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10054",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10055",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10056",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10057",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10058",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10059",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10060",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10061",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10062",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10063",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10064",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10065",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10066",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10067",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10068",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10069",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10070",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10071",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10072",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10073",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10074",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10075",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10076",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10077",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10078",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10079",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10080",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10081",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10082",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10083",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10084",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10085",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10086",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10087",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10088",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10089",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="10760",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5784",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5809",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5823",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5825",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5826",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5827",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5828",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5829",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5830",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5831",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5832",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5833",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5834",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5865",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5866",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5867",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5868",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5869",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5870",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5871",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5872",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5873",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5874",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5875",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5879",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
-rdsosmetrics_processList_rss{id="5950",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 479600
+rdsosmetrics_processList_rss{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 15168
+rdsosmetrics_processList_rss{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 244824
+rdsosmetrics_processList_rss{id="10012",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10013",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10014",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10015",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10016",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10017",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10018",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10019",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10020",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10021",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10022",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10023",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10024",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10242",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10243",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10244",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10245",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10246",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10247",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10248",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10249",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10250",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10251",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10252",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10253",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10254",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10255",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10256",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10257",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10258",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10259",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10260",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10261",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10262",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10263",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10264",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10265",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10266",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10267",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10268",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10269",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10270",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10271",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10272",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10273",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10275",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10277",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10278",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10279",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10280",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10283",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10284",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10285",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10286",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10288",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10289",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10290",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10291",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10292",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10293",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10295",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10296",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10297",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10298",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10299",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10300",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10301",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10302",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10303",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10304",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="10305",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13169",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13170",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13171",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13172",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13173",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13174",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="13180",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="21281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="21282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="21287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="21294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="31380",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="31382",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
+rdsosmetrics_processList_rss{id="31386",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 335208
 # HELP rdsosmetrics_processList_vss The amount of virtual memory allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_vss gauge
-rdsosmetrics_processList_vss{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 826316
-rdsosmetrics_processList_vss{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 2.248208e+06
-rdsosmetrics_processList_vss{id="10027",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10028",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10029",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10030",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10031",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10032",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10033",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10034",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10035",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10036",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10037",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10038",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10039",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10040",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10041",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10042",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10054",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10055",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10056",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10057",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10058",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10059",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10060",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10061",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10062",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10063",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10064",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10065",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10066",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10067",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10068",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10069",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10070",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10071",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10072",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10073",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10074",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10075",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10076",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10077",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10078",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10079",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10080",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10081",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10082",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10083",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10084",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10085",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10086",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10087",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10088",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10089",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="10760",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5784",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5809",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5823",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5825",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5826",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5827",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5828",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5829",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5830",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5831",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5832",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5833",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5834",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5865",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5866",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5867",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5868",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5869",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5870",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5871",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5872",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5873",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5874",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5875",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5879",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
-rdsosmetrics_processList_vss{id="5950",instance="autotest-mysql-57",name="mysqld",parentID="5780",region="us-west-2",tgid="5784"} 901500
+rdsosmetrics_processList_vss{id="0",instance="autotest-mysql-57",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 739420
+rdsosmetrics_processList_vss{id="0",instance="autotest-mysql-57",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 2.566224e+06
+rdsosmetrics_processList_vss{id="10012",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10013",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10014",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10015",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10016",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10017",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10018",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10019",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10020",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10021",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10022",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10023",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10024",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10043",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10044",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10045",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10046",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10047",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10048",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10049",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10050",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10051",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10052",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10053",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10242",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10243",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10244",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10245",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10246",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10247",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10248",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10249",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10250",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10251",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10252",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10253",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10254",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10255",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10256",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10257",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10258",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10259",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10260",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10261",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10262",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10263",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10264",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10265",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10266",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10267",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10268",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10269",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10270",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10271",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10272",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10273",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10275",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10277",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10278",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10279",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10280",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10283",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10284",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10285",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10286",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10288",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10289",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10290",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10291",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10292",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10293",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10295",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10296",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10297",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10298",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10299",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10300",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10301",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10302",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10303",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10304",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="10305",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13169",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13170",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13171",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13172",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13173",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13174",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="13180",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="21281",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="21282",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="21287",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="21294",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="31380",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="31382",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
+rdsosmetrics_processList_vss{id="31386",instance="autotest-mysql-57",name="mysqld",parentID="10008",region="us-west-2",tgid="10012"} 979780
 # HELP rdsosmetrics_swap_cached The amount of swap memory, in kilobytes, used as cache memory.
 # TYPE rdsosmetrics_swap_cached gauge
-rdsosmetrics_swap_cached{instance="autotest-mysql-57",region="us-west-2"} 4
+rdsosmetrics_swap_cached{instance="autotest-mysql-57",region="us-west-2"} 65836
 # HELP rdsosmetrics_swap_free The total amount of swap memory free, in kilobytes.
 # TYPE rdsosmetrics_swap_free gauge
-rdsosmetrics_swap_free{instance="autotest-mysql-57",region="us-west-2"} 4.036068e+06
+rdsosmetrics_swap_free{instance="autotest-mysql-57",region="us-west-2"} 3.78678e+06
 # HELP rdsosmetrics_swap_in The total amount of memory, in kilobytes, swapped in from disk.
 # TYPE rdsosmetrics_swap_in gauge
 rdsosmetrics_swap_in{instance="autotest-mysql-57",region="us-west-2"} 0
@@ -677,16 +717,16 @@ rdsosmetrics_tasks_blocked{instance="autotest-mysql-57",region="us-west-2"} 0
 rdsosmetrics_tasks_running{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_tasks_sleeping The number of tasks that are sleeping.
 # TYPE rdsosmetrics_tasks_sleeping gauge
-rdsosmetrics_tasks_sleeping{instance="autotest-mysql-57",region="us-west-2"} 101
+rdsosmetrics_tasks_sleeping{instance="autotest-mysql-57",region="us-west-2"} 95
 # HELP rdsosmetrics_tasks_stopped The number of tasks that are stopped.
 # TYPE rdsosmetrics_tasks_stopped gauge
 rdsosmetrics_tasks_stopped{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_tasks_total The total number of tasks.
 # TYPE rdsosmetrics_tasks_total gauge
-rdsosmetrics_tasks_total{instance="autotest-mysql-57",region="us-west-2"} 101
+rdsosmetrics_tasks_total{instance="autotest-mysql-57",region="us-west-2"} 95
 # HELP rdsosmetrics_tasks_zombie The number of child tasks that are inactive with an active parent task.
 # TYPE rdsosmetrics_tasks_zombie gauge
 rdsosmetrics_tasks_zombie{instance="autotest-mysql-57",region="us-west-2"} 0
 # HELP rdsosmetrics_timestamp Metrics timestamp (UNIX seconds).
 # TYPE rdsosmetrics_timestamp counter
-rdsosmetrics_timestamp{instance="autotest-mysql-57",region="us-west-2"} 1.576267213e+09
+rdsosmetrics_timestamp{instance="autotest-mysql-57",region="us-west-2"} 1.60725084e+09
