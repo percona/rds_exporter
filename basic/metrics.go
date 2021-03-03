@@ -246,4 +246,9 @@ var Metrics = []Metric{
 		prometheusName: "aws_rds_write_throughput_average",
 		prometheusHelp: "The average number of bytes written to disk per second. Units: Bytes/Second",
 	},
+	{
+		cwName:         "ReplicaLag",
+		prometheusName: "aws_rds_replica_lag",
+		prometheusHelp: "The amount of time a read replica DB instance lags behind the source DB instance. Unit: Seconds",
+	},
 }
