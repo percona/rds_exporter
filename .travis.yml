@@ -1,5 +1,6 @@
 dist: bionic
 language: go
+os: linux
 
 services:
   - docker
@@ -9,7 +10,7 @@ go:
   - 1.14.x
   - tip
 
-matrix:
+jobs:
   fast_finish: true
   allow_failures:
     - go: tip
@@ -34,10 +35,11 @@ env:
   global:
     # AWS - PMM Autotest account.
     # Travis secrets are not exposed to pull requests from forks: https://docs.travis-ci.com/user/pull-requests#pull-requests-and-security-restrictions
-    - AWS_ACCESS_KEY=AKIAZPBRO3QWGCO72MJZ
-    - secure: "X8jXCbsnCkyEsZN11AQ5NgF5Wl84ZTWxr8LuWXgVZ/3QwRvY7rK25FZVwf8TQqF3wch92WFnSwF9jQ37cz0H6SOa+tQ0NHDhUGIqEfdIlIfb8lGvEEPsD3OPenqRZWDRFFoywgkqu+PZU2uuFW5gC93RbClgBGv4oy+NrJF+Etkikv6E+mMZQc0O/UtEZUyXvRnfKY0/zPAHPsSNtEBvk3Q2lAIsl31pfMn6m1rBxPmuHShsigo+smMZTGXkijIa/aXUNOxz5lXppjvMmbNAg4/3+46MHTDXLmX7irGaUMvKKi4Ya6Hvu9+6UGjInrothVN98Y2k2J+ERZooM7ND7kv3vn3RilYbBhnpsdmmpL0nEQYTsJBvaaWKRZMIxS0Xd21CKOSGN+8Omq9iBgiW1L87xKxYD78OF+2Z9VwzHHk+Oaq2ky3LT/z3WGtnMWpURSxvjw76neFIxoIMHFVIZh0kywrmObZy3mgF0zzC/jRU2PK/ie9k0LJhxuHoEeb4b55f1PmUfhCJ7KblE3x13SlUUQqnvIL7qscKL1nEtFl/kidHtBYJAZzi0ctb2mHduzi89VYKqu6w3S93HpQQLkqpg9+i+i890mQrpytFGrcGVj4SikIE1fwlv/V8MS9zZukvizSV9l/Z0hV5YDqqHPX0UICrf7w/u9vkZSsz45g="
+    - AWS_ACCESS_KEY=AKIAZPBRO3QWCEHJTL35
+    # AWS_SECRET_KEY
+    - secure: RAMsgaq8mKT3mizvH3UvYIk90ZkB/0Thj/R0Hw+zXmReZIQTs468w9IGnXe5JYVCQKvnvOB93PfOT0N2N6Bc+I/twru/e4snQJ7upD8rFd47SMkob2LtHNElASCXdjmrHYkQPOm5q3209RZLOZhGC87CfHwExVYBUCqrO6AC6oMYWxTAPc4NJColIiyYDM8kr/uy/GoKmwK8TZInGfEajy9aiM1rY5x6qns1PpG6DUwzEWgQG35hJ9DK6BdsMBHznA9wvthWiYl90kuOmXzFnSVbCdy9f/3iRTmT+nkIxBy+iljTFdpzsH7EvfvxqTdg6mVZ1ChigbJVL+UjJ1aOZ5fvAmqAXcmzDKf48lXzgxThK97baFk9mpM0M2QJHrF57WKbQTNuPHhMj7/w395Vi0SPFwdG2WG+ecpNqLV4r8QQl3R/X8QiCXfQJ7WI9V2IPNgaIubpyjj3A1sQ6/PzrAhWgWbvwJBJHOstLEPsvWjNAiaEAG7eK9CIdhS3dy2b56p5Ea3ODORNVZTU9ePiKlaMw8xCZXGUGl8QCd0L370S5ksIAS6pBROS4aLuWEvcrVjYlQ0pb1ZHCoQlSxfWV3QWmcUwxetZZ+MLXT9vpvr/AfqOO8xUeUh8qTid73ecGc9prdFDbRwDYA2bAQVZPUG+27z/0cdwfftkb/Nz0W4=
     # REVIEWDOG_GITHUB_API_TOKEN
-    - secure: "2OwS09wZF45Is+/fGsXrPXjzQ3pd1DgX6FC/bCoclK81L9Ad8ghGcNPMj4fScyaLHur6kEKPkurZgKoIhNzbLPArg1rna/BqJFIJFtmHIuTKRbyDvv2rU0hqvIaMWdHHDHXuFhpHtyiczzids/JzfurzHyoZZpl6mZ7MrFU2qoR9MH/pnYFdXAf1D6Af0qHWC6SC/jCln1knhP1eYnVYvA4ImYa+uLXcPC6pPO/LuRzrRw79BamMfH4RmCI27abUVp/Vwim36Fxxt9fiXkCImPnK4PALqTpGhcBdgp/fHmqnBHSlfVKFREmwpmtQ4EGlMau1WgSUlqH89GRQ5gvXv/J8wwQRLZQRUalM34v9t/XjbWbTg+5LwJNbtI229RsY7XS0Ty0UnLSmb4GeiUZ1mf1sKgnTAZM/bz6np3hCk8d0dJlaJMO+9HL/4O2wTNFmRLsYbWAwhrS3Jhk6eQ9XnS+OPod4qVF1LjvCeM9WPUG1p7SyTrtzaTi0z/elaQ60GzZ6VCto3hXHTqhtEuZFIMxqxgUxDIAqppudE7jzZaU6DNscEyjmKnh+cKsTzq1bAdBA2wK0cnR8aemZJKZqEcyGwZPs185PyVKhZ53s7362hKD4th4td2V4rNqJ/R+qGE57KRKUBmELWPPCSh7YvdaixTaT1QM9rzZjtWhUBMg="
+    - secure: 0wFWLHDYVCXM8VEf7ZjUlTIOd0y2qbLvwHAigI83MIFjgS34hx6zxT7dC20QRGdh5HBr/Q9/zri//ca3GoyYKADEjXaDqOniI3PTnjL+RyA5Jxn8IPnBjdqcxU/WGEKs0Z4k5Fv2bLb7ipm9QcLCKDxCyQfWnWe/WAckvt83OTGXbMXNTb2XdCDGAgdYqsBLbgJq07KK+jaXtNGj1+p8lHBnuK8QIwFpfusTtlyAUaLBx307/xqk1bUMuZun2IF6nWf5MhrH8Ix3VaIB+8hkoInNU4X5Cum2rkZSvTcpvJmKzHPErkEGuJYLrnYgBjUCShWjDs0VsU8DAGYwz1hdPa/m7qX8CMRiiTBeJCtdnE7KXcrwDv0eILh4bDD6F7QNkj466lwigAIHMyBUVRTFjI77C68Fsvu/xkd22eDEBdmMJfo2x18UrP3FGqvkbdmDvjjzj4oz5z5ssQZ7z2f3uhlm9EHf8zzcP5N9Kh7zZO3LKPMiCZtOf3nxgiR0JLzM1WJ2iPflAlVWS+9Yv/uKNiJYoH+cV/8B5HwC+CryenqOOAvU68nZ5y0dgpfsW8+p6WTAzIudxy5eem+VtAmg4N5XPGdwjPRcsiLb46yGzV46Zpsi/z+R3z1f/l4Rxky7YDM9kOwoLiHDUTI9hBpv6f8P7ZRp8ZTZL3jOpZAH+UY=
 
 install:
   # install reviewdog and golangci-lint
@@ -46,3 +48,11 @@ install:
 
 script:
   - make travis
+
+notifications:
+  email: false
+  slack:
+    on_success: change
+    on_failure: always
+    rooms:
+      - secure: iKvaMZw0DANxI+6PA6xQpse4W0XZVahHCiHnO8V5KtYhyou5pLLlcVzjwoXKEA4RLsj2/a1XnU6FZcn2L0eqoyCrHQeav9NLHCLmrtaLGROdpAU+ludJjuoKS/30wQMt9kExHmSa1BNsCtFM7pVXbbs+jRclnSTOlWXsjIHkHoLcigJ/hgOl/lOYEQr7Szxkx/05HhTmFd+i3VY3LHcGyyuMpumnEOXTs3iohhgHkI++mUoYlaGj+GDLsUe4D2z9A2bl7+5XnmJmKkPSz5moLyjxVAd+fAAX3/3kxf0GgAfD9H/DU3/1moviO3/2E02q9FI7/0cKefprnOLJ2m8RyuExQiQt3GdjKZjZkWTWh/IpfMD/9JtC65NwzlxFj3ZigQxvk/AyzDLuM4pVzkPnA3aBJdYfr9tBQ39Tg3sDQSTMDvBzPn5F7nRq3n8VXBPsIFCs4t4ZvRqZJE5BDy+cUxDVxVGZK/bpAAJM99nadR9XNwUIiLIJ5xkfljg4a/obZ1W5rnMwUWmuSmpC+cKRSSMyqjVwt8hbYfvBOdGkikaa0bV7EDI+qeeaofE7ZAnbjHNnlG6hDTeP+vYTUBQJhqevFRwADbZXgnjv2Vh/EA3LMevxZtux7fCHD7vrZFMYbRYU7S1/ysC9EtvAwrg8gm0aVgzd3Za1phiBYUN+slk=
