@@ -58,7 +58,7 @@ docker:
 promu:
 	@GOOS=$(shell uname -s | tr A-Z a-z) \
 	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
-	        $(GO) get -u github.com/prometheus/promu
+	        GO111MODULE=on $(GO) get -u github.com/prometheus/promu@latest
 
 ci-reviewdog:                   ## Runs reviewdog checks.
 	bin/golangci-lint run -c=.golangci-required.yml --out-format=line-number | bin/reviewdog -f=golangci-lint -level=error -reporter=github-pr-check

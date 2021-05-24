@@ -113,12 +113,12 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "PMM-7789_remove_insecure_cyphers-REVERT-revert"
   digest = "1:16379f2653feea4834bd3700b27e2e0058d7bb7b1a708ac2904c92b9a7939581"
   name = "github.com/percona/exporter_shared"
   packages = ["helpers"]
   pruneopts = "NUT"
-  revision = "7442d2ab8a9fd786740c5ae9a40de8bfbd1d9329"
-  version = "v0.7.1"
+  revision = "cbaae0cfa2ad1b00314a58e9d4f431bf10a97cda"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -149,7 +149,7 @@
   revision = "d1d2010b5beead3fa1c5f271a5cf626e40b3ad6e"
 
 [[projects]]
-  digest = "1:22b0ad1d8dbb7f1961d53f45e69743b2f92a0e076901401b9fed78c0eb058879"
+  digest = "1:e3f1dcd7cde5019624488f99b94413cc5c699cc84515c84ea58e742e6543f3ff"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
@@ -159,8 +159,8 @@
     "version",
   ]
   pruneopts = "NUT"
-  revision = "287d3e634a1e550c9e463dd7e5a75a422c614505"
-  version = "v0.7.0"
+  revision = "629b6ff9b3aafafba54ab96663903fde9544f037"
+  version = "v0.8.0"
 
 [[projects]]
   digest = "1:a4b063a766f50cdadc1fce12053e3bde8599f1f8b7621d7e293cd2fc86543a44"

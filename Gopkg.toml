@@ -2,3 +2,9 @@
   go-tests = true
   non-go = true
   unused-packages = true
+
+[[constraint]]
+  # https://jira.percona.com/browse/PMM-1710
+  # https://jira.percona.com/browse/PMM-3209
+  name = "github.com/percona/exporter_shared"
+  branch = "PMM-7789_remove_insecure_cyphers-REVERT-revert"
