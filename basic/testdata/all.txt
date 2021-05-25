@@ -14,6 +14,9 @@ aws_rds_blocked_transactions_average{instance="autotest-aurora-mysql-56",region=
 # TYPE aws_rds_buffer_cache_hit_ratio_average gauge
 aws_rds_buffer_cache_hit_ratio_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 100
 aws_rds_buffer_cache_hit_ratio_average{instance="autotest-aurora-psql-11",region="us-west-2"} 100
+# HELP aws_rds_burst_balance_average The percent of General Purpose SSD (gp2) burst-bucket I/O credits available. Units: Percent
+# TYPE aws_rds_burst_balance_average gauge
+aws_rds_burst_balance_average{instance="autotest-psql-10",region="us-east-1"} 0
 # HELP aws_rds_commit_latency_average CommitLatency
 # TYPE aws_rds_commit_latency_average gauge
 aws_rds_commit_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 6.804166666666666
@@ -25,13 +28,11 @@ aws_rds_commit_throughput_average{instance="autotest-aurora-psql-11",region="us-
 # HELP aws_rds_cpu_credit_balance_average [T2 instances] The number of CPU credits available for the instance to burst beyond its base CPU utilization. Credits are stored in the credit balance after they are earned and removed from the credit balance after they expire. Credits expire 24 hours after they are earned. CPU credit metrics are available only at a 5 minute frequency. Units: Count
 # TYPE aws_rds_cpu_credit_balance_average gauge
 aws_rds_cpu_credit_balance_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 576
-aws_rds_cpu_credit_balance_average{instance="autotest-aurora-psql-11",region="us-west-2"} 576
 aws_rds_cpu_credit_balance_average{instance="autotest-mysql-57",region="us-west-2"} 144
 aws_rds_cpu_credit_balance_average{instance="autotest-psql-10",region="us-east-1"} 144
 # HELP aws_rds_cpu_credit_usage_average [T2 instances] The number of CPU credits consumed by the instance. One CPU credit equals one vCPU running at 100% utilization for one minute or an equivalent combination of vCPUs, utilization, and time (for example, one vCPU running at 50% utilization for two minutes or two vCPUs running at 25% utilization for two minutes). CPU credit metrics are available only at a 5 minute frequency. If you specify a period greater than five minutes, use the Sum statistic instead of the Average statistic. Units: Count
 # TYPE aws_rds_cpu_credit_usage_average gauge
 aws_rds_cpu_credit_usage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.6513
-aws_rds_cpu_credit_usage_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.7016632833333334
 aws_rds_cpu_credit_usage_average{instance="autotest-mysql-57",region="us-west-2"} 0.182665
 aws_rds_cpu_credit_usage_average{instance="autotest-psql-10",region="us-east-1"} 0.114772
 # HELP aws_rds_database_connections_average The number of database connections in use. Units: Count

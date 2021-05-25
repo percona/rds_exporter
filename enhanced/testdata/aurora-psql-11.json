@@ -1,7 +1,7 @@
 {
     "engine": "aurora-postgresql",
     "instanceID": "autotest-aurora-psql-11",
-    "instanceResourceID": "db-MZ2RNFOFFZTGHAE2QR46PD2CH4",
+    "instanceResourceID": "db-TYM5GWPPEMFCR5L6YX6ZBHUIUE",
     "timestamp": "2020-12-06T10:33:59Z",
     "version": 1,
     "uptime": "360 days, 00:03:24",

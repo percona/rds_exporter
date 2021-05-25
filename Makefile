@@ -11,15 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GO    := GO15VENDOREXPERIMENT=1 go
-PROMU := $(GOPATH)/bin/promu
+GO    := go
+PROMU := bin/promu
 pkgs   = $(shell $(GO) list ./...)
 
 PREFIX                  ?= $(shell pwd)
 BIN_DIR                 ?= $(shell pwd)
 DOCKER_IMAGE_NAME       ?= $(shell basename $(shell pwd))
 DOCKER_IMAGE_TAG        ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
-
 
 all: format build test
 
@@ -58,19 +57,18 @@ docker:
 promu:
 	@GOOS=$(shell uname -s | tr A-Z a-z) \
 	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
-	        GO111MODULE=on $(GO) get -u github.com/prometheus/promu@latest
+	        $(GO) build -modfile=tools/go.mod -o bin/promu github.com/prometheus/promu
 
-ci-reviewdog:                   ## Runs reviewdog checks.
-	bin/golangci-lint run -c=.golangci-required.yml --out-format=line-number | bin/reviewdog -f=golangci-lint -level=error -reporter=github-pr-check
-	bin/golangci-lint run -c=.golangci.yml --out-format=line-number | bin/reviewdog -f=golangci-lint -level=error -reporter=github-pr-review
+check:
+	bin/golangci-lint run -c=.golangci.yml --out-format=line-number
 
 travis: build ci-reviewdog test-race codecov tarball docker
 
 codecov: gocoverutil
-	@gocoverutil -coverprofile=coverage.txt test $(pkgs)
+	@bin/gocoverutil -coverprofile=coverage.txt test $(pkgs)
 	@curl -s https://codecov.io/bash | bash -s - -X fix
 
 gocoverutil:
-	@$(GO) get -u github.com/AlekSi/gocoverutil
+	@$(GO) build -modfile=tools/go.mod -o bin/gocoverutil github.com/AlekSi/gocoverutil
 
 .PHONY: all style format build test vet tarball docker promu

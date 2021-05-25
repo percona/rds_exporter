@@ -62,7 +62,7 @@ func TestSession(t *testing.T) {
 	p10iExpected := Instance{
 		Region:                     "us-east-1",
 		Instance:                   "autotest-psql-10",
-		ResourceID:                 "db-OZNCI2RJ7VU3IE3XE52ZCLVBMA",
+		ResourceID:                 "db-PUZFCRUUHY365QFJLTOUWRDOCQ",
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	m57iExpected := Instance{
@@ -74,7 +74,7 @@ func TestSession(t *testing.T) {
 	ap11iExpected := Instance{
 		Region:                     "us-west-2",
 		Instance:                   "autotest-aurora-psql-11",
-		ResourceID:                 "db-MZ2RNFOFFZTGHAE2QR46PD2CH4",
+		ResourceID:                 "db-TYM5GWPPEMFCR5L6YX6ZBHUIUE",
 		EnhancedMonitoringInterval: time.Minute,
 	}
 
