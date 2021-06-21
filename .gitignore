@@ -3,3 +3,6 @@
 /.idea/
 /.vscode/
 rds_exporter
+config.yml
+bin/
+coverage.txt

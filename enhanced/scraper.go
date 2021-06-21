@@ -2,6 +2,7 @@ package enhanced
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,6 +21,8 @@ type scraper struct {
 	svc            *cloudwatchlogs.CloudWatchLogs
 	nextStartTime  time.Time
 	logger         log.Logger
+
+	testDisallowUnknownFields bool // for tests only
 }
 
 func newScraper(session *session.Session, instances []sessions.Instance) *scraper {
@@ -51,64 +54,94 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 		}
 
 		scrapeCtx, cancel := context.WithTimeout(ctx, interval)
-		ch <- s.scrape(scrapeCtx)
+		m, _ := s.scrape(scrapeCtx)
 		cancel()
+		ch <- m
 	}
 }
 
 // scrape performs a single scrape.
-func (s *scraper) scrape(ctx context.Context) map[string][]prometheus.Metric {
-	input := &cloudwatchlogs.FilterLogEventsInput{
-		LogGroupName:   aws.String("RDSOSMetrics"),
-		LogStreamNames: aws.StringSlice(s.logStreamNames),
-		StartTime:      aws.Int64(aws.TimeUnixMilli(s.nextStartTime)),
-	}
-	s.logger.Debugf("Requesting metrics since %s (last %s).", s.nextStartTime.UTC(), time.Since(s.nextStartTime))
+func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
 
-	// collect all returned events and metrics
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
-	collectAllMetrics := func(output *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
-		for _, event := range output.Events {
-			l := s.logger.With("EventId", *event.EventId).With("LogStreamName", *event.LogStreamName)
-			l = l.With("Timestamp", aws.MillisecondsTimeValue(event.Timestamp).UTC())
-			l = l.With("IngestionTime", aws.MillisecondsTimeValue(event.IngestionTime).UTC())
+	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
 
-			var instance *sessions.Instance
-			for _, i := range s.instances {
-				if i.ResourceID == *event.LogStreamName {
-					instance = &i
-					break
-				}
-			}
-			if instance == nil {
-				l.Errorf("Failed to find instance.")
-				continue
-			}
-			l = l.With("region", instance.Region).With("instance", instance.Instance)
-
-			// l.Debugf("Message:\n%s", *event.Message)
-			osMetrics, err := parseOSMetrics([]byte(*event.Message))
-			if err != nil {
-				l.Errorf("Failed to parse metrics: %s.", err)
-				continue
-			}
-			// l.Debugf("OS Metrics:\n%#v", osMetrics)
-
-			if allMetrics[instance.ResourceID] == nil {
-				allMetrics[instance.ResourceID] = make(map[time.Time][]prometheus.Metric)
-			}
-			timestamp := aws.MillisecondsTimeValue(event.Timestamp)
-			metrics := osMetrics.makePrometheusMetrics(instance.Region)
-			allMetrics[instance.ResourceID][timestamp] = metrics
-			l.Debugf("Timestamp from Message: %s.", osMetrics.Timestamp.UTC())
+	// LogStreamNames parameter supports up to 100 items.
+	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
+	streamCount := len(s.logStreamNames)
+	for i := 0; i < streamCount; i += 100 {
+		sliceStart := i
+		sliceEnd := i + 100
+		if sliceEnd > streamCount {
+			sliceEnd = streamCount
 		}
 
-		return true // continue pagination
-	}
-	if err := s.svc.FilterLogEventsPagesWithContext(ctx, input, collectAllMetrics); err != nil {
-		s.logger.Errorf("Failed to filter log events: %s.", err)
-	}
+		input := &cloudwatchlogs.FilterLogEventsInput{
+			LogGroupName:   aws.String("RDSOSMetrics"),
+			LogStreamNames: aws.StringSlice(s.logStreamNames[sliceStart:sliceEnd]),
+			StartTime:      aws.Int64(aws.TimeUnixMilli(s.nextStartTime)),
+		}
 
+		s.logger.With("next_start", s.nextStartTime.UTC()).With("since_last", time.Since(s.nextStartTime)).Debugf("Requesting metrics")
+
+		// collect all returned events and metrics/messages
+		collectAllMetrics := func(output *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
+			for _, event := range output.Events {
+				l := s.logger.With("EventId", *event.EventId).With("LogStreamName", *event.LogStreamName)
+				l = l.With("Timestamp", aws.MillisecondsTimeValue(event.Timestamp).UTC())
+				l = l.With("IngestionTime", aws.MillisecondsTimeValue(event.IngestionTime).UTC())
+
+				var instance *sessions.Instance
+				for _, i := range s.instances {
+					if i.ResourceID == *event.LogStreamName {
+						instance = &i
+						break
+					}
+				}
+				if instance == nil {
+					l.Errorf("Failed to find instance.")
+					continue
+				}
+
+				if instance.DisableEnhancedMetrics {
+					l.Debugf("Enhanced Metrics are dissabled for instance %v.", instance)
+					continue
+				}
+				l = l.With("region", instance.Region).With("instance", instance.Instance)
+
+				// l.Debugf("Message:\n%s", *event.Message)
+				osMetrics, err := parseOSMetrics([]byte(*event.Message), s.testDisallowUnknownFields)
+				if err != nil {
+					// only for tests
+					if s.testDisallowUnknownFields {
+						panic(fmt.Sprintf("New metrics should be added: %s", err))
+					}
+
+					l.Errorf("Failed to parse metrics: %s.", err)
+					continue
+				}
+				// l.Debugf("OS Metrics:\n%#v", osMetrics)
+
+				timestamp := aws.MillisecondsTimeValue(event.Timestamp).UTC()
+				l.Debugf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp)
+
+				if allMetrics[instance.ResourceID] == nil {
+					allMetrics[instance.ResourceID] = make(map[time.Time][]prometheus.Metric)
+				}
+				allMetrics[instance.ResourceID][timestamp] = osMetrics.makePrometheusMetrics(instance.Region, instance.Labels)
+
+				if allMessages[instance.ResourceID] == nil {
+					allMessages[instance.ResourceID] = make(map[time.Time]string)
+				}
+				allMessages[instance.ResourceID][timestamp] = *event.Message
+			}
+
+			return true // continue pagination
+		}
+		if err := s.svc.FilterLogEventsPagesWithContext(ctx, input, collectAllMetrics); err != nil {
+			s.logger.Errorf("Failed to filter log events: %s.", err)
+		}
+	}
 	// get better times
 	allTimes := make(map[string][]time.Time)
 	for resourceID, events := range allMetrics {
@@ -120,12 +153,14 @@ func (s *scraper) scrape(ctx context.Context) map[string][]prometheus.Metric {
 	var times map[string]time.Time
 	times, s.nextStartTime = betterTimes(allTimes)
 
-	// return only latest metrics
-	res := make(map[string][]prometheus.Metric) // ResourceID -> metrics
+	// return only latest metrics/messages
+	resMetrics := make(map[string][]prometheus.Metric) // ResourceID -> metrics
+	resMessages := make(map[string]string)             // ResourceID -> message
 	for resourceID, timestamp := range times {
-		res[resourceID] = allMetrics[resourceID][timestamp]
+		resMetrics[resourceID] = allMetrics[resourceID][timestamp]
+		resMessages[resourceID] = allMessages[resourceID][timestamp]
 	}
-	return res
+	return resMetrics, resMessages
 }
 
 // betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request

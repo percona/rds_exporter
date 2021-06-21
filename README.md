@@ -1,7 +1,7 @@
 # RDS Exporter
 
 [![Release](https://img.shields.io/github/release/percona/rds_exporter.svg?style=flat)](https://github.com/percona/rds_exporter/releases/latest)
-[![Build Status](https://travis-ci.org/percona/rds_exporter.svg)](https://travis-ci.org/percona/rds_exporter)
+[![Build Status](https://travis-ci.com/percona/rds_exporter.svg?branch=master)](https://travis-ci.com/percona/rds_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/percona/rds_exporter)](https://goreportcard.com/report/github.com/percona/rds_exporter)
 [![CLA assistant](https://cla-assistant.percona.com/readme/badge/percona/rds_exporter)](https://cla-assistant.percona.com/percona/rds_exporter)
 [![codecov.io Code Coverage](https://img.shields.io/codecov/c/github/percona/rds_exporter.svg?maxAge=2592000)](https://codecov.io/github/percona/rds_exporter?branch=master)
@@ -20,19 +20,26 @@ Create configration file `config.yml`:
 ```yaml
 ---
 instances:
-  - instance: rds-aurora1
-    region: us-east-1
-  - instance: rds-mysql57
-    region: us-east-1
+  - region: us-east-1
+    instance: rds-aurora1
+
+  - region: us-east-1
+    instance: rds-mysql57
     aws_access_key: AKIAIOSFODNN7EXAMPLE
     aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    disable_basic_metrics: true
+    disable_enhanced_metrics: false
+    labels:
+      foo: bar
+      baz: qux
 ```
 
 If `aws_access_key` and `aws_secret_key` are present, they are used for that instance.
 Otherwise, [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials)
-is used, which includes `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables, `~/.aws/credentials` file,
+is used, which includes `AWS_ACCESS_KEY_ID`/`AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY`/`AWS_SECRET_KEY` environment variables, `~/.aws/credentials` file,
 and IAM role for EC2.
 
+Returned metrics contain `instance` and `region` labels set. They also contain extra labels specified in the configuration file.
 
 Start exporter by running:
 ```
@@ -69,3 +76,10 @@ scrape_configs:
 ```
 
 `honor_labels: true` is important because exporter returns metrics with `instance` label set.
+
+## Metrics
+
+Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter)-like metrics where possible.
+
+You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/master/basic/testdata/all.txt)
+and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/master/enhanced/testdata).

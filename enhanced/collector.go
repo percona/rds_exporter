@@ -49,7 +49,8 @@ func NewCollector(sessions *sessions.Sessions) *Collector {
 		s.logger.Infof("Updating enhanced metrics every %s.", interval)
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
-		c.setMetrics(s.scrape(context.TODO()))
+		m, _ := s.scrape(context.TODO())
+		c.setMetrics(m)
 
 		ch := make(chan map[string][]prometheus.Metric)
 		go func() {
@@ -74,14 +75,7 @@ func (c *Collector) setMetrics(m map[string][]prometheus.Metric) {
 
 // Describe implements prometheus.Collector.
 func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
-	c.rw.RLock()
-	defer c.rw.RUnlock()
-
-	for _, metrics := range c.metrics {
-		for _, m := range metrics {
-			ch <- m.Desc()
-		}
-	}
+	// unchecked collector
 }
 
 // Collect implements prometheus.Collector.

@@ -1,44 +1,53 @@
 package enhanced
 
 import (
-	"strings"
+	"sort"
 	"testing"
-	"time"
 
 	"github.com/percona/exporter_shared/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-//nolint:lll
 func TestParse(t *testing.T) {
-	t.Run("MySQL56", func(t *testing.T) {
-		m, err := parseOSMetrics(dataMySQL56)
-		require.NoError(t, err)
-		assert.Equal(t, time.Date(2018, 10, 3, 10, 43, 5, 0, time.UTC), m.Timestamp)
+	for _, data := range []struct {
+		region   string
+		instance string
+	}{
+		{"us-east-1", "aurora-mysql-56"},
+		{"us-west-1", "psql-10"},
+		{"us-west-2", "mysql-57"},
+		{"us-west-2", "aurora-psql-11"},
+	} {
+		data := data
+		t.Run(data.instance, func(t *testing.T) {
+			// Test that metrics created from fixed testdata JSON produce expected result.
 
-		metrics := m.makePrometheusMetrics("us-east-1")
-		actual := strings.Join(helpers.Format(metrics), "\n")
-		assert.Equal(t, dataMySQL56Expected, actual, "Actual:\n%s", actual)
-	})
+			m, err := parseOSMetrics(readTestDataJSON(t, data.instance), true)
+			require.NoError(t, err)
 
-	t.Run("MySQL57", func(t *testing.T) {
-		m, err := parseOSMetrics(dataMySQL57)
-		require.NoError(t, err)
-		assert.Equal(t, time.Date(2018, 9, 25, 8, 7, 3, 0, time.UTC), m.Timestamp)
+			actualMetrics := helpers.ReadMetrics(m.makePrometheusMetrics(data.region, nil))
+			sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
+			actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
-		metrics := m.makePrometheusMetrics("us-east-1")
-		actual := strings.Join(helpers.Format(metrics), "\n")
-		assert.Equal(t, dataMySQL57Expected, actual, "Actual:\n%s", actual)
-	})
+			if *goldenTXT {
+				writeTestDataMetrics(t, data.instance, actualLines)
+			}
 
-	t.Run("Aurora57", func(t *testing.T) {
-		m, err := parseOSMetrics(dataAurora57)
-		require.NoError(t, err)
-		assert.Equal(t, time.Date(2018, 9, 25, 8, 16, 20, 0, time.UTC), m.Timestamp)
+			expectedLines := readTestDataMetrics(t, data.instance)
+			expectedMetrics := helpers.ReadMetrics(helpers.Parse(expectedLines))
+			sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
 
-		metrics := m.makePrometheusMetrics("us-east-1")
-		actual := strings.Join(helpers.Format(metrics), "\n")
-		assert.Equal(t, dataAurora57Expected, actual, "Actual:\n%s", actual)
-	})
+			// compare both to try to avoid go-difflib bug
+			assert.Equal(t, expectedLines, actualLines)
+			assert.Equal(t, expectedMetrics, actualMetrics)
+		})
+	}
+}
+
+func TestParseUptime(t *testing.T) {
+	t.Skip("TODO Parse uptime https://jira.percona.com/browse/PMM-2131")
+
+	_ = "01:45:58"
+	_ = "1 day, 07:11:58"
 }
