@@ -1,6 +1,12 @@
+FROM golang:1.15 as build
+
+COPY . /usr/src/rds_exporter
+
+RUN cd /usr/src/rds_exporter && make build
+
 FROM        alpine:latest
 
-COPY rds_exporter  /bin/
+COPY --from=build /usr/src/rds_exporter/rds_exporter  /bin/
 # COPY config.yml           /etc/rds_exporter/config.yml
 
 RUN apk update && \
