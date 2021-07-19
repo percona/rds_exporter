@@ -22,7 +22,7 @@ type Collector struct {
 
 // Maximal and minimal metrics update interval.
 const (
-	maxInterval = 10 * time.Second
+	maxInterval = 60 * time.Second
 	minInterval = 2 * time.Second
 )
 
