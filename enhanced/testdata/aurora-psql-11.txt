@@ -1,89 +1,89 @@
 # HELP node_cpu_average The percentage of CPU utilization.
 # TYPE node_cpu_average gauge
 node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="guest",region="us-west-2"} 0
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="idle",region="us-west-2"} 93.3
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="idle",region="us-west-2"} 90.9
 node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="irq",region="us-west-2"} 0
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="nice",region="us-west-2"} 0.4
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="steal",region="us-west-2"} 1.3
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="system",region="us-west-2"} 2
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="total",region="us-west-2"} 6.5
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="user",region="us-west-2"} 2.5
-node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="wait",region="us-west-2"} 0.3
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="nice",region="us-west-2"} 0
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="steal",region="us-west-2"} 2.6
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="system",region="us-west-2"} 3.1
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="total",region="us-west-2"} 9
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="user",region="us-west-2"} 2.8
+node_cpu_average{cpu="All",instance="autotest-aurora-psql-11",mode="wait",region="us-west-2"} 0.5
 # HELP node_disk_read_bytes_total The total number of bytes read successfully.
 # TYPE node_disk_read_bytes_total counter
 node_disk_read_bytes_total{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_disk_written_bytes_total The total number of bytes written successfully.
 # TYPE node_disk_written_bytes_total counter
-node_disk_written_bytes_total{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 1.257472e+06
+node_disk_written_bytes_total{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 1.138688e+06
 # HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
 # TYPE node_filesystem_avail_bytes gauge
-node_filesystem_avail_bytes{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 8.076845056e+09
+node_filesystem_avail_bytes{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 7.123484672e+09
 # HELP node_filesystem_files Filesystem total file nodes.
 # TYPE node_filesystem_files gauge
 node_filesystem_files{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 5.36870912e+08
 # HELP node_filesystem_files_free Filesystem total free file nodes.
 # TYPE node_filesystem_files_free gauge
-node_filesystem_files_free{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 5.33320704e+08
+node_filesystem_files_free{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 5.3380096e+08
 # HELP node_filesystem_free_bytes Filesystem free space in bytes.
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 8.076845056e+09
+node_filesystem_free_bytes{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 7.123484672e+09
 # HELP node_filesystem_size_bytes Filesystem size in bytes.
 # TYPE node_filesystem_size_bytes gauge
 node_filesystem_size_bytes{device="",fstype="",instance="autotest-aurora-psql-11",mountpoint="/rdsdbdata",region="us-west-2"} 8.316706816e+09
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
-node_load1{instance="autotest-aurora-psql-11",region="us-west-2"} 0.15
+node_load1{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_memory_Active_bytes Memory information field Active_bytes.
 # TYPE node_memory_Active_bytes gauge
-node_memory_Active_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 1.05295872e+09
+node_memory_Active_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.110775296e+09
 # HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
 # TYPE node_memory_Buffers_bytes gauge
-node_memory_Buffers_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.46321152e+08
+node_memory_Buffers_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 3.11914496e+08
 # HELP node_memory_Cached_bytes Memory information field Cached_bytes.
 # TYPE node_memory_Cached_bytes gauge
-node_memory_Cached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 5.73784064e+08
+node_memory_Cached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.052714496e+09
 # HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
 # TYPE node_memory_Dirty_bytes gauge
-node_memory_Dirty_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 3.244032e+06
+node_memory_Dirty_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 413696
 # HELP node_memory_HugePages_Free Memory information field HugePages_Free.
 # TYPE node_memory_HugePages_Free gauge
-node_memory_HugePages_Free{instance="autotest-aurora-psql-11",region="us-west-2"} 14
+node_memory_HugePages_Free{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_memory_HugePages_Rsvd Memory information field HugePages_Rsvd.
 # TYPE node_memory_HugePages_Rsvd gauge
-node_memory_HugePages_Rsvd{instance="autotest-aurora-psql-11",region="us-west-2"} 7
+node_memory_HugePages_Rsvd{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_memory_HugePages_Surp Memory information field HugePages_Surp.
 # TYPE node_memory_HugePages_Surp gauge
 node_memory_HugePages_Surp{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_memory_HugePages_Total Memory information field HugePages_Total.
 # TYPE node_memory_HugePages_Total gauge
-node_memory_HugePages_Total{instance="autotest-aurora-psql-11",region="us-west-2"} 1119
+node_memory_HugePages_Total{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
 # TYPE node_memory_Hugepagesize_bytes gauge
 node_memory_Hugepagesize_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.097152e+06
 # HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
 # TYPE node_memory_Inactive_bytes gauge
-node_memory_Inactive_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.7949056e+08
+node_memory_Inactive_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 8.12576768e+08
 # HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
 # TYPE node_memory_Mapped_bytes gauge
-node_memory_Mapped_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.54676992e+08
+node_memory_Mapped_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 3.15232256e+08
 # HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
 # TYPE node_memory_MemFree_bytes gauge
-node_memory_MemFree_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.44068352e+08
+node_memory_MemFree_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 4.32635904e+08
 # HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
 # TYPE node_memory_MemTotal_bytes gauge
 node_memory_MemTotal_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 4.075921408e+09
 # HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
 # TYPE node_memory_PageTables_bytes gauge
-node_memory_PageTables_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 8.33536e+06
+node_memory_PageTables_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 8.896512e+06
 # HELP node_memory_Slab_bytes Memory information field Slab_bytes.
 # TYPE node_memory_Slab_bytes gauge
-node_memory_Slab_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 9.1189248e+07
+node_memory_Slab_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 6.57240064e+08
 # HELP node_memory_SwapCached_bytes Memory information field SwapCached.
 # TYPE node_memory_SwapCached_bytes gauge
-node_memory_SwapCached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 4096
+node_memory_SwapCached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 172032
 # HELP node_memory_SwapFree_bytes Memory information field SwapFree.
 # TYPE node_memory_SwapFree_bytes gauge
-node_memory_SwapFree_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.143023104e+09
+node_memory_SwapFree_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.139877376e+09
 # HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
 # TYPE node_memory_SwapTotal_bytes gauge
 node_memory_SwapTotal_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.143285248e+09
@@ -95,7 +95,7 @@ node_memory_Writeback_bytes{instance="autotest-aurora-psql-11",region="us-west-2
 node_procs_blocked{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_procs_running Number of processes in runnable state.
 # TYPE node_procs_running gauge
-node_procs_running{instance="autotest-aurora-psql-11",region="us-west-2"} 1
+node_procs_running{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP node_vmstat_pswpin /proc/vmstat information field pswpin
 # TYPE node_vmstat_pswpin gauge
 node_vmstat_pswpin{instance="autotest-aurora-psql-11",region="us-west-2"} 0
@@ -110,37 +110,37 @@ rdsosmetrics_General_numVCPUs{instance="autotest-aurora-psql-11",region="us-west
 rdsosmetrics_cpuUtilization_guest{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_cpuUtilization_idle The percentage of CPU that is idle.
 # TYPE rdsosmetrics_cpuUtilization_idle gauge
-rdsosmetrics_cpuUtilization_idle{instance="autotest-aurora-psql-11",region="us-west-2"} 93.3
+rdsosmetrics_cpuUtilization_idle{instance="autotest-aurora-psql-11",region="us-west-2"} 90.9
 # HELP rdsosmetrics_cpuUtilization_irq The percentage of CPU in use by software interrupts.
 # TYPE rdsosmetrics_cpuUtilization_irq gauge
 rdsosmetrics_cpuUtilization_irq{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_cpuUtilization_nice The percentage of CPU in use by programs running at lowest priority.
 # TYPE rdsosmetrics_cpuUtilization_nice gauge
-rdsosmetrics_cpuUtilization_nice{instance="autotest-aurora-psql-11",region="us-west-2"} 0.4
+rdsosmetrics_cpuUtilization_nice{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_cpuUtilization_steal The percentage of CPU in use by other virtual machines.
 # TYPE rdsosmetrics_cpuUtilization_steal gauge
-rdsosmetrics_cpuUtilization_steal{instance="autotest-aurora-psql-11",region="us-west-2"} 1.3
+rdsosmetrics_cpuUtilization_steal{instance="autotest-aurora-psql-11",region="us-west-2"} 2.6
 # HELP rdsosmetrics_cpuUtilization_system The percentage of CPU in use by the kernel.
 # TYPE rdsosmetrics_cpuUtilization_system gauge
-rdsosmetrics_cpuUtilization_system{instance="autotest-aurora-psql-11",region="us-west-2"} 2
+rdsosmetrics_cpuUtilization_system{instance="autotest-aurora-psql-11",region="us-west-2"} 3.1
 # HELP rdsosmetrics_cpuUtilization_total The total percentage of the CPU in use. This value includes the nice value.
 # TYPE rdsosmetrics_cpuUtilization_total gauge
-rdsosmetrics_cpuUtilization_total{instance="autotest-aurora-psql-11",region="us-west-2"} 6.5
+rdsosmetrics_cpuUtilization_total{instance="autotest-aurora-psql-11",region="us-west-2"} 9
 # HELP rdsosmetrics_cpuUtilization_user The percentage of CPU in use by user programs.
 # TYPE rdsosmetrics_cpuUtilization_user gauge
-rdsosmetrics_cpuUtilization_user{instance="autotest-aurora-psql-11",region="us-west-2"} 2.5
+rdsosmetrics_cpuUtilization_user{instance="autotest-aurora-psql-11",region="us-west-2"} 2.8
 # HELP rdsosmetrics_cpuUtilization_wait The percentage of CPU unused while waiting for I/O access.
 # TYPE rdsosmetrics_cpuUtilization_wait gauge
-rdsosmetrics_cpuUtilization_wait{instance="autotest-aurora-psql-11",region="us-west-2"} 0.3
+rdsosmetrics_cpuUtilization_wait{instance="autotest-aurora-psql-11",region="us-west-2"} 0.5
 # HELP rdsosmetrics_diskIO_avgQueueLen The number of requests waiting in the I/O device's queue.
 # TYPE rdsosmetrics_diskIO_avgQueueLen gauge
 rdsosmetrics_diskIO_avgQueueLen{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_avgReqSz The average request size, in kilobytes.
 # TYPE rdsosmetrics_diskIO_avgReqSz gauge
-rdsosmetrics_diskIO_avgReqSz{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 9.16
+rdsosmetrics_diskIO_avgReqSz{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 8.9
 # HELP rdsosmetrics_diskIO_await The number of milliseconds required to respond to requests, including queue time and service time.
 # TYPE rdsosmetrics_diskIO_await gauge
-rdsosmetrics_diskIO_await{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0.12
+rdsosmetrics_diskIO_await{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0.35
 # HELP rdsosmetrics_diskIO_diskQueueDepth The number of outstanding IOs (read/write requests) waiting to access the disk.
 # TYPE rdsosmetrics_diskIO_diskQueueDepth gauge
 rdsosmetrics_diskIO_diskQueueDepth{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 0
@@ -165,26 +165,26 @@ rdsosmetrics_diskIO_readThroughput{device="",instance="autotest-aurora-psql-11",
 rdsosmetrics_diskIO_rrqmPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_diskIO_tps The number of I/O transactions per second.
 # TYPE rdsosmetrics_diskIO_tps gauge
-rdsosmetrics_diskIO_tps{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 4.47
+rdsosmetrics_diskIO_tps{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 4.17
 # HELP rdsosmetrics_diskIO_util The percentage of CPU time during which requests were issued.
 # TYPE rdsosmetrics_diskIO_util gauge
-rdsosmetrics_diskIO_util{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0.02
+rdsosmetrics_diskIO_util{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0.07
 # HELP rdsosmetrics_diskIO_writeIOsPS The number of write operations per second.
 # TYPE rdsosmetrics_diskIO_writeIOsPS gauge
-rdsosmetrics_diskIO_writeIOsPS{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 3.13
-rdsosmetrics_diskIO_writeIOsPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 4.47
+rdsosmetrics_diskIO_writeIOsPS{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 3.1
+rdsosmetrics_diskIO_writeIOsPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 4.17
 # HELP rdsosmetrics_diskIO_writeKb The total number of kilobytes written.
 # TYPE rdsosmetrics_diskIO_writeKb gauge
-rdsosmetrics_diskIO_writeKb{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 1228
+rdsosmetrics_diskIO_writeKb{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 1112
 # HELP rdsosmetrics_diskIO_writeKbPS The number of kilobytes written per second.
 # TYPE rdsosmetrics_diskIO_writeKbPS gauge
-rdsosmetrics_diskIO_writeKbPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 20.47
+rdsosmetrics_diskIO_writeKbPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 18.53
 # HELP rdsosmetrics_diskIO_writeLatency The average amount of time taken per disk I/O operation.
 # TYPE rdsosmetrics_diskIO_writeLatency gauge
-rdsosmetrics_diskIO_writeLatency{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 1.64
+rdsosmetrics_diskIO_writeLatency{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 1.67
 # HELP rdsosmetrics_diskIO_writeThroughput The average number of bytes written to disk per second.
 # TYPE rdsosmetrics_diskIO_writeThroughput gauge
-rdsosmetrics_diskIO_writeThroughput{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 604.72
+rdsosmetrics_diskIO_writeThroughput{device="",instance="autotest-aurora-psql-11",region="us-west-2"} 651.42
 # HELP rdsosmetrics_diskIO_wrqmPS The number of merged write requests queued per second.
 # TYPE rdsosmetrics_diskIO_wrqmPS gauge
 rdsosmetrics_diskIO_wrqmPS{device="rdstemp",instance="autotest-aurora-psql-11",region="us-west-2"} 0
@@ -196,46 +196,46 @@ rdsosmetrics_fileSys_maxFiles{instance="autotest-aurora-psql-11",mount_point="/r
 rdsosmetrics_fileSys_total{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 8.121784e+06
 # HELP rdsosmetrics_fileSys_used The amount of disk space used by files in the file system, in kilobytes.
 # TYPE rdsosmetrics_fileSys_used gauge
-rdsosmetrics_fileSys_used{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 234240
+rdsosmetrics_fileSys_used{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 1.165256e+06
 # HELP rdsosmetrics_fileSys_usedFilePercent The percentage of available files in use.
 # TYPE rdsosmetrics_fileSys_usedFilePercent gauge
-rdsosmetrics_fileSys_usedFilePercent{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 0.66
+rdsosmetrics_fileSys_usedFilePercent{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 0.57
 # HELP rdsosmetrics_fileSys_usedFiles The number of files in the file system.
 # TYPE rdsosmetrics_fileSys_usedFiles gauge
-rdsosmetrics_fileSys_usedFiles{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 3467
+rdsosmetrics_fileSys_usedFiles{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 2998
 # HELP rdsosmetrics_fileSys_usedPercent The percentage of the file-system disk space in use.
 # TYPE rdsosmetrics_fileSys_usedPercent gauge
-rdsosmetrics_fileSys_usedPercent{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 2.88
+rdsosmetrics_fileSys_usedPercent{instance="autotest-aurora-psql-11",mount_point="/rdsdbdata",name="",region="us-west-2"} 14.35
 # HELP rdsosmetrics_loadAverageMinute_fifteen The number of processes requesting CPU time over the last 15 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_fifteen gauge
 rdsosmetrics_loadAverageMinute_fifteen{instance="autotest-aurora-psql-11",region="us-west-2"} 0.12
 # HELP rdsosmetrics_loadAverageMinute_five The number of processes requesting CPU time over the last 5 minutes.
 # TYPE rdsosmetrics_loadAverageMinute_five gauge
-rdsosmetrics_loadAverageMinute_five{instance="autotest-aurora-psql-11",region="us-west-2"} 0.17
+rdsosmetrics_loadAverageMinute_five{instance="autotest-aurora-psql-11",region="us-west-2"} 0.04
 # HELP rdsosmetrics_loadAverageMinute_one The number of processes requesting CPU time over the last minute.
 # TYPE rdsosmetrics_loadAverageMinute_one gauge
-rdsosmetrics_loadAverageMinute_one{instance="autotest-aurora-psql-11",region="us-west-2"} 0.15
+rdsosmetrics_loadAverageMinute_one{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_active The amount of assigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_active gauge
-rdsosmetrics_memory_active{instance="autotest-aurora-psql-11",region="us-west-2"} 1.02828e+06
+rdsosmetrics_memory_active{instance="autotest-aurora-psql-11",region="us-west-2"} 2.061304e+06
 # HELP rdsosmetrics_memory_buffers The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes.
 # TYPE rdsosmetrics_memory_buffers gauge
-rdsosmetrics_memory_buffers{instance="autotest-aurora-psql-11",region="us-west-2"} 240548
+rdsosmetrics_memory_buffers{instance="autotest-aurora-psql-11",region="us-west-2"} 304604
 # HELP rdsosmetrics_memory_cached The amount of memory used for caching file system–based I/O.
 # TYPE rdsosmetrics_memory_cached gauge
-rdsosmetrics_memory_cached{instance="autotest-aurora-psql-11",region="us-west-2"} 560336
+rdsosmetrics_memory_cached{instance="autotest-aurora-psql-11",region="us-west-2"} 2.004604e+06
 # HELP rdsosmetrics_memory_dirty The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes.
 # TYPE rdsosmetrics_memory_dirty gauge
-rdsosmetrics_memory_dirty{instance="autotest-aurora-psql-11",region="us-west-2"} 3168
+rdsosmetrics_memory_dirty{instance="autotest-aurora-psql-11",region="us-west-2"} 404
 # HELP rdsosmetrics_memory_free The amount of unassigned memory, in kilobytes.
 # TYPE rdsosmetrics_memory_free gauge
-rdsosmetrics_memory_free{instance="autotest-aurora-psql-11",region="us-west-2"} 238348
+rdsosmetrics_memory_free{instance="autotest-aurora-psql-11",region="us-west-2"} 422496
 # HELP rdsosmetrics_memory_hugePagesFree The number of free huge pages. Huge pages are a feature of the Linux kernel.
 # TYPE rdsosmetrics_memory_hugePagesFree gauge
-rdsosmetrics_memory_hugePagesFree{instance="autotest-aurora-psql-11",region="us-west-2"} 14
+rdsosmetrics_memory_hugePagesFree{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_hugePagesRsvd The number of committed huge pages.
 # TYPE rdsosmetrics_memory_hugePagesRsvd gauge
-rdsosmetrics_memory_hugePagesRsvd{instance="autotest-aurora-psql-11",region="us-west-2"} 7
+rdsosmetrics_memory_hugePagesRsvd{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_hugePagesSize The size for each huge pages unit, in kilobytes.
 # TYPE rdsosmetrics_memory_hugePagesSize gauge
 rdsosmetrics_memory_hugePagesSize{instance="autotest-aurora-psql-11",region="us-west-2"} 2048
@@ -244,19 +244,19 @@ rdsosmetrics_memory_hugePagesSize{instance="autotest-aurora-psql-11",region="us-
 rdsosmetrics_memory_hugePagesSurp{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_hugePagesTotal The total number of huge pages for the system.
 # TYPE rdsosmetrics_memory_hugePagesTotal gauge
-rdsosmetrics_memory_hugePagesTotal{instance="autotest-aurora-psql-11",region="us-west-2"} 1119
+rdsosmetrics_memory_hugePagesTotal{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_memory_inactive The amount of least-frequently used memory pages, in kilobytes.
 # TYPE rdsosmetrics_memory_inactive gauge
-rdsosmetrics_memory_inactive{instance="autotest-aurora-psql-11",region="us-west-2"} 272940
+rdsosmetrics_memory_inactive{instance="autotest-aurora-psql-11",region="us-west-2"} 793532
 # HELP rdsosmetrics_memory_mapped The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes.
 # TYPE rdsosmetrics_memory_mapped gauge
-rdsosmetrics_memory_mapped{instance="autotest-aurora-psql-11",region="us-west-2"} 248708
+rdsosmetrics_memory_mapped{instance="autotest-aurora-psql-11",region="us-west-2"} 307844
 # HELP rdsosmetrics_memory_pageTables The amount of memory used by page tables, in kilobytes.
 # TYPE rdsosmetrics_memory_pageTables gauge
-rdsosmetrics_memory_pageTables{instance="autotest-aurora-psql-11",region="us-west-2"} 8140
+rdsosmetrics_memory_pageTables{instance="autotest-aurora-psql-11",region="us-west-2"} 8688
 # HELP rdsosmetrics_memory_slab The amount of reusable kernel data structures, in kilobytes.
 # TYPE rdsosmetrics_memory_slab gauge
-rdsosmetrics_memory_slab{instance="autotest-aurora-psql-11",region="us-west-2"} 89052
+rdsosmetrics_memory_slab{instance="autotest-aurora-psql-11",region="us-west-2"} 641836
 # HELP rdsosmetrics_memory_total The total amount of memory, in kilobytes.
 # TYPE rdsosmetrics_memory_total gauge
 rdsosmetrics_memory_total{instance="autotest-aurora-psql-11",region="us-west-2"} 3.980392e+06
@@ -265,84 +265,84 @@ rdsosmetrics_memory_total{instance="autotest-aurora-psql-11",region="us-west-2"}
 rdsosmetrics_memory_writeback{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_network_rx The number of bytes received per second.
 # TYPE rdsosmetrics_network_rx gauge
-rdsosmetrics_network_rx{instance="autotest-aurora-psql-11",interface="eth0",region="us-west-2"} 583.13
+rdsosmetrics_network_rx{instance="autotest-aurora-psql-11",interface="eth0",region="us-west-2"} 732.95
 # HELP rdsosmetrics_network_tx The number of bytes uploaded per second.
 # TYPE rdsosmetrics_network_tx gauge
-rdsosmetrics_network_tx{instance="autotest-aurora-psql-11",interface="eth0",region="us-west-2"} 3550.38
+rdsosmetrics_network_tx{instance="autotest-aurora-psql-11",interface="eth0",region="us-west-2"} 4789.73
 # HELP rdsosmetrics_processList_cpuUsedPc The percentage of CPU used by the process.
 # TYPE rdsosmetrics_processList_cpuUsedPc gauge
 rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 0.01
-rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 2.3
-rdsosmetrics_processList_cpuUsedPc{id="10214",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="10214"} 0
-rdsosmetrics_processList_cpuUsedPc{id="8620",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="8620"} 0.38
-rdsosmetrics_processList_cpuUsedPc{id="8666",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="8666"} 0
-rdsosmetrics_processList_cpuUsedPc{id="8667",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="8666",region="us-west-2",tgid="8667"} 0.01
-rdsosmetrics_processList_cpuUsedPc{id="8670",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="8666",region="us-west-2",tgid="8670"} 0.1
-rdsosmetrics_processList_cpuUsedPc{id="8729",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="8666",region="us-west-2",tgid="8729"} 0
-rdsosmetrics_processList_cpuUsedPc{id="8730",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="8666",region="us-west-2",tgid="8730"} 0
-rdsosmetrics_processList_cpuUsedPc{id="8731",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="8666",region="us-west-2",tgid="8731"} 0.01
-rdsosmetrics_processList_cpuUsedPc{id="8732",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="8666",region="us-west-2",tgid="8732"} 0
-rdsosmetrics_processList_cpuUsedPc{id="8733",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="8666",region="us-west-2",tgid="8733"} 0.01
-rdsosmetrics_processList_cpuUsedPc{id="8734",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="8666",region="us-west-2",tgid="8734"} 0
-rdsosmetrics_processList_cpuUsedPc{id="9945",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9945"} 0
-rdsosmetrics_processList_cpuUsedPc{id="9964",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9964"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 2.28
+rdsosmetrics_processList_cpuUsedPc{id="16925",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="16925"} 0.39
+rdsosmetrics_processList_cpuUsedPc{id="16982",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="16982"} 0
+rdsosmetrics_processList_cpuUsedPc{id="16983",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="16982",region="us-west-2",tgid="16983"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="16989",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="16982",region="us-west-2",tgid="16989"} 0.11
+rdsosmetrics_processList_cpuUsedPc{id="17668",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="16982",region="us-west-2",tgid="17668"} 0
+rdsosmetrics_processList_cpuUsedPc{id="17669",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="16982",region="us-west-2",tgid="17669"} 0
+rdsosmetrics_processList_cpuUsedPc{id="17670",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="16982",region="us-west-2",tgid="17670"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="17671",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="16982",region="us-west-2",tgid="17671"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="17672",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="16982",region="us-west-2",tgid="17672"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="17673",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="16982",region="us-west-2",tgid="17673"} 0
+rdsosmetrics_processList_cpuUsedPc{id="25875",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25875"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="25877",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25877"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27722",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="27722"} 0
 # HELP rdsosmetrics_processList_memoryUsedPc The amount of memory used by the process, in kilobytes.
 # TYPE rdsosmetrics_processList_memoryUsedPc gauge
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 1.16
-rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 12.57
-rdsosmetrics_processList_memoryUsedPc{id="10214",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="10214"} 0.48
-rdsosmetrics_processList_memoryUsedPc{id="8620",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="8620"} 4.84
-rdsosmetrics_processList_memoryUsedPc{id="8666",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="8666"} 3.55
-rdsosmetrics_processList_memoryUsedPc{id="8667",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="8666",region="us-west-2",tgid="8667"} 0.73
-rdsosmetrics_processList_memoryUsedPc{id="8670",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="8666",region="us-west-2",tgid="8670"} 3.39
-rdsosmetrics_processList_memoryUsedPc{id="8729",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="8666",region="us-west-2",tgid="8729"} 0.31
-rdsosmetrics_processList_memoryUsedPc{id="8730",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="8666",region="us-west-2",tgid="8730"} 0.17
-rdsosmetrics_processList_memoryUsedPc{id="8731",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="8666",region="us-west-2",tgid="8731"} 0.17
-rdsosmetrics_processList_memoryUsedPc{id="8732",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="8666",region="us-west-2",tgid="8732"} 0.31
-rdsosmetrics_processList_memoryUsedPc{id="8733",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="8666",region="us-west-2",tgid="8733"} 0.18
-rdsosmetrics_processList_memoryUsedPc{id="8734",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="8666",region="us-west-2",tgid="8734"} 0.23
-rdsosmetrics_processList_memoryUsedPc{id="9945",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9945"} 0.42
-rdsosmetrics_processList_memoryUsedPc{id="9964",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9964"} 0.52
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 0.92
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 13.15
+rdsosmetrics_processList_memoryUsedPc{id="16925",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="16925"} 4.47
+rdsosmetrics_processList_memoryUsedPc{id="16982",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="16982"} 5.81
+rdsosmetrics_processList_memoryUsedPc{id="16983",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="16982",region="us-west-2",tgid="16983"} 0.74
+rdsosmetrics_processList_memoryUsedPc{id="16989",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="16982",region="us-west-2",tgid="16989"} 3.4
+rdsosmetrics_processList_memoryUsedPc{id="17668",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="16982",region="us-west-2",tgid="17668"} 0.54
+rdsosmetrics_processList_memoryUsedPc{id="17669",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="16982",region="us-west-2",tgid="17669"} 0.62
+rdsosmetrics_processList_memoryUsedPc{id="17670",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="16982",region="us-west-2",tgid="17670"} 0.18
+rdsosmetrics_processList_memoryUsedPc{id="17671",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="16982",region="us-west-2",tgid="17671"} 0.34
+rdsosmetrics_processList_memoryUsedPc{id="17672",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="16982",region="us-west-2",tgid="17672"} 0.18
+rdsosmetrics_processList_memoryUsedPc{id="17673",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="16982",region="us-west-2",tgid="17673"} 0.32
+rdsosmetrics_processList_memoryUsedPc{id="25875",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25875"} 0.87
+rdsosmetrics_processList_memoryUsedPc{id="25877",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25877"} 0.59
+rdsosmetrics_processList_memoryUsedPc{id="27722",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="27722"} 0.79
 # HELP rdsosmetrics_processList_rss The amount of RAM allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_rss gauge
-rdsosmetrics_processList_rss{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 46360
-rdsosmetrics_processList_rss{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 500212
-rdsosmetrics_processList_rss{id="10214",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="10214"} 18968
-rdsosmetrics_processList_rss{id="8620",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="8620"} 192508
-rdsosmetrics_processList_rss{id="8666",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="8666"} 141148
-rdsosmetrics_processList_rss{id="8667",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="8666",region="us-west-2",tgid="8667"} 29056
-rdsosmetrics_processList_rss{id="8670",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="8666",region="us-west-2",tgid="8670"} 134944
-rdsosmetrics_processList_rss{id="8729",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="8666",region="us-west-2",tgid="8729"} 12268
-rdsosmetrics_processList_rss{id="8730",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="8666",region="us-west-2",tgid="8730"} 6892
-rdsosmetrics_processList_rss{id="8731",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="8666",region="us-west-2",tgid="8731"} 6892
-rdsosmetrics_processList_rss{id="8732",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="8666",region="us-west-2",tgid="8732"} 12188
-rdsosmetrics_processList_rss{id="8733",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="8666",region="us-west-2",tgid="8733"} 7228
-rdsosmetrics_processList_rss{id="8734",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="8666",region="us-west-2",tgid="8734"} 9028
-rdsosmetrics_processList_rss{id="9945",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9945"} 16532
-rdsosmetrics_processList_rss{id="9964",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9964"} 20744
+rdsosmetrics_processList_rss{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 36516
+rdsosmetrics_processList_rss{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 523364
+rdsosmetrics_processList_rss{id="16925",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="16925"} 178044
+rdsosmetrics_processList_rss{id="16982",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="16982"} 231256
+rdsosmetrics_processList_rss{id="16983",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="16982",region="us-west-2",tgid="16983"} 29392
+rdsosmetrics_processList_rss{id="16989",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="16982",region="us-west-2",tgid="16989"} 135308
+rdsosmetrics_processList_rss{id="17668",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="16982",region="us-west-2",tgid="17668"} 21324
+rdsosmetrics_processList_rss{id="17669",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="16982",region="us-west-2",tgid="17669"} 24872
+rdsosmetrics_processList_rss{id="17670",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="16982",region="us-west-2",tgid="17670"} 6996
+rdsosmetrics_processList_rss{id="17671",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="16982",region="us-west-2",tgid="17671"} 13544
+rdsosmetrics_processList_rss{id="17672",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="16982",region="us-west-2",tgid="17672"} 7264
+rdsosmetrics_processList_rss{id="17673",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="16982",region="us-west-2",tgid="17673"} 12792
+rdsosmetrics_processList_rss{id="25875",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25875"} 34460
+rdsosmetrics_processList_rss{id="25877",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25877"} 23316
+rdsosmetrics_processList_rss{id="27722",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="27722"} 31356
 # HELP rdsosmetrics_processList_vss The amount of virtual memory allocated to the process, in kilobytes.
 # TYPE rdsosmetrics_processList_vss gauge
-rdsosmetrics_processList_vss{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 872208
-rdsosmetrics_processList_vss{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 5.501968e+06
-rdsosmetrics_processList_vss{id="10214",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="10214"} 1.301544e+07
-rdsosmetrics_processList_vss{id="8620",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="8620"} 2.676384e+06
-rdsosmetrics_processList_vss{id="8666",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="8666"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="8667",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="8666",region="us-west-2",tgid="8667"} 1.251256e+06
-rdsosmetrics_processList_vss{id="8670",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="8666",region="us-west-2",tgid="8670"} 1.2959132e+07
-rdsosmetrics_processList_vss{id="8729",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="8666",region="us-west-2",tgid="8729"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="8730",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="8666",region="us-west-2",tgid="8730"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="8731",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="8666",region="us-west-2",tgid="8731"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="8732",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="8666",region="us-west-2",tgid="8732"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="8733",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="8666",region="us-west-2",tgid="8733"} 1.314004e+06
-rdsosmetrics_processList_vss{id="8734",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="8666",region="us-west-2",tgid="8734"} 1.2907756e+07
-rdsosmetrics_processList_vss{id="9945",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9945"} 1.3011344e+07
-rdsosmetrics_processList_vss{id="9964",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="8666",region="us-west-2",tgid="9964"} 1.3011344e+07
+rdsosmetrics_processList_vss{id="0",instance="autotest-aurora-psql-11",name="OS processes",parentID="0",region="us-west-2",tgid="0"} 850396
+rdsosmetrics_processList_vss{id="0",instance="autotest-aurora-psql-11",name="RDS processes",parentID="0",region="us-west-2",tgid="0"} 5.49428e+06
+rdsosmetrics_processList_vss{id="16925",instance="autotest-aurora-psql-11",name="Aurora Storage Daemon",parentID="1",region="us-west-2",tgid="16925"} 2.701408e+06
+rdsosmetrics_processList_vss{id="16982",instance="autotest-aurora-psql-11",name="postgres",parentID="1",region="us-west-2",tgid="16982"} 1.2909108e+07
+rdsosmetrics_processList_vss{id="16983",instance="autotest-aurora-psql-11",name="postgres: logger   ",parentID="16982",region="us-west-2",tgid="16983"} 1.251768e+06
+rdsosmetrics_processList_vss{id="16989",instance="autotest-aurora-psql-11",name="postgres: aurora runtime process   ",parentID="16982",region="us-west-2",tgid="16989"} 1.2960484e+07
+rdsosmetrics_processList_vss{id="17668",instance="autotest-aurora-psql-11",name="postgres: checkpointer   ",parentID="16982",region="us-west-2",tgid="17668"} 1.29173e+07
+rdsosmetrics_processList_vss{id="17669",instance="autotest-aurora-psql-11",name="postgres: background writer   ",parentID="16982",region="us-west-2",tgid="17669"} 1.2909108e+07
+rdsosmetrics_processList_vss{id="17670",instance="autotest-aurora-psql-11",name="postgres: walwriter   ",parentID="16982",region="us-west-2",tgid="17670"} 1.2909108e+07
+rdsosmetrics_processList_vss{id="17671",instance="autotest-aurora-psql-11",name="postgres: autovacuum launcher   ",parentID="16982",region="us-west-2",tgid="17671"} 1.2909108e+07
+rdsosmetrics_processList_vss{id="17672",instance="autotest-aurora-psql-11",name="postgres: stats collector   ",parentID="16982",region="us-west-2",tgid="17672"} 1.314516e+06
+rdsosmetrics_processList_vss{id="17673",instance="autotest-aurora-psql-11",name="postgres: logical replication launcher   ",parentID="16982",region="us-west-2",tgid="17673"} 1.2909108e+07
+rdsosmetrics_processList_vss{id="25875",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25875"} 1.3012696e+07
+rdsosmetrics_processList_vss{id="25877",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="25877"} 1.3012696e+07
+rdsosmetrics_processList_vss{id="27722",instance="autotest-aurora-psql-11",name="postgres: rdsadmin rdsadmin [local] idle",parentID="16982",region="us-west-2",tgid="27722"} 1.3016792e+07
 # HELP rdsosmetrics_swap_cached The amount of swap memory, in kilobytes, used as cache memory.
 # TYPE rdsosmetrics_swap_cached gauge
-rdsosmetrics_swap_cached{instance="autotest-aurora-psql-11",region="us-west-2"} 4
+rdsosmetrics_swap_cached{instance="autotest-aurora-psql-11",region="us-west-2"} 168
 # HELP rdsosmetrics_swap_free The total amount of swap memory free, in kilobytes.
 # TYPE rdsosmetrics_swap_free gauge
-rdsosmetrics_swap_free{instance="autotest-aurora-psql-11",region="us-west-2"} 2.092796e+06
+rdsosmetrics_swap_free{instance="autotest-aurora-psql-11",region="us-west-2"} 2.089724e+06
 # HELP rdsosmetrics_swap_in The total amount of memory, in kilobytes, swapped in from disk.
 # TYPE rdsosmetrics_swap_in gauge
 rdsosmetrics_swap_in{instance="autotest-aurora-psql-11",region="us-west-2"} 0
@@ -357,19 +357,19 @@ rdsosmetrics_swap_total{instance="autotest-aurora-psql-11",region="us-west-2"} 2
 rdsosmetrics_tasks_blocked{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_tasks_running The number of tasks that are running.
 # TYPE rdsosmetrics_tasks_running gauge
-rdsosmetrics_tasks_running{instance="autotest-aurora-psql-11",region="us-west-2"} 1
+rdsosmetrics_tasks_running{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_tasks_sleeping The number of tasks that are sleeping.
 # TYPE rdsosmetrics_tasks_sleeping gauge
-rdsosmetrics_tasks_sleeping{instance="autotest-aurora-psql-11",region="us-west-2"} 103
+rdsosmetrics_tasks_sleeping{instance="autotest-aurora-psql-11",region="us-west-2"} 100
 # HELP rdsosmetrics_tasks_stopped The number of tasks that are stopped.
 # TYPE rdsosmetrics_tasks_stopped gauge
 rdsosmetrics_tasks_stopped{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_tasks_total The total number of tasks.
 # TYPE rdsosmetrics_tasks_total gauge
-rdsosmetrics_tasks_total{instance="autotest-aurora-psql-11",region="us-west-2"} 104
+rdsosmetrics_tasks_total{instance="autotest-aurora-psql-11",region="us-west-2"} 100
 # HELP rdsosmetrics_tasks_zombie The number of child tasks that are inactive with an active parent task.
 # TYPE rdsosmetrics_tasks_zombie gauge
 rdsosmetrics_tasks_zombie{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 # HELP rdsosmetrics_timestamp Metrics timestamp (UNIX seconds).
 # TYPE rdsosmetrics_timestamp counter
-rdsosmetrics_timestamp{instance="autotest-aurora-psql-11",region="us-west-2"} 1.576267207e+09
+rdsosmetrics_timestamp{instance="autotest-aurora-psql-11",region="us-west-2"} 1.607250839e+09
