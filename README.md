@@ -10,9 +10,6 @@ An [AWS RDS](https://aws.amazon.com/ru/rds/) exporter for [Prometheus](https://g
 It gets metrics from both [basic CloudWatch Metrics](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MonitoringOverview.html)
 and [RDS Enhanced Monitoring via CloudWatch Logs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html).
 
-Based on [Technofy/cloudwatch_exporter](https://github.com/Technofy/cloudwatch_exporter),
-but very little of the original code remained.
-
 ## Quick start
 
 Create configration file `config.yml`:
