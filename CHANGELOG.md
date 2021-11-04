@@ -26,6 +26,6 @@ Nothing yet.
 - Initial tagged release.
 
 
-[Unreleased]: https:/github.com/percona/rds_exporter/compare/v0.7.0...master
+[Unreleased]: https:/github.com/percona/rds_exporter/compare/v0.7.0...main
 [0.7.0]: https://github.com/percona/rds_exporter/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/percona/rds_exporter/releases/tag/v0.6.0

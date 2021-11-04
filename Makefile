@@ -62,8 +62,6 @@ promu:
 check:
 	bin/golangci-lint run -c=.golangci.yml --out-format=line-number
 
-travis: build ci-reviewdog test-race codecov tarball docker
-
 codecov: gocoverutil
 	@bin/gocoverutil -coverprofile=coverage.txt test $(pkgs)
 	@curl -s https://codecov.io/bash | bash -s - -X fix

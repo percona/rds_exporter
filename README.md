@@ -1,17 +1,14 @@
 # RDS Exporter
 
 [![Release](https://img.shields.io/github/release/percona/rds_exporter.svg?style=flat)](https://github.com/percona/rds_exporter/releases/latest)
-[![Build Status](https://travis-ci.com/percona/rds_exporter.svg?branch=master)](https://travis-ci.com/percona/rds_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/percona/rds_exporter)](https://goreportcard.com/report/github.com/percona/rds_exporter)
 [![CLA assistant](https://cla-assistant.percona.com/readme/badge/percona/rds_exporter)](https://cla-assistant.percona.com/percona/rds_exporter)
-[![codecov.io Code Coverage](https://img.shields.io/codecov/c/github/percona/rds_exporter.svg?maxAge=2592000)](https://codecov.io/github/percona/rds_exporter?branch=master)
+[![codecov.io Code Coverage](https://img.shields.io/codecov/c/github/percona/rds_exporter.svg?maxAge=2592000)](https://codecov.io/github/percona/rds_exporter?branch=main)
+[![Discord](https://img.shields.io/discord/808660945513611334?style=flat)](http://per.co.na/discord)
 
 An [AWS RDS](https://aws.amazon.com/ru/rds/) exporter for [Prometheus](https://github.com/prometheus/prometheus).
 It gets metrics from both [basic CloudWatch Metrics](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MonitoringOverview.html)
 and [RDS Enhanced Monitoring via CloudWatch Logs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html).
-
-Based on [Technofy/cloudwatch_exporter](https://github.com/Technofy/cloudwatch_exporter),
-but very little of the original code remained.
 
 ## Quick start
 
@@ -81,5 +78,5 @@ scrape_configs:
 
 Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter)-like metrics where possible.
 
-You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/master/basic/testdata/all.txt)
-and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/master/enhanced/testdata).
+You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/main/basic/testdata/all.txt)
+and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
