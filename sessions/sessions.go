@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/prometheus/common/log"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 
 	"github.com/percona/rds_exporter/config"
 )
@@ -65,13 +66,11 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 
 		// use given credentials, or default credential chain
 		var creds *credentials.Credentials
-		if instance.AWSAccessKey != "" || instance.AWSSecretKey != "" {
-			creds = credentials.NewCredentials(&credentials.StaticProvider{
-				Value: credentials.Value{
-					AccessKeyID:     instance.AWSAccessKey,
-					SecretAccessKey: instance.AWSSecretKey,
-				},
-			})
+
+		creds, err := buildCredentials(instance)
+
+		if err != nil {
+			return nil, err
 		}
 
 		// make config with careful logging
@@ -176,6 +175,31 @@ func (s *Sessions) GetSession(region, instance string) (*session.Session, *Insta
 				return session, &i
 			}
 		}
+	}
+	return nil, nil
+}
+
+func buildCredentials(instance config.Instance) (*credentials.Credentials, error) {
+	if instance.AWSRoleARN != "" {
+		os.Setenv("AWS_ACCESS_KEY_ID", instance.AWSAccessKey)
+		os.Setenv("AWS_SECRET_ACCESS_KEY", instance.AWSSecretKey)
+
+		stsSession, err := session.NewSession(&aws.Config{
+			Region: aws.String(instance.Region),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return stscreds.NewCredentials(stsSession, instance.AWSRoleARN), nil
+	}
+	if instance.AWSAccessKey != "" || instance.AWSSecretKey != "" {
+		return credentials.NewCredentials(&credentials.StaticProvider{
+			Value: credentials.Value{
+				AccessKeyID:     instance.AWSAccessKey,
+				SecretAccessKey: instance.AWSSecretKey,
+			},
+		}), nil
 	}
 	return nil, nil
 }

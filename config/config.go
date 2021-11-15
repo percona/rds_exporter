@@ -22,6 +22,7 @@ type Instance struct {
 	Instance               string            `yaml:"instance"`
 	AWSAccessKey           string            `yaml:"aws_access_key"` // may be empty
 	AWSSecretKey           string            `yaml:"aws_secret_key"` // may be empty
+	AWSRoleARN             string            `yaml:"aws_role_arn"`   // may be empty
 	DisableBasicMetrics    bool              `yaml:"disable_basic_metrics"`
 	DisableEnhancedMetrics bool              `yaml:"disable_enhanced_metrics"`
 	Labels                 map[string]string `yaml:"labels"` // may be empty

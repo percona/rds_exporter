@@ -24,6 +24,7 @@ instances:
     instance: rds-mysql57
     aws_access_key: AKIAIOSFODNN7EXAMPLE
     aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    aws_role_arn: arn:aws:iam::76784568345:role/my-role
     disable_basic_metrics: true
     disable_enhanced_metrics: false
     labels:
@@ -31,7 +32,7 @@ instances:
       baz: qux
 ```
 
-If `aws_access_key` and `aws_secret_key` are present, they are used for that instance.
+If `aws_role_arn` is present it will assume role otherwise if `aws_access_key` and `aws_secret_key` are present, they are used for that instance.
 Otherwise, [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials)
 is used, which includes `AWS_ACCESS_KEY_ID`/`AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY`/`AWS_SECRET_KEY` environment variables, `~/.aws/credentials` file,
 and IAM role for EC2.
