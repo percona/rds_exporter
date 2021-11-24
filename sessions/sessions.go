@@ -181,11 +181,9 @@ func (s *Sessions) GetSession(region, instance string) (*session.Session, *Insta
 
 func buildCredentials(instance config.Instance) (*credentials.Credentials, error) {
 	if instance.AWSRoleARN != "" {
-		os.Setenv("AWS_ACCESS_KEY_ID", instance.AWSAccessKey)
-		os.Setenv("AWS_SECRET_ACCESS_KEY", instance.AWSSecretKey)
-
 		stsSession, err := session.NewSession(&aws.Config{
 			Region: aws.String(instance.Region),
+			Credentials: credentials.NewStaticCredentials(instance.AWSAccessKey,instance.AWSSecretKey, ""),
 		})
 		if err != nil {
 			return nil, err
