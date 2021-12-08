@@ -40,3 +40,4 @@ dockers:
   - "percona/rds_exporter:{{.Version}}"
   dockerfile: Dockerfile
   use: buildx
+  
