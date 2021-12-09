@@ -1,0 +1,42 @@
+dist: build
+builds:
+  - binary: rds_exporter
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 7
+    ignore:
+      - goos: darwin
+        goarch: arm
+    flags:
+      - -v
+    ldflags:
+        - -s -w -X main.version=v{{.Version}} -X main.commit={{.ShortCommit}} -X main.buildDate={{.Date}}
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+snapshot:
+  name_template: "{{ .ShortCommit }}"
+changelog:
+  skip: true
+release:
+  github:
+    owner: percona
+    name: rds_exporter
+  draft: true
+  prerelease: auto
+dockers:
+- goos: linux
+  goarch: amd64
+  image_templates:
+  - "ghcr.io/percona/rds_exporter:{{.Major}}.{{.Minor}}"
+  - "ghcr.io/percona/rds_exporter:{{.Version}}"
+  dockerfile: Dockerfile
+  use: buildx
