@@ -36,7 +36,7 @@ dockers:
 - goos: linux
   goarch: amd64
   image_templates:
-  - "percona/rds_exporter:{{.Major}}.{{.Minor}}"
-  - "percona/rds_exporter:{{.Version}}"
+  - "ghcr.io/percona/rds_exporter:{{.Major}}.{{.Minor}}"
+  - "ghcr.io/percona/rds_exporter:{{.Version}}"
   dockerfile: Dockerfile
   use: buildx
