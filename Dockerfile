@@ -2,9 +2,9 @@ FROM golang:1.16 as build
 
 COPY . /usr/src/rds_exporter
 
-RUN cd /usr/src/rds_exporter && make build
+RUN cd /usr/src/rds_exporter && ls -al && make build
 
-FROM        alpine:latest
+FROM alpine:latest
 
 COPY --from=build /usr/src/rds_exporter/rds_exporter  /bin/
 # COPY config.yml           /etc/rds_exporter/config.yml
