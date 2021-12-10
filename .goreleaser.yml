@@ -38,5 +38,5 @@ dockers:
   image_templates:
   - "ghcr.io/maxknee/rds_exporter:{{.Major}}.{{.Minor}}"
   - "ghcr.io/maxknee/rds_exporter:{{.Version}}"
-  dockerfile: Dockerfile
+  dockerfile: Dockerfile.releaser
   use: buildx
