@@ -18,7 +18,7 @@ builds:
     flags:
       - -v
     ldflags:
-        - -s -w -X main.version=v{{.Version}} -X main.commit={{.ShortCommit}} -X main.buildDate={{.Date}}
+        - -s -w -X version.version=v{{.Version}} -X version.commit={{.ShortCommit}} -X version.buildDate={{.Date}}
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
