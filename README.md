@@ -81,3 +81,10 @@ Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter
 
 You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/main/basic/testdata/all.txt)
 and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
+
+## Cost
+Amazon charges for every CloudWatch API request, see the [current charges](http://aws.amazon.com/cloudwatch/pricing/).
+
+Every metric retrieved requires one API request, which can include multiple statistics.
+
+If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month. 
