@@ -12,7 +12,6 @@
 # limitations under the License.
 
 GO    := go
-PROMU := bin/promu
 pkgs   = $(shell $(GO) list ./...)
 
 PREFIX                  ?= $(shell pwd)
@@ -42,22 +41,9 @@ vet:
 	@echo ">> vetting code"
 	@$(GO) vet $(pkgs)
 
-build: promu
-	@echo ">> building binaries"
-	@$(PROMU) build --prefix $(PREFIX)
-
-tarball: promu
-	@echo ">> building release tarball"
-	@$(PROMU) tarball --prefix $(PREFIX) $(BIN_DIR)
-
 docker:
 	@echo ">> building docker image $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)"
 	@docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
-
-promu:
-	@GOOS=$(shell uname -s | tr A-Z a-z) \
-	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
-	        $(GO) build -modfile=tools/go.mod -o bin/promu github.com/prometheus/promu
 
 check:
 	bin/golangci-lint run -c=.golangci.yml --out-format=line-number
@@ -68,5 +54,3 @@ codecov: gocoverutil
 
 gocoverutil:
 	@$(GO) build -modfile=tools/go.mod -o bin/gocoverutil github.com/AlekSi/gocoverutil
-
-.PHONY: all style format build test vet tarball docker promu
