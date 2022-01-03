@@ -18,7 +18,11 @@ builds:
     flags:
       - -v
     ldflags:
-        - -s -w -X version.version=v{{.Version}} -X version.commit={{.ShortCommit}} -X version.buildDate={{.Date}}
+        - -s -w
+        - -X github.com/prometheus/common/version.Version={{ .Version }}
+        - -X github.com/prometheus/common/version.Revision={{ .ShortCommit }}
+        - -X github.com/prometheus/common/version.Branch={{ .Branch }}
+        - -X github.com/prometheus/common/version.BuildDate={{ .Date }}
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
