@@ -36,8 +36,6 @@ jobs:
         echo "$HOME/gotip/bin" >> $GITHUB_PATH
     - name: Checkout code
       uses: percona-platform/checkout@v2
-    - name: Build
-      run: make build
     - name: Run checks
       run: |
         go build -modfile=tools/go.mod -o bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint

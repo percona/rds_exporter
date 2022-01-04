@@ -2,7 +2,7 @@ FROM golang:1.16 as build
 
 COPY . /usr/src/rds_exporter
 
-RUN cd /usr/src/rds_exporter && make build
+RUN cd /usr/src/rds_exporter
 
 FROM        alpine:latest
 
