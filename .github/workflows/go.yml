@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.16
+          - 1.17
         include:
           - go-version: tip
             os: ubuntu-latest
@@ -50,6 +50,9 @@ jobs:
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make test-race
     - name: Run Codecov
+      env:
+        AWS_ACCESS_KEY: AKIAZPBRO3QWCEHJTL35
+        AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make codecov
     - name: Build tarball
       run: make tarball
