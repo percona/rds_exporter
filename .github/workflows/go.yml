@@ -53,8 +53,6 @@ jobs:
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make codecov
     - name: Build tarball
-      run: make tarball
-    - name: Build tarball
       run: make docker
     - name: Run debug commands on failure
       if: ${{ failure() }}
