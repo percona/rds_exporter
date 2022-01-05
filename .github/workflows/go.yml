@@ -52,8 +52,6 @@ jobs:
         AWS_ACCESS_KEY: AKIAZPBRO3QWCEHJTL35
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make codecov
-    - name: Build tarball
-      run: make docker
     - name: Run debug commands on failure
       if: ${{ failure() }}
       run: |
