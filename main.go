@@ -23,6 +23,7 @@ var (
 	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
 	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
 	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	useIRSA              = kingpin.Flag("use-irsa", "Use IAM Roles for Service Accounts to auth with AWS").Default("false").Bool()
 )
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 	}
 
 	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), *logTraceF)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), *logTraceF, *useIRSA)
 	if err != nil {
 		log.Fatalf("Can't create sessions: %s", err)
 	}
