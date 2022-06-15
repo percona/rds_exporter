@@ -43,7 +43,7 @@ type Sessions struct {
 }
 
 // New creates a new sessions pool for given configuration.
-func New(instances []config.Instance, client *http.Client, trace bool) (*Sessions, error) {
+func New(instances []config.Instance, client *http.Client, trace bool, useIRSA bool) (*Sessions, error) {
 	logger := log.With("component", "sessions")
 	logger.Info("Creating sessions...")
 	res := &Sessions{
@@ -93,7 +93,12 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		}
 
 		// store session
-		s, err := session.NewSession(awsCfg)
+		var s *session.Session
+		if useIRSA {
+		    s, err = session.NewSession()
+		} else {
+		    s, err = session.NewSession(awsCfg)
+		}
 		if err != nil {
 			return nil, err
 		}
