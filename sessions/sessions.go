@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/prometheus/common/log"
 
-	"github.com/percona/rds_exporter/config"
+	"github.com/quintoandar/rds_exporter/config"
 )
 
 // Instance represents a single RDS instance information in runtime.
@@ -183,7 +183,7 @@ func buildCredentials(instance config.Instance) (*credentials.Credentials, error
 	if instance.AWSRoleArn != "" {
 		stsSession, err := session.NewSession(&aws.Config{
 			Region:      aws.String(instance.Region),
-			Credentials: credentials.NewStaticCredentials(instance.AWSAccessKey, instance.AWSSecretKey, ""),
+			//Credentials: credentials.NewCredentials(&credentials.ChainProvider{}),
 		})
 		if err != nil {
 			return nil, err

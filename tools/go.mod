@@ -1,4 +1,4 @@
-module github.com/percona/rds_exporter/tools
+module github.com/quintoandar/rds_exporter/tools
 
 go 1.15
 

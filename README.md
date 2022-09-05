@@ -1,7 +1,7 @@
 # RDS Exporter
 
-[![Release](https://img.shields.io/github/release/percona/rds_exporter.svg?style=flat)](https://github.com/percona/rds_exporter/releases/latest)
-[![Go Report Card](https://goreportcard.com/badge/github.com/percona/rds_exporter)](https://goreportcard.com/report/github.com/percona/rds_exporter)
+[![Release](https://img.shields.io/github/release/percona/rds_exporter.svg?style=flat)](https://github.com/quintoandar/rds_exporter/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/quintoandar/rds_exporter)](https://goreportcard.com/report/github.com/quintoandar/rds_exporter)
 [![CLA assistant](https://cla-assistant.percona.com/readme/badge/percona/rds_exporter)](https://cla-assistant.percona.com/percona/rds_exporter)
 [![codecov.io Code Coverage](https://img.shields.io/codecov/c/github/percona/rds_exporter.svg?maxAge=2592000)](https://codecov.io/github/percona/rds_exporter?branch=main)
 [![Discord](https://img.shields.io/discord/808660945513611334?style=flat)](http://per.co.na/discord)
@@ -40,11 +40,13 @@ and IAM role for EC2.
 Returned metrics contain `instance` and `region` labels set. They also contain extra labels specified in the configuration file.
 
 Start exporter by running:
+
 ```
 rds_exporter
 ```
 
 To see all flags run:
+
 ```
 rds_exporter --help
 ```
@@ -61,7 +63,7 @@ scrape_configs:
     honor_labels: true
     static_configs:
       - targets:
-        - 127.0.0.1:9042
+          - 127.0.0.1:9042
 
   - job_name: rds-enhanced
     scrape_interval: 10s
@@ -70,7 +72,7 @@ scrape_configs:
     honor_labels: true
     static_configs:
       - targets:
-        - 127.0.0.1:9042
+          - 127.0.0.1:9042
 ```
 
 `honor_labels: true` is important because exporter returns metrics with `instance` label set.
@@ -79,12 +81,13 @@ scrape_configs:
 
 Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter)-like metrics where possible.
 
-You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/main/basic/testdata/all.txt)
-and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
+You can see a list of basic monitoring metrics [there](https://github.com/quintoandar/rds_exporter/blob/main/basic/testdata/all.txt)
+and a list of enhanced monitoring metrics in text files [there](https://github.com/quintoandar/rds_exporter/tree/main/enhanced/testdata).
 
 ## Cost
+
 Amazon charges for every CloudWatch API request, see the [current charges](http://aws.amazon.com/cloudwatch/pricing/).
 
 Every metric retrieved requires one API request, which can include multiple statistics.
 
-If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month. 
+If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month.

@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/percona/exporter_shared/helpers"
+	"github.com/quintoandar/exporter_shared/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/percona/rds_exporter/client"
-	"github.com/percona/rds_exporter/config"
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/quintoandar/rds_exporter/client"
+	"github.com/quintoandar/rds_exporter/config"
+	"github.com/quintoandar/rds_exporter/sessions"
 )
 
 func TestCollector(t *testing.T) {

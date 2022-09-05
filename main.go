@@ -9,11 +9,11 @@ import (
 	"github.com/prometheus/common/version"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/percona/rds_exporter/basic"
-	"github.com/percona/rds_exporter/client"
-	"github.com/percona/rds_exporter/config"
-	"github.com/percona/rds_exporter/enhanced"
-	"github.com/percona/rds_exporter/sessions"
+	"github.com/quintoandar/rds_exporter/basic"
+	"github.com/quintoandar/rds_exporter/client"
+	"github.com/quintoandar/rds_exporter/config"
+	"github.com/quintoandar/rds_exporter/enhanced"
+	"github.com/quintoandar/rds_exporter/sessions"
 )
 
 //nolint:lll
