@@ -2,7 +2,7 @@ FROM golang:1.19.0-alpine as build
 WORKDIR /opt/
 RUN apk update && apk add make git && git clone https://github.com/quintoandar/rds_exporter.git
 WORKDIR /opt/rds_exporter
-RUN make build
+RUN env GOOS=linux GOARCH=386 go build
 RUN chmod +x rds_exporter
 
 
