@@ -1,13 +1,15 @@
-FROM golang:1.16 as build
+FROM golang:1.19.0-alpine as build
+WORKDIR /opt/
+RUN apk update && apk add make git && git clone https://github.com/quintoandar/rds_exporter.git
+WORKDIR /opt/rds_exporter
+RUN env GOOS=linux GOARCH=386 go build
+RUN chmod +x rds_exporter
 
-COPY . /usr/src/rds_exporter
 
-RUN cd /usr/src/rds_exporter
+FROM alpine:latest
 
-FROM        alpine:latest
-
-COPY --from=build /usr/src/rds_exporter/rds_exporter  /bin/
-# COPY config.yml           /etc/rds_exporter/config.yml
+COPY --from=build ["/opt/rds_exporter/rds_exporter", "/bin/" ]
+COPY config.yml           /etc/rds_exporter/config.yml
 
 RUN apk update && \
     apk add ca-certificates && \
