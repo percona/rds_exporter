@@ -9,7 +9,7 @@ RUN chmod +x rds_exporter
 FROM alpine:latest
 
 COPY --from=build ["/opt/rds_exporter/rds_exporter", "/bin/" ]
-COPY config.yml           /etc/rds_exporter/config.yml
+# COPY config.yml           /etc/rds_exporter/config.yml
 
 RUN apk update && \
     apk add ca-certificates && \
