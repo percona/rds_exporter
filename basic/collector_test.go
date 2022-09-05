@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/quintoandar/exporter_shared/helpers"
+	"github.com/percona/exporter_shared/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

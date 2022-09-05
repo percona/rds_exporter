@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.36.30
-	github.com/quintoandar/exporter_shared v0.7.3
+	github.com/percona/exporter_shared v0.7.3
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.24.0
 	github.com/stretchr/testify v1.7.0
