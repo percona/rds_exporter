@@ -104,7 +104,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 				}
 
 				if instance.DisableEnhancedMetrics {
-					l.Debugf("Enhanced Metrics are dissabled for instance %v.", instance)
+					l.Debugf("Enhanced Metrics are disabled for instance %v.", instance)
 					continue
 				}
 				l = l.With("region", instance.Region).With("instance", instance.Instance)
