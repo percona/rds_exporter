@@ -13,7 +13,7 @@ import (
 
 // Collector collects enhanced RDS metrics by utilizing several scrapers.
 type Collector struct {
-	sessions *sessions.Sessions
+	sessions *sessions.Configs
 	logger   log.Logger
 
 	rw      sync.RWMutex
@@ -27,14 +27,14 @@ const (
 )
 
 // NewCollector creates new collector and starts scrapers.
-func NewCollector(sessions *sessions.Sessions) *Collector {
+func NewCollector(sessions *sessions.Configs) *Collector {
 	c := &Collector{
 		sessions: sessions,
 		logger:   log.With("component", "enhanced"),
 		metrics:  make(map[string][]prometheus.Metric),
 	}
 
-	for session, instances := range sessions.AllSessions() {
+	for session, instances := range sessions.AllConfigs() {
 		s := newScraper(session, instances)
 
 		interval := maxInterval

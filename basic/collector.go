@@ -29,19 +29,19 @@ type Metric struct {
 }
 
 type Collector struct {
-	config   *config.Config
-	sessions *sessions.Sessions
-	metrics  []Metric
-	l        log.Logger
+	config     *config.Config
+	awsConfigs *sessions.Configs
+	metrics    []Metric
+	l          log.Logger
 }
 
 // New creates a new instance of a Collector.
-func New(config *config.Config, sessions *sessions.Sessions) *Collector {
+func New(config *config.Config, awsConfigs *sessions.Configs) *Collector {
 	return &Collector{
-		config:   config,
-		sessions: sessions,
-		metrics:  Metrics,
-		l:        log.With("component", "basic"),
+		config:     config,
+		awsConfigs: awsConfigs,
+		metrics:    Metrics,
+		l:          log.With("component", "basic"),
 	}
 }
 
