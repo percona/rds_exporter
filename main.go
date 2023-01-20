@@ -29,6 +29,7 @@ func main() {
 	log.AddFlags(kingpin.CommandLine)
 	log.Infoln("Starting RDS exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
+	kingpin.Version(version.Print("rds_exporter"))
 	kingpin.Parse()
 
 	cfg, err := config.Load(*configFileF)

@@ -21,6 +21,10 @@ DOCKER_IMAGE_TAG        ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
 all: format build test
 
+GO_BUILD_LDFLAGS = -X github.com/prometheus/common/version.Version=$(shell cat VERSION) -X github.com/prometheus/common/version.Revision=$(shell git rev-parse HEAD) -X github.com/prometheus/common/version.Branch=$(shell git describe --always --contains --all) -X github.com/prometheus/common/version.BuildUser= -X github.com/prometheus/common/version.BuildDate=$(shell date +%FT%T%z) -s -w
+
+export PMM_RELEASE_PATH?=.
+
 style:
 	@echo ">> checking code style"
 	@! gofmt -d $(shell find . -path ./vendor -prune -o -name '*.go' -print) | grep '^'
@@ -54,3 +58,6 @@ codecov: gocoverutil
 
 gocoverutil:
 	@$(GO) build -modfile=tools/go.mod -o bin/gocoverutil github.com/AlekSi/gocoverutil
+
+release:
+	go build -ldflags="$(GO_BUILD_LDFLAGS)" -o $(PMM_RELEASE_PATH)/rds_exporter
