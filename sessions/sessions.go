@@ -1,17 +1,21 @@
+//https://aws.github.io/aws-sdk-go-v2/docs/migrating/
+
 package sessions
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"text/tabwriter"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/prometheus/common/log"
 
 	"github.com/percona/rds_exporter/config"
@@ -37,24 +41,24 @@ func (i Instance) String() string {
 	return res
 }
 
-// Sessions is a pool of AWS sessions.
-type Sessions struct {
-	sessions map[*session.Session][]Instance
+// Configs is a pool of AWS configs.
+type Configs struct {
+	configs map[*aws.Config][]Instance
 }
 
 // New creates a new sessions pool for given configuration.
-func New(instances []config.Instance, client *http.Client, trace bool) (*Sessions, error) {
+func New(instances []config.Instance, client *http.Client, trace bool) (*Configs, error) {
 	logger := log.With("component", "sessions")
 	logger.Info("Creating sessions...")
-	res := &Sessions{
-		sessions: make(map[*session.Session][]Instance),
+	res := &Configs{
+		configs: make(map[*aws.Config][]Instance),
 	}
 
-	sharedSessions := make(map[string]*session.Session) // region/key => session
+	configs := make(map[string]*aws.Config) // region/key => session
 	for _, instance := range instances {
 		// re-use session for the same region and key (explicit or empty for implicit) pair
-		if s := sharedSessions[instance.Region+"/"+instance.AWSAccessKey]; s != nil {
-			res.sessions[s] = append(res.sessions[s], Instance{
+		if s := configs[instance.Region+"/"+instance.AWSAccessKey]; s != nil {
+			res.configs[s] = append(res.configs[s], Instance{
 				Region:                 instance.Region,
 				Instance:               instance.Instance,
 				Labels:                 instance.Labels,
@@ -64,41 +68,14 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 			continue
 		}
 
-		// use given credentials, or default credential chain
-		var creds *credentials.Credentials
-
-		creds, err := buildCredentials(instance)
+		awsCfg, err := buildConfig(instance, client, trace)
 
 		if err != nil {
 			return nil, err
 		}
 
-		// make config with careful logging
-		awsCfg := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(instance.Region),
-			HTTPClient:  client,
-		}
-		if trace {
-			// fail-safe
-			if _, ok := os.LookupEnv("CI"); ok {
-				panic("Do not enable AWS request tracing on CI - output will contain credentials.")
-			}
-
-			awsCfg.Logger = aws.LoggerFunc(logger.Debug)
-			awsCfg.CredentialsChainVerboseErrors = aws.Bool(true)
-			level := aws.LogDebugWithSigning | aws.LogDebugWithHTTPBody
-			level |= aws.LogDebugWithRequestRetries | aws.LogDebugWithRequestErrors | aws.LogDebugWithEventStreamBody
-			awsCfg.LogLevel = aws.LogLevel(level)
-		}
-
-		// store session
-		s, err := session.NewSession(awsCfg)
-		if err != nil {
-			return nil, err
-		}
-		sharedSessions[instance.Region+"/"+instance.AWSAccessKey] = s
-		res.sessions[s] = append(res.sessions[s], Instance{
+		configs[instance.Region+"/"+instance.AWSAccessKey] = awsCfg
+		res.configs[awsCfg] = append(res.configs[awsCfg], Instance{
 			Region:                 instance.Region,
 			Instance:               instance.Instance,
 			Labels:                 instance.Labels,
@@ -108,11 +85,11 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 	}
 
 	// add resource ID to all instances
-	for session, instances := range res.sessions {
-		svc := rds.New(session)
+	for config, instances := range res.configs {
+		svc := rds.NewFromConfig(*config)
 		var marker *string
 		for {
-			output, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+			output, err := svc.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{
 				Marker: marker,
 			})
 			if err != nil {
@@ -135,7 +112,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 	}
 
 	// remove instances without resource ID
-	for session, instances := range res.sessions {
+	for session, instances := range res.configs {
 		newInstances := make([]Instance, 0, len(instances))
 		for _, instance := range instances {
 			if instance.ResourceID == "" {
@@ -144,65 +121,84 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 			}
 			newInstances = append(newInstances, instance)
 		}
-		res.sessions[session] = newInstances
+		res.configs[session] = newInstances
 	}
 
 	// remove sessions without instances
-	for _, s := range sharedSessions {
-		if len(res.sessions[s]) == 0 {
-			delete(res.sessions, s)
+	for _, s := range configs {
+		if len(res.configs[s]) == 0 {
+			delete(res.configs, s)
 		}
 	}
 
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "Region\tInstance\tResource ID\tInterval\n")
-	for _, instances := range res.sessions {
+	for _, instances := range res.configs {
 		for _, instance := range instances {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", instance.Region, instance.Instance, instance.ResourceID, instance.EnhancedMonitoringInterval)
 		}
 	}
 	_ = w.Flush()
 
-	logger.Infof("Using %d sessions.", len(res.sessions))
+	logger.Infof("Using %d sessions.", len(res.configs))
 	return res, nil
 }
 
 // GetSession returns session and full instance information for given region and instance.
-func (s *Sessions) GetSession(region, instance string) (*session.Session, *Instance) {
-	for session, instances := range s.sessions {
+func (s *Configs) GetSession(region, instance string) (*aws.Config, *Instance) {
+	for config, instances := range s.configs {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {
-				return session, &i
+				return config, &i
 			}
 		}
 	}
 	return nil, nil
 }
 
-func buildCredentials(instance config.Instance) (*credentials.Credentials, error) {
-	if instance.AWSRoleArn != "" {
-		stsSession, err := session.NewSession(&aws.Config{
-			Region:      aws.String(instance.Region),
-			Credentials: credentials.NewStaticCredentials(instance.AWSAccessKey, instance.AWSSecretKey, ""),
-		})
-		if err != nil {
-			return nil, err
-		}
+func buildConfig(instance config.Instance, httpClient *http.Client, trace bool) (*aws.Config, error) {
+	ctx := context.TODO()
 
-		return stscreds.NewCredentials(stsSession, instance.AWSRoleArn), nil
+	options := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRegion(instance.Region), awsconfig.WithHTTPClient(httpClient),
 	}
-	if instance.AWSAccessKey != "" || instance.AWSSecretKey != "" {
-		return credentials.NewCredentials(&credentials.StaticProvider{
-			Value: credentials.Value{
-				AccessKeyID:     instance.AWSAccessKey,
-				SecretAccessKey: instance.AWSSecretKey,
-			},
-		}), nil
+
+	if trace {
+		// fail-safe
+		if _, ok := os.LookupEnv("CI"); ok {
+			panic("Do not enable AWS request tracing on CI - output will contain credentials.")
+		}
+		level := aws.LogSigning | aws.LogRequestWithBody
+		level |= aws.LogRetries | aws.LogRequest | aws.LogRequestWithBody | aws.LogResponseWithBody
+		options = append(options, awsconfig.WithClientLogMode(level))
 	}
-	return nil, nil
+
+	if instance.AWSAccessKey != "" && instance.AWSSecretKey != "" {
+		creds := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(instance.AWSAccessKey, instance.AWSSecretKey, ""))
+		options = append(options, awsconfig.WithCredentialsProvider(creds))
+	}
+
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, options...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if instance.AWSRoleArn != "" {
+		client := sts.NewFromConfig(cfg)
+		creds := stscreds.NewAssumeRoleProvider(client, instance.AWSRoleArn)
+		return &aws.Config{
+			Credentials:   creds,
+			Region:        instance.Region,
+			HTTPClient:    httpClient,
+			ClientLogMode: cfg.ClientLogMode,
+		}, nil
+	}
+
+	return &cfg, nil
 }
 
-// AllSessions returns all sessions and instances.
-func (s *Sessions) AllSessions() map[*session.Session][]Instance {
-	return s.sessions
+// AllConfigs returns all aws configs and instances.
+func (s *Configs) AllConfigs() map[*aws.Config][]Instance {
+	return s.configs
 }
