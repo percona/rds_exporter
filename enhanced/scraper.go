@@ -8,8 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/percona/rds_exporter/sessions"
 )
@@ -25,7 +26,7 @@ type scraper struct {
 	testDisallowUnknownFields bool // for tests only
 }
 
-func newScraper(session *session.Session, instances []sessions.Instance) *scraper {
+func newScraper(session *session.Session, instances []sessions.Instance, logger log.Logger) *scraper {
 	logStreamNames := make([]string, 0, len(instances))
 	for _, instance := range instances {
 		logStreamNames = append(logStreamNames, instance.ResourceID)
@@ -36,7 +37,7 @@ func newScraper(session *session.Session, instances []sessions.Instance) *scrape
 		logStreamNames: logStreamNames,
 		svc:            cloudwatchlogs.New(session),
 		nextStartTime:  time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
-		logger:         log.With("component", "enhanced"),
+		logger:         log.With(logger, "component", "enhanced"),
 	}
 }
 
@@ -82,14 +83,16 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 			StartTime:      aws.Int64(aws.TimeUnixMilli(s.nextStartTime)),
 		}
 
-		s.logger.With("next_start", s.nextStartTime.UTC()).With("since_last", time.Since(s.nextStartTime)).Debugf("Requesting metrics")
+		level.Debug(log.With(s.logger, "next_start", s.nextStartTime.UTC(), "since_last", time.Since(s.nextStartTime))).Log("msg", "Requesting metrics")
 
 		// collect all returned events and metrics/messages
 		collectAllMetrics := func(output *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
 			for _, event := range output.Events {
-				l := s.logger.With("EventId", *event.EventId).With("LogStreamName", *event.LogStreamName)
-				l = l.With("Timestamp", aws.MillisecondsTimeValue(event.Timestamp).UTC())
-				l = l.With("IngestionTime", aws.MillisecondsTimeValue(event.IngestionTime).UTC())
+				l := log.With(s.logger,
+					"EventId", *event.EventId,
+					"LogStreamName", *event.LogStreamName,
+					"Timestamp", aws.MillisecondsTimeValue(event.Timestamp).UTC(),
+					"IngestionTime", aws.MillisecondsTimeValue(event.IngestionTime).UTC())
 
 				var instance *sessions.Instance
 				for _, i := range s.instances {
@@ -99,15 +102,15 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 					}
 				}
 				if instance == nil {
-					l.Errorf("Failed to find instance.")
+					level.Error(l).Log("msg", "Failed to find instance.")
 					continue
 				}
 
 				if instance.DisableEnhancedMetrics {
-					l.Debugf("Enhanced Metrics are disabled for instance %v.", instance)
+					level.Debug(l).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
 					continue
 				}
-				l = l.With("region", instance.Region).With("instance", instance.Instance)
+				l = log.With(l, "region", instance.Region, "instance", instance.Instance)
 
 				// l.Debugf("Message:\n%s", *event.Message)
 				osMetrics, err := parseOSMetrics([]byte(*event.Message), s.testDisallowUnknownFields)
@@ -117,13 +120,13 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 						panic(fmt.Sprintf("New metrics should be added: %s", err))
 					}
 
-					l.Errorf("Failed to parse metrics: %s.", err)
+					level.Error(l).Log("msg", "Failed to parse metrics.", "error", err)
 					continue
 				}
 				// l.Debugf("OS Metrics:\n%#v", osMetrics)
 
 				timestamp := aws.MillisecondsTimeValue(event.Timestamp).UTC()
-				l.Debugf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp)
+				level.Debug(l).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
 
 				if allMetrics[instance.ResourceID] == nil {
 					allMetrics[instance.ResourceID] = make(map[time.Time][]prometheus.Metric)
@@ -139,7 +142,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 			return true // continue pagination
 		}
 		if err := s.svc.FilterLogEventsPagesWithContext(ctx, input, collectAllMetrics); err != nil {
-			s.logger.Errorf("Failed to filter log events: %s.", err)
+			level.Error(s.logger).Log("msg", "Failed to filter log events.", "error", err)
 		}
 	}
 	// get better times

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -14,8 +15,8 @@ type Client struct {
 }
 
 // New creates new Client.
-func New() *Client {
-	t := newTransport()
+func New(logger log.Logger) *Client {
+	t := newTransport(logger)
 	return &Client{
 		c: &http.Client{
 			Transport: t,

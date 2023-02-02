@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/percona/exporter_shared/helpers"
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,15 +41,16 @@ func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 func TestScraper(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
-	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	logger := promlog.New(&promlog.Config{})
+	client := client.New(logger)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
 	for session, instances := range sess.AllSessions() {
 		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			// test that there are no new metrics
-			s := newScraper(session, instances)
+			s := newScraper(session, instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, messages := s.scrape(context.Background())
 			require.Len(t, metrics, len(instances))
@@ -139,14 +141,15 @@ func TestBetterTimes(t *testing.T) {
 func TestScraperDisableEnhancedMetrics(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
-	client := client.New()
+	logger := promlog.New(&promlog.Config{})
+	client := client.New(logger)
 	for i := range cfg.Instances {
 		// Disable enhanced metrics in even instances.
 		// This disable instance: no-such-instance.
 		isDisabled := i%2 == 0
 		cfg.Instances[i].DisableEnhancedMetrics = isDisabled
 	}
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
 	// Check if all collected metrics do not contain metrics for instance with disabled metrics.
@@ -162,7 +165,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			s := newScraper(session, instances)
+			s := newScraper(session, instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, _ := s.scrape(context.Background())
 

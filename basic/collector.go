@@ -1,11 +1,13 @@
 package basic
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/percona/rds_exporter/config"
 	"github.com/percona/rds_exporter/sessions"
@@ -36,12 +38,12 @@ type Collector struct {
 }
 
 // New creates a new instance of a Collector.
-func New(config *config.Config, sessions *sessions.Sessions) *Collector {
+func New(config *config.Config, sessions *sessions.Sessions, logger log.Logger) *Collector {
 	return &Collector{
 		config:   config,
 		sessions: sessions,
 		metrics:  Metrics,
-		l:        log.With("component", "basic"),
+		l:        log.With(logger, "component", "basic"),
 	}
 }
 
@@ -63,7 +65,7 @@ func (e *Collector) collect(ch chan<- prometheus.Metric) {
 
 	for _, instance := range e.config.Instances {
 		if instance.DisableBasicMetrics {
-			e.l.Debugf("Instance %s has disabled basic metrics, skipping.", instance)
+			level.Debug(e.l).Log("msg", fmt.Sprintf("Instance %s has disabled basic metrics, skipping.", instance))
 			continue
 		}
 		instance := instance
@@ -73,7 +75,7 @@ func (e *Collector) collect(ch chan<- prometheus.Metric) {
 
 			s := NewScraper(&instance, e, ch)
 			if s == nil {
-				e.l.Errorf("No scraper for %s, skipping.", instance)
+				level.Error(e.l).Log("msg", fmt.Sprintf("No scraper for %s, skipping.", instance))
 				return
 			}
 			s.Scrape()

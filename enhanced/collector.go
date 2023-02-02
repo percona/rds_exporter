@@ -2,11 +2,13 @@ package enhanced
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/percona/rds_exporter/sessions"
 )
@@ -27,15 +29,15 @@ const (
 )
 
 // NewCollector creates new collector and starts scrapers.
-func NewCollector(sessions *sessions.Sessions) *Collector {
+func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	c := &Collector{
 		sessions: sessions,
-		logger:   log.With("component", "enhanced"),
+		logger:   log.With(logger, "component", "enhanced"),
 		metrics:  make(map[string][]prometheus.Metric),
 	}
 
 	for session, instances := range sessions.AllSessions() {
-		s := newScraper(session, instances)
+		s := newScraper(session, instances, logger)
 
 		interval := maxInterval
 		for _, instance := range instances {
@@ -46,7 +48,7 @@ func NewCollector(sessions *sessions.Sessions) *Collector {
 		if interval < minInterval {
 			interval = minInterval
 		}
-		s.logger.Infof("Updating enhanced metrics every %s.", interval)
+		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", interval))
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
 		m, _ := s.scrape(context.TODO())

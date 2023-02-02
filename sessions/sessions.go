@@ -12,7 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/prometheus/common/log"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 
 	"github.com/percona/rds_exporter/config"
 )
@@ -43,9 +44,9 @@ type Sessions struct {
 }
 
 // New creates a new sessions pool for given configuration.
-func New(instances []config.Instance, client *http.Client, trace bool) (*Sessions, error) {
-	logger := log.With("component", "sessions")
-	logger.Info("Creating sessions...")
+func New(instances []config.Instance, client *http.Client, logger log.Logger, trace bool) (*Sessions, error) {
+	logger = log.With(logger, "component", "sessions")
+	level.Info(logger).Log("msg", "Creating sessions...")
 	res := &Sessions{
 		sessions: make(map[*session.Session][]Instance),
 	}
@@ -85,7 +86,9 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 				panic("Do not enable AWS request tracing on CI - output will contain credentials.")
 			}
 
-			awsCfg.Logger = aws.LoggerFunc(logger.Debug)
+			awsCfg.Logger = aws.LoggerFunc(func(args ...interface{}) {
+				level.Debug(logger).Log("msg", args)
+			})
 			awsCfg.CredentialsChainVerboseErrors = aws.Bool(true)
 			level := aws.LogDebugWithSigning | aws.LogDebugWithHTTPBody
 			level |= aws.LogDebugWithRequestRetries | aws.LogDebugWithRequestErrors | aws.LogDebugWithEventStreamBody
@@ -116,7 +119,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 				Marker: marker,
 			})
 			if err != nil {
-				logger.Errorf("Failed to get resource IDs: %s.", err)
+				level.Error(logger).Log("msg", "Failed to get resource IDs.", "error", err)
 				break
 			}
 
@@ -139,7 +142,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 		newInstances := make([]Instance, 0, len(instances))
 		for _, instance := range instances {
 			if instance.ResourceID == "" {
-				logger.Errorf("Skipping %s - can't determine resourceID.", instance)
+				level.Error(logger).Log("msg", fmt.Sprintf("Skipping %s - can't determine resourceID.", instance))
 				continue
 			}
 			newInstances = append(newInstances, instance)
@@ -163,7 +166,7 @@ func New(instances []config.Instance, client *http.Client, trace bool) (*Session
 	}
 	_ = w.Flush()
 
-	logger.Infof("Using %d sessions.", len(res.sessions))
+	level.Info(logger).Log("msg", fmt.Sprintf("Using %d sessions.", len(res.sessions)))
 	return res, nil
 }
 

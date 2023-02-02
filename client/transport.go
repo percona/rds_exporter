@@ -1,12 +1,14 @@
 package client
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 )
 
 type transport struct {
@@ -17,14 +19,14 @@ type transport struct {
 	mResponses *prometheus.SummaryVec
 }
 
-func newTransport() *transport {
+func newTransport(logger log.Logger) *transport {
 	return &transport{
 		t: &http.Transport{
 			MaxIdleConnsPerHost: 5,
 			IdleConnTimeout:     2 * time.Minute,
 			Proxy:               http.ProxyFromEnvironment,
 		},
-		l: log.With("component", "transport"),
+		l: log.With(logger, "component", "transport"),
 
 		mRequests: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "rds_exporter_requests_total",
@@ -46,10 +48,10 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	duration := time.Since(start)
 	if resp != nil {
 		t.mResponses.WithLabelValues(strconv.Itoa(resp.StatusCode)).Observe(duration.Seconds())
-		t.l.Debugf("%s %s -> %d (%s)", req.Method, req.URL.String(), resp.StatusCode, duration)
+		level.Debug(t.l).Log("msg", fmt.Sprintf("%s %s -> %d (%s)", req.Method, req.URL.String(), resp.StatusCode, duration))
 	} else {
 		t.mResponses.WithLabelValues("err").Observe(duration.Seconds())
-		t.l.Errorf("%s %s -> %s (%s)", req.Method, req.URL.String(), err, duration)
+		level.Error(t.l).Log("msg", fmt.Sprintf("%s %s -> %s (%s)", req.Method, req.URL.String(), err, duration))
 	}
 	return resp, err
 }

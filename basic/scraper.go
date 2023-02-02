@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/percona/rds_exporter/config"
@@ -85,7 +86,7 @@ func (s *Scraper) Scrape() {
 			defer wg.Done()
 
 			if err := s.scrapeMetric(metric); err != nil {
-				s.collector.l.With("metric", metric.cwName).Error(err)
+				level.Error(s.collector.l).Log("metric", metric.cwName, "error", err)
 			}
 		}()
 	}

@@ -1,11 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -23,32 +28,38 @@ var (
 	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
 	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
 	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	logger               = log.NewNopLogger()
 )
 
 func main() {
-	log.AddFlags(kingpin.CommandLine)
-	log.Infoln("Starting RDS exporter", version.Info())
-	log.Infoln("Build context", version.BuildContext())
+	kingpin.HelpFlag.Short('h')
+	promlogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.Version(version.Print("rds_exporter"))
 	kingpin.Parse()
+	logger = promlog.New(promlogConfig)
+	level.Info(logger).Log("msg", fmt.Sprintf("Starting RDS exporter %s", version.Info()))
+	level.Info(logger).Log("msg", fmt.Sprintf("Build context %s", version.BuildContext()))
 
 	cfg, err := config.Load(*configFileF)
 	if err != nil {
-		log.Fatalf("Can't read configuration file: %s", err)
+		level.Error(logger).Log("msg", "Can't read configuration file", "error", err)
+		os.Exit(1)
 	}
 
-	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), *logTraceF)
+	client := client.New(logger)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, *logTraceF)
 	if err != nil {
-		log.Fatalf("Can't create sessions: %s", err)
+		level.Error(logger).Log("msg", "Can't create sessions", "error", err)
+		os.Exit(1)
 	}
 
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
 	{
-		prometheus.MustRegister(basic.New(cfg, sess))
+		prometheus.MustRegister(basic.New(cfg, sess, logger))
 		prometheus.MustRegister(client)
 		http.Handle(*basicMetricsPathF, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
-			ErrorLog:      log.NewErrorLogger(),
+			//ErrorLog:      log.NewErrorLogger(), TODO TS
 			ErrorHandling: promhttp.ContinueOnError,
 		}))
 	}
@@ -56,14 +67,15 @@ func main() {
 	// enhanced metrics
 	{
 		registry := prometheus.NewRegistry()
-		registry.MustRegister(enhanced.NewCollector(sess))
+		registry.MustRegister(enhanced.NewCollector(sess, logger))
 		http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
-			ErrorLog:      log.NewErrorLogger(),
+			//ErrorLog:      log.NewErrorLogger(), TODO TS
 			ErrorHandling: promhttp.ContinueOnError,
 		}))
 	}
 
-	log.Infof("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF)
-	log.Infof("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF)
-	log.Fatal(http.ListenAndServe(*listenAddressF, nil))
+	level.Info(logger).Log("msg", fmt.Sprintf("Basic metrics   : http://%s%s", *listenAddressF, *basicMetricsPathF))
+	level.Info(logger).Log("msg", fmt.Sprintf("Enhanced metrics: http://%s%s", *listenAddressF, *enhancedMetricsPathF))
+
+	level.Error(logger).Log("error", http.ListenAndServe(*listenAddressF, nil))
 }

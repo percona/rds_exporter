@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/percona/exporter_shared/helpers"
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,11 +19,12 @@ import (
 func TestCollector(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
-	client := client.New()
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	logger := promlog.New(&promlog.Config{})
+	client := client.New(logger)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
-	c := New(cfg, sess)
+	c := New(cfg, sess, logger)
 
 	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
 	sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
@@ -52,7 +54,8 @@ func TestCollector(t *testing.T) {
 func TestCollectorDisableBasicMetrics(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
-	client := client.New()
+	logger := promlog.New(&promlog.Config{})
+	client := client.New(logger)
 	instanceGroups := make(map[bool][]string, 2)
 	for i := range cfg.Instances {
 		// Disable basic metrics in even instances.
@@ -62,10 +65,10 @@ func TestCollectorDisableBasicMetrics(t *testing.T) {
 		// Groups instance names by disabled or enabled metrics.
 		instanceGroups[isDisabled] = append(instanceGroups[isDisabled], cfg.Instances[i].Instance)
 	}
-	sess, err := sessions.New(cfg.Instances, client.HTTP(), false)
+	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
-	c := New(cfg, sess)
+	c := New(cfg, sess, logger)
 
 	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
 	actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
