@@ -1,0 +1,59 @@
+#================================ Workflow =========================================#
+#                                                                                   #
+# This flow used to build docker image for rds_exporter and push to Docker Hub      #
+#                                                                                   #
+# Author: Dung Pham                                                                 #
+#===================================================================================#
+
+name: = BUILD IMAGE rds_exporter =
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+### Ensures that only one CI task per branch/environment will run at a time ###
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+#############################################################################
+#=============================BUILD DOCKER IMAGE============================#
+#############################################################################
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push docker image
+        shell: bash
+        env:
+          REGISTRY: dungpham91
+          REPOSITORY: prom-rds-exporter
+        run: |
+          TAG_VERSION=$(cat VERSION)
+
+          docker build \
+            -t $REGISTRY/$REPOSITORY:${TAG_VERSION} \
+            -t $REGISTRY/$REPOSITORY:latest \
+            -f Dockerfile.public .
+
+          echo "Pushing image to ECR..."
+          docker push $REGISTRY/$REPOSITORY --all-tags
