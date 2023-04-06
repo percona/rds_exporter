@@ -5,10 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: quintoandar/rds_exporter
+  repository: dungpham91/prom-rds-exporter
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: 0.7.2-2
+  tag: 0.7.3
 
 imagePullSecrets: []
 nameOverride: ""
