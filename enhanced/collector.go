@@ -37,10 +37,11 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	}
 
 	for session, instances := range sessions.AllSessions() {
-		s := newScraper(session, instances, logger)
+		enabledInstances := getEnabledInstances(instances)
+		s := newScraper(session, enabledInstances, logger)
 
 		interval := maxInterval
-		for _, instance := range instances {
+		for _, instance := range enabledInstances {
 			if instance.EnhancedMonitoringInterval > 0 && instance.EnhancedMonitoringInterval < interval {
 				interval = instance.EnhancedMonitoringInterval
 			}
@@ -64,6 +65,18 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	}
 
 	return c
+}
+
+func getEnabledInstances(instances []sessions.Instance) []sessions.Instance {
+	enabledInstances := make([]sessions.Instance, 0, len(instances))
+	for _, instance := range instances {
+		if instance.DisableEnhancedMetrics {
+			continue
+		}
+		enabledInstances = append(enabledInstances, instance)
+	}
+
+	return enabledInstances
 }
 
 // setMetrics saves latest scraped metrics.
