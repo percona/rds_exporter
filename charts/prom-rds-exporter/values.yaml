@@ -107,7 +107,7 @@ config: |-
   instances:
     - region: us-east-2
       instance: rds-name
-      disable_basic_metrics: false
+      disable_basic_metrics: true
       disable_enhanced_metrics: false
 
 nodeSelector: {}
@@ -118,7 +118,7 @@ affinity: {}
 
 # Configurable health checks against the /healthy and /ready endpoints
 livenessProbe:
-  path: /-/healthy
+  path: /enhanced
   initialDelaySeconds: 30
   periodSeconds: 5
   timeoutSeconds: 5
@@ -126,7 +126,7 @@ livenessProbe:
   failureThreshold: 3
 
 readinessProbe:
-  path: /-/ready
+  path: /enhanced
   initialDelaySeconds: 30
   periodSeconds: 5
   timeoutSeconds: 5
@@ -135,17 +135,17 @@ readinessProbe:
 
 serviceMonitor:
   # When set true then use a ServiceMonitor to configure scraping
-  enabled: false
+  enabled: true
   # Set the namespace the ServiceMonitor should be deployed
-  # namespace: monitoring
+  namespace: monitoring
   # Set how frequently Prometheus should scrape
-  # interval: 30s
+  interval: 15s
   # Set path to rds-exporter telemtery-path
-  # telemetryPath: /metrics
+  telemetryPath: /enhanced
   # Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator
   # labels:
   # Set timeout for scrape
-  # timeout: 10s
+  timeout: 10s
   # Set relabelings for the ServiceMonitor, use to apply to samples before scraping
   # relabelings: []
   # Set metricRelabelings for the ServiceMonitor, use to apply to samples for ingestion
@@ -167,25 +167,39 @@ prometheusRule:
   # labels:
   # Example - note the Kubernetes convention of camelCase instead of Prometheus'
   # rules:
-  #    - alert: ELB-Low-BurstBalance
+  #    - alert: RDSEnhancedHighCPU
   #      annotations:
-  #        message: The ELB BurstBalance during the last 10 minutes is lower than 80%.
-  #      expr: aws_ebs_burst_balance_average < 80
-  #      for: 10m
+  #        message: RDS instance {{`{{`}} $labels.exported_instance {{`}}`}} in region {{`{{`}} $labels.region{{`}}`}} is experiencing high CPU over 70%.
+  #      expr: rdsosmetrics_cpuUtilization_total{job="prom-rds-exporter"} >= 70
+  #      for: 1m
   #      labels:
-  #        severity: warning
-  #    - alert: ELB-Low-BurstBalance
+  #        severity: critical
+  #    - alert: RDSEnhancedHighMemory
   #      annotations:
-  #        message: The ELB BurstBalance during the last 10 minutes is lower than 50%.
-  #      expr: aws_ebs_burst_balance_average < 50
-  #      for: 10m
+  #        message: RDS instance {{`{{`}} $labels.exported_instance {{`}}`}} in region {{`{{`}} $labels.region{{`}}`}} is using over 70% memory.
+  #      expr: (node_memory_Active_bytes{job="prom-rds-exporter"})/(node_memory_MemTotal_bytes{job="prom-rds-exporter"})*100 >= 70
+  #      for: 1m
   #      labels:
-  #        severity: warning
-  #    - alert: ELB-Low-BurstBalance
+  #        severity: critical
+  #    - alert: RDSEnhancedHighRootPartition
   #      annotations:
-  #        message: The ELB BurstBalance during the last 10 minutes is lower than 30%.
-  #      expr: aws_ebs_burst_balance_average < 30
-  #      for: 10m
+  #        message: RDS instance {{`{{`}} $labels.exported_instance {{`}}`}} in region {{`{{`}} $labels.region{{`}}`}} is using more than 70% of root partition /.
+  #      expr: 100-((node_filesystem_avail_bytes{job="prom-rds-exporter",mountpoint="/"})/(node_filesystem_size_bytes{job="prom-rds-exporter",mountpoint="/"})*100) >= 70
+  #      for: 1m
+  #      labels:
+  #        severity: critical
+  #    - alert: RDSEnhancedHighDataPartition
+  #      annotations:
+  #        message: RDS instance {{`{{`}} $labels.exported_instance {{`}}`}} in region {{`{{`}} $labels.region{{`}}`}} is using more than 70% of data partition /rdsdbdata.
+  #      expr: 100-((node_filesystem_avail_bytes{job="prom-rds-exporter",mountpoint="/rdsdbdata"})/(node_filesystem_size_bytes{job="prom-rds-exporter",mountpoint="/rdsdbdata"})*100) >= 70
+  #      for: 1m
+  #      labels:
+  #        severity: critical
+    #    - alert: RDSEnhancedHighLoadAverage
+  #      annotations:
+  #        message: RDS instance {{`{{`}} $labels.exported_instance {{`}}`}} in region {{`{{`}} $labels.region{{`}}`}} is having a high Load Average.
+  #      expr: rdsosmetrics_loadAverageMinute_one{job="prom-rds-exporter"} >= rdsosmetrics_General_numVCPUs{job="prom-rds-exporter"}
+  #      for: 1m
   #      labels:
   #        severity: critical
 
