@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rds_exporter-component
+  title: Prometheus AWS RDS Exporter
+  description: AWS RDS exporter for Prometheus. Public fork!
+  tags:
+    - go
+    - prometheus
+  links:
+    - url: https://github.com/ozean12/rds_exporter
+      title: Prometheus AWS RDS Exporter GitHub Repo
+      icon: github
+spec:
+  type: service
+  lifecycle: production
+  owner: infrastructure
+  system: observability-system
