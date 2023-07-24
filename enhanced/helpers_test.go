@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,7 +20,7 @@ var (
 func readTestDataJSON(t *testing.T, instance string) []byte {
 	t.Helper()
 
-	b, err := ioutil.ReadFile(filepath.Join("testdata", instance+".json")) //nolint:gosec
+	b, err := os.ReadFile(filepath.Join("testdata", instance+".json")) //nolint:gosec
 	require.NoError(t, err)
 	return bytes.TrimSpace(b)
 }
@@ -33,14 +33,14 @@ func writeTestDataJSON(t *testing.T, instance string, b []byte) {
 	require.NoError(t, err)
 	err = buf.WriteByte('\n')
 	require.NoError(t, err)
-	err = ioutil.WriteFile(filepath.Join("testdata", instance+".json"), buf.Bytes(), 0666)
+	err = os.WriteFile(filepath.Join("testdata", instance+".json"), buf.Bytes(), 0666)
 	require.NoError(t, err)
 }
 
 func readTestDataMetrics(t *testing.T, instance string) []string {
 	t.Helper()
 
-	b, err := ioutil.ReadFile(filepath.Join("testdata", instance+".txt")) //nolint:gosec
+	b, err := os.ReadFile(filepath.Join("testdata", instance+".txt")) //nolint:gosec
 	require.NoError(t, err)
 	return strings.Split(string(bytes.TrimSpace(b)), "\n")
 }
@@ -49,6 +49,6 @@ func writeTestDataMetrics(t *testing.T, instance string, metrics []string) {
 	t.Helper()
 
 	b := []byte(strings.TrimSpace(strings.Join(metrics, "\n")) + "\n")
-	err := ioutil.WriteFile(filepath.Join("testdata", instance+".txt"), b, 0666)
+	err := os.WriteFile(filepath.Join("testdata", instance+".txt"), b, 0666)
 	require.NoError(t, err)
 }

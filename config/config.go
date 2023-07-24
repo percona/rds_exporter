@@ -1,7 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
@@ -46,7 +46,7 @@ type Config struct {
 
 // Load loads configuration from file.
 func Load(filename string) (*Config, error) {
-	b, err := ioutil.ReadFile(filename) //nolint:gosec
+	b, err := os.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
