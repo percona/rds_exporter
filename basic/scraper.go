@@ -137,7 +137,7 @@ func (s *Scraper) scrapeMetric(metric Metric) error {
 
 	// Send metric.
 	s.ch <- prometheus.MustNewConstMetric(
-		prometheus.NewDesc(metric.prometheusName, metric.prometheusHelp, nil, s.constLabels),
+		prometheus.NewDesc(prometheus.BuildFQName("myprefix", "", metric.prometheusName), metric.prometheusHelp, nil, s.constLabels),
 		prometheus.GaugeValue,
 		v,
 	)

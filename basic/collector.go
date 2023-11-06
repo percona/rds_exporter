@@ -17,7 +17,10 @@ import (
 
 var (
 	scrapeTimeDesc = prometheus.NewDesc(
-		"rds_exporter_scrape_duration_seconds",
+		prometheus.BuildFQName(
+			"myprefix",
+			"",
+			"rds_exporter_scrape_duration_seconds"),
 		"Time this RDS scrape took, in seconds.",
 		[]string{},
 		nil,
