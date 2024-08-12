@@ -1,10 +1,10 @@
-FROM golang:1.16 as build
+FROM golang:1.22 AS build
 
 COPY . /usr/src/rds_exporter
 
 RUN cd /usr/src/rds_exporter
 
-FROM        alpine:latest
+FROM alpine:latest
 
 COPY --from=build /usr/src/rds_exporter/rds_exporter  /bin/
 # COPY config.yml           /etc/rds_exporter/config.yml
