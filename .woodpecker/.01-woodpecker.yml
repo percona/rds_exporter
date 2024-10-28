@@ -1,0 +1,11 @@
+steps:
+
+  build-publish-tag-wp:
+    image: 796143582747.dkr.ecr.us-east-1.amazonaws.com/plugins/docker
+    pull: true
+    settings:
+      repo: rds_exporter
+      tags: [ '${CI_COMMIT_TAG}', '${CI_COMMIT_TAG%%.*}',  "latest" ]
+    when:
+      event: tag
+      branch: [ master ]
