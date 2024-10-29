@@ -152,6 +152,11 @@ var Metrics = []Metric{
 		prometheusHelp: "LoginFailures",
 	},
 	{
+		cwName:         "MaxAllocatedStorage",
+		prometheusName: "rds_max_allocated_storage_bytes",
+		prometheusHelp: "Upper limit in gibibytes to which Amazon RDS can automatically scale the storage of the DB instance.",
+	},	
+	{
 		cwName:         "NetworkReceiveThroughput",
 		prometheusName: "aws_rds_network_receive_throughput_average",
 		prometheusHelp: "The incoming (Receive) network traffic on the DB instance, including both customer database traffic and Amazon RDS traffic used for monitoring and replication. Units: Bytes/second",
