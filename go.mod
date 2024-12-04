@@ -1,6 +1,6 @@
 module github.com/percona/rds_exporter
 
-go 1.22
+go 1.23
 
 require (
 	github.com/aws/aws-sdk-go v1.36.30
