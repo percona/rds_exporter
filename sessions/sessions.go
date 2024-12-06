@@ -183,6 +183,21 @@ func (s *Sessions) GetSession(region, instance string) (*session.Session, *Insta
 }
 
 func buildCredentials(instance config.Instance) (*credentials.Credentials, error) {
+	// If IRSA is enabled, let the AWS SDK use the default credential provider chain,
+	// which includes the service account role credentials.
+	if instance.IRSAEnabled {
+		// Create a new session with just the region set, no credentials provided explicitly.
+		// This allows the SDK to use the credentials mounted by IRSA.
+		stsSession, err := session.NewSession(&aws.Config{
+			Region: aws.String(instance.Region),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return stsSession.Config.Credentials, nil
+	}
+
 	if instance.AWSRoleArn != "" {
 		stsSession, err := session.NewSession(&aws.Config{
 			Region:      aws.String(instance.Region),
