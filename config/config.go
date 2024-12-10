@@ -26,6 +26,7 @@ type Instance struct {
 	DisableBasicMetrics    bool              `yaml:"disable_basic_metrics"`
 	DisableEnhancedMetrics bool              `yaml:"disable_enhanced_metrics"`
 	Labels                 map[string]string `yaml:"labels"` // may be empty
+	IRSAEnabled            bool              `yaml:"irsa_enabled"`
 
 	// TODO Type InstanceType `yaml:"type"` // may be empty for old pmm-managed
 }
