@@ -89,7 +89,7 @@ type fileSys struct {
 	MountPoint      string  `json:"mountPoint"      help:"The path to the file system."`
 	Name            string  `json:"name"            help:"The name of the file system."`
 	Total           int     `json:"total"           help:"The total number of disk space available for the file system, in kilobytes."`
-	Used            int     `json:"used"            help:"The amount of disk space used by files in the file system, in kilobytes."`
+	Used            int64   `json:"used"            help:"The amount of disk space used by files in the file system, in kilobytes."`
 	UsedFilePercent float64 `json:"usedFilePercent" help:"The percentage of available files in use."`
 	UsedFiles       int     `json:"usedFiles"       help:"The number of files in the file system."`
 	UsedPercent     float64 `json:"usedPercent"     help:"The percentage of the file-system disk space in use."`
