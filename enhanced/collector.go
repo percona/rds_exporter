@@ -38,7 +38,8 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 	for session, instances := range sessions.AllSessions() {
 		enabledInstances := getEnabledInstances(instances)
-		s := newScraper(session, enabledInstances, logger)
+		cfg := sessions.Configs[session]
+		s := newScraper(cfg, enabledInstances, logger)
 
 		interval := maxInterval
 		for _, instance := range enabledInstances {

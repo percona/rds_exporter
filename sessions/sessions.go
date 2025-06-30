@@ -1,17 +1,19 @@
 package sessions
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"text/tabwriter"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/rds"
+	awsV2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
@@ -34,28 +36,29 @@ func (i Instance) String() string {
 	if i.ResourceID != "" {
 		res += " (" + i.ResourceID + ")"
 	}
-
 	return res
 }
 
-// Sessions is a pool of AWS sessions.
+// Sessions is a pool of AWS configs per region.
 type Sessions struct {
-	sessions map[*session.Session][]Instance
+	sessions map[string][]Instance
+	Configs  map[string]awsV2.Config
 }
 
 // New creates a new sessions pool for given configuration.
 func New(instances []config.Instance, client *http.Client, logger log.Logger, trace bool) (*Sessions, error) {
 	logger = log.With(logger, "component", "sessions")
 	level.Info(logger).Log("msg", "Creating sessions...")
+
 	res := &Sessions{
-		sessions: make(map[*session.Session][]Instance),
+		sessions: make(map[string][]Instance),
+		Configs:  make(map[string]awsV2.Config),
 	}
 
-	sharedSessions := make(map[string]*session.Session) // region/key => session
 	for _, instance := range instances {
-		// re-use session for the same region and key (explicit or empty for implicit) pair
-		if s := sharedSessions[instance.Region+"/"+instance.AWSAccessKey]; s != nil {
-			res.sessions[s] = append(res.sessions[s], Instance{
+		key := instance.Region + "/" + instance.AWSAccessKey
+		if _, exists := res.Configs[key]; exists {
+			res.sessions[key] = append(res.sessions[key], Instance{
 				Region:                 instance.Region,
 				Instance:               instance.Instance,
 				Labels:                 instance.Labels,
@@ -65,43 +68,13 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			continue
 		}
 
-		// use given credentials, or default credential chain
-		var creds *credentials.Credentials
-
-		creds, err := buildCredentials(instance)
-
+		cfg, err := loadAWSConfig(instance, client, trace, logger)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to load AWS config: %w", err)
 		}
 
-		// make config with careful logging
-		awsCfg := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(instance.Region),
-			HTTPClient:  client,
-		}
-		if trace {
-			// fail-safe
-			if _, ok := os.LookupEnv("CI"); ok {
-				panic("Do not enable AWS request tracing on CI - output will contain credentials.")
-			}
-
-			awsCfg.Logger = aws.LoggerFunc(func(args ...interface{}) {
-				level.Debug(logger).Log("msg", args)
-			})
-			awsCfg.CredentialsChainVerboseErrors = aws.Bool(true)
-			level := aws.LogDebugWithSigning | aws.LogDebugWithHTTPBody
-			level |= aws.LogDebugWithRequestRetries | aws.LogDebugWithRequestErrors | aws.LogDebugWithEventStreamBody
-			awsCfg.LogLevel = aws.LogLevel(level)
-		}
-
-		// store session
-		s, err := session.NewSession(awsCfg)
-		if err != nil {
-			return nil, err
-		}
-		sharedSessions[instance.Region+"/"+instance.AWSAccessKey] = s
-		res.sessions[s] = append(res.sessions[s], Instance{
+		res.Configs[key] = cfg
+		res.sessions[key] = append(res.sessions[key], Instance{
 			Region:                 instance.Region,
 			Instance:               instance.Instance,
 			Labels:                 instance.Labels,
@@ -111,11 +84,11 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	}
 
 	// add resource ID to all instances
-	for session, instances := range res.sessions {
-		svc := rds.New(session)
+	for key, cfg := range res.Configs {
+		svc := rds.NewFromConfig(cfg)
 		var marker *string
 		for {
-			output, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+			output, err := svc.DescribeDBInstances(context.Background(), &rds.DescribeDBInstancesInput{
 				Marker: marker,
 			})
 			if err != nil {
@@ -124,10 +97,14 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			}
 
 			for _, dbInstance := range output.DBInstances {
-				for i, instance := range instances {
-					if *dbInstance.DBInstanceIdentifier == instance.Instance {
-						instances[i].ResourceID = *dbInstance.DbiResourceId
-						instances[i].EnhancedMonitoringInterval = time.Duration(*dbInstance.MonitoringInterval) * time.Second
+				for i, instance := range res.sessions[key] {
+					if dbInstance.DBInstanceIdentifier != nil && *dbInstance.DBInstanceIdentifier == instance.Instance {
+						if dbInstance.DbiResourceId != nil {
+							res.sessions[key][i].ResourceID = *dbInstance.DbiResourceId
+						}
+						if dbInstance.MonitoringInterval != nil {
+							res.sessions[key][i].EnhancedMonitoringInterval = time.Duration(*dbInstance.MonitoringInterval) * time.Second
+						}
 					}
 				}
 			}
@@ -138,7 +115,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	}
 
 	// remove instances without resource ID
-	for session, instances := range res.sessions {
+	for key, instances := range res.sessions {
 		newInstances := make([]Instance, 0, len(instances))
 		for _, instance := range instances {
 			if instance.ResourceID == "" {
@@ -147,13 +124,14 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			}
 			newInstances = append(newInstances, instance)
 		}
-		res.sessions[session] = newInstances
+		res.sessions[key] = newInstances
 	}
 
-	// remove sessions without instances
-	for _, s := range sharedSessions {
-		if len(res.sessions[s]) == 0 {
-			delete(res.sessions, s)
+	// remove configs without instances
+	for key := range res.Configs {
+		if len(res.sessions[key]) == 0 {
+			delete(res.Configs, key)
+			delete(res.sessions, key)
 		}
 	}
 
@@ -166,61 +144,60 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	}
 	_ = w.Flush()
 
-	level.Info(logger).Log("msg", fmt.Sprintf("Using %d sessions.", len(res.sessions)))
+	level.Info(logger).Log("msg", fmt.Sprintf("Using %d session configs.", len(res.Configs)))
 	return res, nil
 }
 
-// GetSession returns session and full instance information for given region and instance.
-func (s *Sessions) GetSession(region, instance string) (*session.Session, *Instance) {
-	for session, instances := range s.sessions {
+// GetSession returns AWS config and full instance information for given region and instance.
+func (s *Sessions) GetSession(region, instance string) (*awsV2.Config, *Instance) {
+	for key, instances := range s.sessions {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {
-				return session, &i
+				cfg := s.Configs[key]
+				return &cfg, &i
 			}
 		}
 	}
 	return nil, nil
 }
 
-func buildCredentials(instance config.Instance) (*credentials.Credentials, error) {
-	// If IRSA is enabled, let the AWS SDK use the default credential provider chain,
-	// which includes the service account role credentials.
-	if instance.IRSAEnabled {
-		// Create a new session with just the region set, no credentials provided explicitly.
-		// This allows the SDK to use the credentials mounted by IRSA.
-		stsSession, err := session.NewSession(&aws.Config{
-			Region: aws.String(instance.Region),
-		})
-		if err != nil {
-			return nil, err
-		}
+// AllSessions returns all AWS configs and instances.
+func (s *Sessions) AllSessions() map[string][]Instance {
+	return s.sessions
+}
 
-		return stsSession.Config.Credentials, nil
+// Internal helper
+func loadAWSConfig(instance config.Instance, client *http.Client, trace bool, logger log.Logger) (awsV2.Config, error) {
+	options := []func(*awsConfig.LoadOptions) error{
+		awsConfig.WithRegion(instance.Region),
+		awsConfig.WithHTTPClient(client),
+	}
+
+	if instance.IRSAEnabled {
+		return awsConfig.LoadDefaultConfig(context.Background(), options...)
 	}
 
 	if instance.AWSRoleArn != "" {
-		stsSession, err := session.NewSession(&aws.Config{
-			Region:      aws.String(instance.Region),
-			Credentials: credentials.NewStaticCredentials(instance.AWSAccessKey, instance.AWSSecretKey, ""),
-		})
+		stsCfg, err := awsConfig.LoadDefaultConfig(context.Background(), options...)
 		if err != nil {
-			return nil, err
+			return awsV2.Config{}, err
 		}
 
-		return stscreds.NewCredentials(stsSession, instance.AWSRoleArn), nil
+		stsClient := sts.NewFromConfig(stsCfg)
+		provider := stscreds.NewAssumeRoleProvider(stsClient, instance.AWSRoleArn)
+		stsCfg.Credentials = awsV2.NewCredentialsCache(provider)
+		return stsCfg, nil
 	}
-	if instance.AWSAccessKey != "" || instance.AWSSecretKey != "" {
-		return credentials.NewCredentials(&credentials.StaticProvider{
-			Value: credentials.Value{
-				AccessKeyID:     instance.AWSAccessKey,
-				SecretAccessKey: instance.AWSSecretKey,
-			},
-		}), nil
-	}
-	return nil, nil
-}
 
-// AllSessions returns all sessions and instances.
-func (s *Sessions) AllSessions() map[*session.Session][]Instance {
-	return s.sessions
+	if instance.AWSAccessKey != "" && instance.AWSSecretKey != "" {
+		staticCreds := awsV2.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+			instance.AWSAccessKey,
+			instance.AWSSecretKey,
+			"",
+		))
+		options = append(options, awsConfig.WithCredentialsProvider(staticCreds))
+		return awsConfig.LoadDefaultConfig(context.Background(), options...)
+	}
+
+	return awsConfig.LoadDefaultConfig(context.Background(), options...)
 }

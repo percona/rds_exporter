@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,14 +41,15 @@ func TestSession(t *testing.T) {
 	ap11s, ap11i := sessions.GetSession("us-west-2", "autotest-aurora-psql-11")
 	ns, ni := sessions.GetSession("us-west-2", "no-such-instance")
 
+	// These checks are now on config keys, not session pointers
 	if am56s == p10s {
-		assert.Fail(t, "autotest-aurora-mysql-56 and autotest-psql-10 should not share session - different keys (implicit and explicit)")
+		assert.Fail(t, "autotest-aurora-mysql-56 and autotest-psql-10 should not share config - different keys (implicit and explicit)")
 	}
 	if p10s == m57s {
-		assert.Fail(t, "autotest-psql-10 and autotest-mysql-57 should not share session - different regions")
+		assert.Fail(t, "autotest-psql-10 and autotest-mysql-57 should not share config - different regions")
 	}
 	if m57s != ap11s {
-		assert.Fail(t, "autotest-mysql-57 and autotest-aurora-psql-11 should share session")
+		assert.Fail(t, "autotest-mysql-57 and autotest-aurora-psql-11 should share config")
 	}
 	if ns != nil {
 		assert.Fail(t, "no-such-instance does not exist")
@@ -87,10 +87,9 @@ func TestSession(t *testing.T) {
 	assert.Nil(t, ni)
 
 	all := sessions.AllSessions()
-	assert.Equal(t, map[*session.Session][]Instance{
-		am56s: {am56iExpected},
-		p10s:  {p10iExpected},
-		m57s:  {m57iExpected, ap11iExpected},
-		// ap11s == m57s
+	assert.Equal(t, map[string][]Instance{
+		"us-east-1/" + os.Getenv("AWS_ACCESS_KEY"): {am56iExpected},
+		"us-east-1/": {p10iExpected},
+		"us-west-2/": {m57iExpected, ap11iExpected},
 	}, all)
 }

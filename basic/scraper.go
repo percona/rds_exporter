@@ -1,11 +1,13 @@
 package basic
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	awsV2 "github.com/aws/aws-sdk-go-v2/aws"
+	cloudwatchV2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cloudwatchV2types "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -25,17 +27,16 @@ type Scraper struct {
 	ch        chan<- prometheus.Metric
 
 	// internal
-	svc         *cloudwatch.CloudWatch
+	svc         *cloudwatchV2.Client
 	constLabels prometheus.Labels
 }
 
 func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric) *Scraper {
-	// Create CloudWatch client
-	sess, _ := collector.sessions.GetSession(instance.Region, instance.Instance)
-	if sess == nil {
+	cfg, _ := collector.sessions.GetSession(instance.Region, instance.Instance)
+	if cfg == nil {
 		return nil
 	}
-	svc := cloudwatch.New(sess)
+	svc := cloudwatchV2.NewFromConfig(*cfg)
 
 	constLabels := prometheus.Labels{
 		"region":   instance.Region,
@@ -61,15 +62,13 @@ func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prome
 	}
 }
 
-func getLatestDatapoint(datapoints []*cloudwatch.Datapoint) *cloudwatch.Datapoint {
-	var latest *cloudwatch.Datapoint = nil
-
-	for dp := range datapoints {
-		if latest == nil || latest.Timestamp.Before(*datapoints[dp].Timestamp) {
-			latest = datapoints[dp]
+func getLatestDatapoint(datapoints []cloudwatchV2types.Datapoint) *cloudwatchV2types.Datapoint {
+	var latest *cloudwatchV2types.Datapoint = nil
+	for i := range datapoints {
+		if latest == nil || latest.Timestamp.Before(*datapoints[i].Timestamp) {
+			latest = &datapoints[i]
 		}
 	}
-
 	return latest
 }
 
@@ -96,46 +95,35 @@ func (s *Scraper) scrapeMetric(metric Metric) error {
 	now := time.Now()
 	end := now.Add(-Delay)
 
-	params := &cloudwatch.GetMetricStatisticsInput{
-		EndTime:   aws.Time(end),
-		StartTime: aws.Time(end.Add(-Range)),
-
-		Period:     aws.Int64(int64(Period.Seconds())),
-		MetricName: aws.String(metric.cwName),
-		Namespace:  aws.String("AWS/RDS"),
-		Dimensions: []*cloudwatch.Dimension{},
-		Statistics: aws.StringSlice([]string{"Average"}),
-		Unit:       nil,
+	params := &cloudwatchV2.GetMetricStatisticsInput{
+		EndTime:    awsV2.Time(end),
+		StartTime:  awsV2.Time(end.Add(-Range)),
+		Period:     awsV2.Int32(int32(Period.Seconds())),
+		MetricName: awsV2.String(metric.cwName),
+		Namespace:  awsV2.String("AWS/RDS"),
+		Dimensions: []cloudwatchV2types.Dimension{{
+			Name:  awsV2.String("DBInstanceIdentifier"),
+			Value: awsV2.String(s.instance.Instance),
+		}},
+		Statistics: []cloudwatchV2types.Statistic{cloudwatchV2types.StatisticAverage},
 	}
 
-	params.Dimensions = append(params.Dimensions, &cloudwatch.Dimension{
-		Name:  aws.String("DBInstanceIdentifier"),
-		Value: aws.String(s.instance.Instance),
-	})
-
-	// Call CloudWatch to gather the datapoints
-	resp, err := s.svc.GetMetricStatistics(params)
+	resp, err := s.svc.GetMetricStatistics(context.Background(), params)
 	if err != nil {
 		return err
 	}
 
-	// There's nothing in there, don't publish the metric
 	if len(resp.Datapoints) == 0 {
 		return nil
 	}
 
-	// Pick the latest datapoint
 	dp := getLatestDatapoint(resp.Datapoints)
-
-	// Get the metric.
-	v := aws.Float64Value(dp.Average)
+	v := awsV2.ToFloat64(dp.Average)
 	switch metric.cwName {
 	case "EngineUptime":
-		// "Fake EngineUptime -> node_boot_time with time.Now().Unix() - EngineUptime."
 		v = float64(time.Now().Unix() - int64(v))
 	}
 
-	// Send metric.
 	s.ch <- prometheus.MustNewConstMetric(
 		prometheus.NewDesc(metric.prometheusName, metric.prometheusHelp, nil, s.constLabels),
 		prometheus.GaugeValue,
