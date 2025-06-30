@@ -154,7 +154,7 @@ aws_rds_write_latency_average{instance="autotest-mysql-57",region="us-west-2"} 0
 aws_rds_write_latency_average{instance="autotest-psql-10",region="us-east-1"} 0
 # HELP aws_rds_write_throughput_average The average number of bytes written to disk per second. Units: Bytes/Second
 # TYPE aws_rds_write_throughput_average gauge
-aws_rds_write_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"}
+aws_rds_write_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_write_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 652.0259562613642
 aws_rds_write_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 1.4348731521141315e+06
 aws_rds_write_throughput_average{instance="autotest-psql-10",region="us-east-1"} 9352.689211486859
