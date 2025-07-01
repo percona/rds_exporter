@@ -16,30 +16,30 @@ aws_rds_buffer_cache_hit_ratio_average{instance="autotest-aurora-mysql-56",regio
 aws_rds_buffer_cache_hit_ratio_average{instance="autotest-aurora-psql-11",region="us-west-2"} 100
 # HELP aws_rds_burst_balance_average The percent of General Purpose SSD (gp2) burst-bucket I/O credits available. Units: Percent
 # TYPE aws_rds_burst_balance_average gauge
-aws_rds_burst_balance_average{instance="autotest-psql-10",region="us-east-1"} 0
+aws_rds_burst_balance_average{instance="autotest-psql-10",region="us-east-1"} 99
 # HELP aws_rds_commit_latency_average CommitLatency
 # TYPE aws_rds_commit_latency_average gauge
-aws_rds_commit_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 6.804166666666666
-aws_rds_commit_latency_average{instance="autotest-aurora-psql-11",region="us-west-2"} 1.1247791411042944
+aws_rds_commit_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
+aws_rds_commit_latency_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.6554803493449781
 # HELP aws_rds_commit_throughput_average CommitThroughput
 # TYPE aws_rds_commit_throughput_average gauge
-aws_rds_commit_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.49998333388887034
-aws_rds_commit_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 2.7155351936693046
+aws_rds_commit_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
+aws_rds_commit_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 3.819085420766485
 # HELP aws_rds_cpu_credit_balance_average [T2 instances] The number of CPU credits available for the instance to burst beyond its base CPU utilization. Credits are stored in the credit balance after they are earned and removed from the credit balance after they expire. Credits expire 24 hours after they are earned. CPU credit metrics are available only at a 5 minute frequency. Units: Count
 # TYPE aws_rds_cpu_credit_balance_average gauge
 aws_rds_cpu_credit_balance_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 576
-aws_rds_cpu_credit_balance_average{instance="autotest-mysql-57",region="us-west-2"} 144
-aws_rds_cpu_credit_balance_average{instance="autotest-psql-10",region="us-east-1"} 144
+aws_rds_cpu_credit_balance_average{instance="autotest-mysql-57",region="us-west-2"} 288
+aws_rds_cpu_credit_balance_average{instance="autotest-psql-10",region="us-east-1"} 288
 # HELP aws_rds_cpu_credit_usage_average [T2 instances] The number of CPU credits consumed by the instance. One CPU credit equals one vCPU running at 100% utilization for one minute or an equivalent combination of vCPUs, utilization, and time (for example, one vCPU running at 50% utilization for two minutes or two vCPUs running at 25% utilization for two minutes). CPU credit metrics are available only at a 5 minute frequency. If you specify a period greater than five minutes, use the Sum statistic instead of the Average statistic. Units: Count
 # TYPE aws_rds_cpu_credit_usage_average gauge
-aws_rds_cpu_credit_usage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.6513
-aws_rds_cpu_credit_usage_average{instance="autotest-mysql-57",region="us-west-2"} 0.182665
-aws_rds_cpu_credit_usage_average{instance="autotest-psql-10",region="us-east-1"} 0.114772
+aws_rds_cpu_credit_usage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.322199
+aws_rds_cpu_credit_usage_average{instance="autotest-mysql-57",region="us-west-2"} 0.28012395
+aws_rds_cpu_credit_usage_average{instance="autotest-psql-10",region="us-east-1"} 0.54684255
 # HELP aws_rds_database_connections_average The number of database connections in use. Units: Count
 # TYPE aws_rds_database_connections_average gauge
 aws_rds_database_connections_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_database_connections_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0
-aws_rds_database_connections_average{instance="autotest-mysql-57",region="us-west-2"} 64
+aws_rds_database_connections_average{instance="autotest-mysql-57",region="us-west-2"} 0
 aws_rds_database_connections_average{instance="autotest-psql-10",region="us-east-1"} 0
 # HELP aws_rds_ddl_latency_average DDLLatency
 # TYPE aws_rds_ddl_latency_average gauge
@@ -61,79 +61,79 @@ aws_rds_delete_throughput_average{instance="autotest-aurora-mysql-56",region="us
 # TYPE aws_rds_disk_queue_depth_average gauge
 aws_rds_disk_queue_depth_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_disk_queue_depth_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0
-aws_rds_disk_queue_depth_average{instance="autotest-mysql-57",region="us-west-2"} 0.5089915168080532
-aws_rds_disk_queue_depth_average{instance="autotest-psql-10",region="us-east-1"} 0.003133228892370254
+aws_rds_disk_queue_depth_average{instance="autotest-mysql-57",region="us-west-2"} 0.003031716417910448
+aws_rds_disk_queue_depth_average{instance="autotest-psql-10",region="us-east-1"} 0
 # HELP aws_rds_dml_latency_average DMLLatency
 # TYPE aws_rds_dml_latency_average gauge
-aws_rds_dml_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.21883333333333335
+aws_rds_dml_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.2994
 # HELP aws_rds_dml_throughput_average DMLThroughput
 # TYPE aws_rds_dml_throughput_average gauge
-aws_rds_dml_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.49998333388887034
+aws_rds_dml_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.5005088506648426
 # HELP aws_rds_free_local_storage_average FreeLocalStorage
 # TYPE aws_rds_free_local_storage_average gauge
-aws_rds_free_local_storage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.7995394048e+10
-aws_rds_free_local_storage_average{instance="autotest-aurora-psql-11",region="us-west-2"} 7.021264896e+09
+aws_rds_free_local_storage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.850269184e+10
+aws_rds_free_local_storage_average{instance="autotest-aurora-psql-11",region="us-west-2"} 3.2224505856e+10
 # HELP aws_rds_insert_latency_average InsertLatency
 # TYPE aws_rds_insert_latency_average gauge
-aws_rds_insert_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.21883333333333335
+aws_rds_insert_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.2994
 # HELP aws_rds_insert_throughput_average InsertThroughput
 # TYPE aws_rds_insert_throughput_average gauge
-aws_rds_insert_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.49998333388887034
+aws_rds_insert_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.5005088506648426
 # HELP aws_rds_login_failures_average LoginFailures
 # TYPE aws_rds_login_failures_average gauge
 aws_rds_login_failures_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 # HELP aws_rds_network_receive_throughput_average The incoming (Receive) network traffic on the DB instance, including both customer database traffic and Amazon RDS traffic used for monitoring and replication. Units: Bytes/second
 # TYPE aws_rds_network_receive_throughput_average gauge
-aws_rds_network_receive_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.9332866689998833
-aws_rds_network_receive_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.7006188800106761
-aws_rds_network_receive_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 10418.69302178297
-aws_rds_network_receive_throughput_average{instance="autotest-psql-10",region="us-east-1"} 705.2647367631619
+aws_rds_network_receive_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.4665111629456848
+aws_rds_network_receive_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.4663790662424838
+aws_rds_network_receive_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 975.4817862318237
+aws_rds_network_receive_throughput_average{instance="autotest-psql-10",region="us-east-1"} 1229.2246421489394
 # HELP aws_rds_network_throughput_average NetworkThroughput
 # TYPE aws_rds_network_throughput_average gauge
-aws_rds_network_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.3332166724997085
-aws_rds_network_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 1.4012377600213521
+aws_rds_network_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.166277907364212
+aws_rds_network_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 1.1659476656062095
 # HELP aws_rds_network_transmit_throughput_average The outgoing (Transmit) network traffic on the DB instance, including both customer database traffic and Amazon RDS traffic used for monitoring and replication. Units: Bytes/second
 # TYPE aws_rds_network_transmit_throughput_average gauge
-aws_rds_network_transmit_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.399930003499825
-aws_rds_network_transmit_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.7006188800106761
-aws_rds_network_transmit_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 188564.00726654555
-aws_rds_network_transmit_throughput_average{instance="autotest-psql-10",region="us-east-1"} 2755.4455610552805
+aws_rds_network_transmit_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.6997667444185272
+aws_rds_network_transmit_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.6995685993637257
+aws_rds_network_transmit_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 11055.5324216733
+aws_rds_network_transmit_throughput_average{instance="autotest-psql-10",region="us-east-1"} 10891.003316058723
 # HELP aws_rds_queries_average Queries
 # TYPE aws_rds_queries_average gauge
-aws_rds_queries_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 5.5339789642124915
+aws_rds_queries_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 6.9219735130266535
 # HELP aws_rds_read_iops_average The average number of disk I/O operations per second. Units: Count/Second
 # TYPE aws_rds_read_iops_average gauge
 aws_rds_read_iops_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_read_iops_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 aws_rds_read_iops_average{instance="autotest-mysql-57",region="us-west-2"} 0
-aws_rds_read_iops_average{instance="autotest-psql-10",region="us-east-1"} 0.5333066679999333
+aws_rds_read_iops_average{instance="autotest-psql-10",region="us-east-1"} 1.2998483510257137
 # HELP aws_rds_read_latency_average The average amount of time taken per disk I/O operation. Units: Seconds
 # TYPE aws_rds_read_latency_average gauge
 aws_rds_read_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_read_latency_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 aws_rds_read_latency_average{instance="autotest-mysql-57",region="us-west-2"} 0
-aws_rds_read_latency_average{instance="autotest-psql-10",region="us-east-1"} 0.0024000000000000002
+aws_rds_read_latency_average{instance="autotest-psql-10",region="us-east-1"} 0.0008
 # HELP aws_rds_read_throughput_average The average number of bytes read from disk per second. Units: Bytes/Second
 # TYPE aws_rds_read_throughput_average gauge
 aws_rds_read_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 aws_rds_read_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0
 aws_rds_read_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 0
-aws_rds_read_throughput_average{instance="autotest-psql-10",region="us-east-1"} 341.3390223170386
+aws_rds_read_throughput_average{instance="autotest-psql-10",region="us-east-1"} 682.5756565791228
 # HELP aws_rds_result_set_cache_hit_ratio_average ResultSetCacheHitRatio
 # TYPE aws_rds_result_set_cache_hit_ratio_average gauge
 aws_rds_result_set_cache_hit_ratio_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 # HELP aws_rds_select_latency_average SelectLatency
 # TYPE aws_rds_select_latency_average gauge
-aws_rds_select_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.21351181102362204
+aws_rds_select_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.5712542372881356
 # HELP aws_rds_select_throughput_average SelectThroughput
 # TYPE aws_rds_select_throughput_average gauge
-aws_rds_select_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.1165961134628843
+aws_rds_select_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.9686681459483808
 # HELP aws_rds_swap_usage_average The amount of swap space used on the DB instance. Units: Bytes
 # TYPE aws_rds_swap_usage_average gauge
-aws_rds_swap_usage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
-aws_rds_swap_usage_average{instance="autotest-aurora-psql-11",region="us-west-2"} 3.23584e+06
-aws_rds_swap_usage_average{instance="autotest-mysql-57",region="us-west-2"} 2.49204736e+08
-aws_rds_swap_usage_average{instance="autotest-psql-10",region="us-east-1"} 0
+aws_rds_swap_usage_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.78781952e+08
+aws_rds_swap_usage_average{instance="autotest-aurora-psql-11",region="us-west-2"} 495616
+aws_rds_swap_usage_average{instance="autotest-mysql-57",region="us-west-2"} 1.92167936e+08
+aws_rds_swap_usage_average{instance="autotest-psql-10",region="us-east-1"} 5.459968e+06
 # HELP aws_rds_update_latency_average UpdateLatency
 # TYPE aws_rds_update_latency_average gauge
 aws_rds_update_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
@@ -142,42 +142,42 @@ aws_rds_update_latency_average{instance="autotest-aurora-mysql-56",region="us-ea
 aws_rds_update_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
 # HELP aws_rds_write_iops_average The average number of disk I/O operations per second. Units: Count/Second
 # TYPE aws_rds_write_iops_average gauge
-aws_rds_write_iops_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
-aws_rds_write_iops_average{instance="autotest-aurora-psql-11",region="us-west-2"} 3.3029175771931873
-aws_rds_write_iops_average{instance="autotest-mysql-57",region="us-west-2"} 52.015799736671056
-aws_rds_write_iops_average{instance="autotest-psql-10",region="us-east-1"} 0.8999550022498876
+aws_rds_write_iops_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 2.399120322548399
+aws_rds_write_iops_average{instance="autotest-aurora-psql-11",region="us-west-2"} 3.1476392705470895
+aws_rds_write_iops_average{instance="autotest-mysql-57",region="us-west-2"} 0.5829738328031048
+aws_rds_write_iops_average{instance="autotest-psql-10",region="us-east-1"} 0.9332244571466662
 # HELP aws_rds_write_latency_average The average amount of time taken per disk I/O operation. Units: Seconds
 # TYPE aws_rds_write_latency_average gauge
-aws_rds_write_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.0015516742159624411
-aws_rds_write_latency_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.0014210526161616162
-aws_rds_write_latency_average{instance="autotest-mysql-57",region="us-west-2"} 0.009706279709782337
-aws_rds_write_latency_average{instance="autotest-psql-10",region="us-east-1"} 0
+aws_rds_write_latency_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0.003932691340277778
+aws_rds_write_latency_average{instance="autotest-aurora-psql-11",region="us-west-2"} 0.0011936680687830688
+aws_rds_write_latency_average{instance="autotest-mysql-57",region="us-west-2"} 0.0056091954022988505
+aws_rds_write_latency_average{instance="autotest-psql-10",region="us-east-1"} 0.00011188811188811189
 # HELP aws_rds_write_throughput_average The average number of bytes written to disk per second. Units: Bytes/Second
 # TYPE aws_rds_write_throughput_average gauge
-aws_rds_write_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 0
-aws_rds_write_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 652.0259562613642
-aws_rds_write_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 1.4348731521141315e+06
-aws_rds_write_throughput_average{instance="autotest-psql-10",region="us-east-1"} 9352.689211486859
+aws_rds_write_throughput_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 1303.855253073873
+aws_rds_write_throughput_average{instance="autotest-aurora-psql-11",region="us-west-2"} 685.2860354733949
+aws_rds_write_throughput_average{instance="autotest-mysql-57",region="us-west-2"} 6754.797441364605
+aws_rds_write_throughput_average{instance="autotest-psql-10",region="us-east-1"} 10306.892414344755
 # HELP node_boot_time_seconds EngineUptime
 # TYPE node_boot_time_seconds gauge
-node_boot_time_seconds{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.602480373e+09
-node_boot_time_seconds{instance="autotest-aurora-psql-11",region="us-west-2"} 1.601916197e+09
+node_boot_time_seconds{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.713763498e+09
+node_boot_time_seconds{instance="autotest-aurora-psql-11",region="us-west-2"} 1.749019656e+09
 # HELP node_cpu_average The percentage of CPU utilization. Units: Percent
 # TYPE node_cpu_average gauge
-node_cpu_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 6.49999999984478
-node_cpu_average{instance="autotest-aurora-psql-11",region="us-west-2"} 6
-node_cpu_average{instance="autotest-mysql-57",region="us-west-2"} 3.50000000015522
-node_cpu_average{instance="autotest-psql-10",region="us-east-1"} 2.33333333337214
+node_cpu_average{instance="autotest-aurora-mysql-56",region="us-east-1"} 13.1967213111701
+node_cpu_average{instance="autotest-aurora-psql-11",region="us-west-2"} 8.216803613393557
+node_cpu_average{instance="autotest-mysql-57",region="us-west-2"} 3.0532058661594674
+node_cpu_average{instance="autotest-psql-10",region="us-east-1"} 5.625
 # HELP node_filesystem_free_bytes The amount of available storage space. Units: Bytes
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{instance="autotest-mysql-57",region="us-west-2"} 6.1639319552e+10
-node_filesystem_free_bytes{instance="autotest-psql-10",region="us-east-1"} 6.1919653888e+10
+node_filesystem_free_bytes{instance="autotest-mysql-57",region="us-west-2"} 6.1638127616e+10
+node_filesystem_free_bytes{instance="autotest-psql-10",region="us-east-1"} 1.8324291584e+10
 # HELP node_memory_Cached_bytes The amount of available random access memory. Units: Bytes
 # TYPE node_memory_Cached_bytes gauge
-node_memory_Cached_bytes{instance="autotest-aurora-mysql-56",region="us-east-1"} 8.14383104e+08
-node_memory_Cached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 2.491850752e+09
-node_memory_Cached_bytes{instance="autotest-mysql-57",region="us-west-2"} 1.78905088e+08
-node_memory_Cached_bytes{instance="autotest-psql-10",region="us-east-1"} 5.1750912e+08
+node_memory_Cached_bytes{instance="autotest-aurora-mysql-56",region="us-east-1"} 1.211969536e+09
+node_memory_Cached_bytes{instance="autotest-aurora-psql-11",region="us-west-2"} 3.298709504e+09
+node_memory_Cached_bytes{instance="autotest-mysql-57",region="us-west-2"} 2.03931648e+08
+node_memory_Cached_bytes{instance="autotest-psql-10",region="us-east-1"} 1.81198848e+08
 # HELP rds_exporter_scrape_duration_seconds Time this RDS scrape took, in seconds.
 # TYPE rds_exporter_scrape_duration_seconds gauge
-rds_exporter_scrape_duration_seconds 0.954611405
+rds_exporter_scrape_duration_seconds 1.049745208
