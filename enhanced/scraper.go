@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	awsV2 "github.com/aws/aws-sdk-go-v2/aws"
-	cloudwatchlogsV2 "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,14 +18,14 @@ import (
 type scraper struct {
 	instances      []sessions.Instance
 	logStreamNames []string
-	svc            *cloudwatchlogsV2.Client
+	svc            *cloudwatchlogs.Client
 	nextStartTime  time.Time
 	logger         log.Logger
 
 	testDisallowUnknownFields bool // for tests only
 }
 
-func newScraper(cfg awsV2.Config, instances []sessions.Instance, logger log.Logger) *scraper {
+func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
 	logStreamNames := make([]string, 0, len(instances))
 	for _, instance := range instances {
 		logStreamNames = append(logStreamNames, instance.ResourceID)
@@ -34,7 +34,7 @@ func newScraper(cfg awsV2.Config, instances []sessions.Instance, logger log.Logg
 	return &scraper{
 		instances:      instances,
 		logStreamNames: logStreamNames,
-		svc:            cloudwatchlogsV2.NewFromConfig(cfg),
+		svc:            cloudwatchlogs.NewFromConfig(cfg),
 		nextStartTime:  time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
 		logger:         log.With(logger, "component", "enhanced"),
 	}
@@ -75,15 +75,15 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 			sliceEnd = streamCount
 		}
 
-		input := &cloudwatchlogsV2.FilterLogEventsInput{
-			LogGroupName:   awsV2.String("RDSOSMetrics"),
+		input := &cloudwatchlogs.FilterLogEventsInput{
+			LogGroupName:   aws.String("RDSOSMetrics"),
 			LogStreamNames: s.logStreamNames[sliceStart:sliceEnd],
-			StartTime:      awsV2.Int64(s.nextStartTime.UnixMilli()),
+			StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
 		}
 
 		level.Debug(log.With(s.logger, "next_start", s.nextStartTime.UTC(), "since_last", time.Since(s.nextStartTime))).Log("msg", "Requesting metrics")
 
-		paginator := cloudwatchlogsV2.NewFilterLogEventsPaginator(s.svc, input)
+		paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
 		for paginator.HasMorePages() {
 			output, err := paginator.NextPage(ctx)
 			if err != nil {
@@ -92,14 +92,14 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 			}
 			for _, event := range output.Events {
 				l := log.With(s.logger,
-					"EventId", awsV2.ToString(event.EventId),
-					"LogStreamName", awsV2.ToString(event.LogStreamName),
-					"Timestamp", time.UnixMilli(awsV2.ToInt64(event.Timestamp)).UTC(),
-					"IngestionTime", time.UnixMilli(awsV2.ToInt64(event.IngestionTime)).UTC())
+					"EventId", aws.ToString(event.EventId),
+					"LogStreamName", aws.ToString(event.LogStreamName),
+					"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
+					"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
 
 				var instance *sessions.Instance
 				for _, i := range s.instances {
-					if i.ResourceID == awsV2.ToString(event.LogStreamName) {
+					if i.ResourceID == aws.ToString(event.LogStreamName) {
 						instance = &i
 						break
 					}
@@ -115,7 +115,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 				}
 				l = log.With(l, "region", instance.Region, "instance", instance.Instance)
 
-				osMetrics, err := parseOSMetrics([]byte(awsV2.ToString(event.Message)), s.testDisallowUnknownFields)
+				osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
 				if err != nil {
 					// only for tests
 					if s.testDisallowUnknownFields {
@@ -126,7 +126,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 					continue
 				}
 
-				timestamp := time.UnixMilli(awsV2.ToInt64(event.Timestamp)).UTC()
+				timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
 				level.Debug(l).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
 
 				if allMetrics[instance.ResourceID] == nil {
@@ -137,7 +137,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 				if allMessages[instance.ResourceID] == nil {
 					allMessages[instance.ResourceID] = make(map[time.Time]string)
 				}
-				allMessages[instance.ResourceID][timestamp] = awsV2.ToString(event.Message)
+				allMessages[instance.ResourceID][timestamp] = aws.ToString(event.Message)
 			}
 		}
 	}

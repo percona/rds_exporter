@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	awsV2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
@@ -42,7 +42,7 @@ func (i Instance) String() string {
 // Sessions is a pool of AWS configs per region.
 type Sessions struct {
 	sessions map[string][]Instance
-	Configs  map[string]awsV2.Config
+	Configs  map[string]aws.Config
 }
 
 // New creates a new sessions pool for given configuration.
@@ -52,7 +52,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 
 	res := &Sessions{
 		sessions: make(map[string][]Instance),
-		Configs:  make(map[string]awsV2.Config),
+		Configs:  make(map[string]aws.Config),
 	}
 
 	for _, instance := range instances {
@@ -149,7 +149,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 }
 
 // GetSession returns AWS config and full instance information for given region and instance.
-func (s *Sessions) GetSession(region, instance string) (*awsV2.Config, *Instance) {
+func (s *Sessions) GetSession(region, instance string) (*aws.Config, *Instance) {
 	for key, instances := range s.sessions {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {
@@ -167,7 +167,7 @@ func (s *Sessions) AllSessions() map[string][]Instance {
 }
 
 // Internal helper
-func loadAWSConfig(instance config.Instance, client *http.Client, trace bool, logger log.Logger) (awsV2.Config, error) {
+func loadAWSConfig(instance config.Instance, client *http.Client, trace bool, logger log.Logger) (aws.Config, error) {
 	options := []func(*awsConfig.LoadOptions) error{
 		awsConfig.WithRegion(instance.Region),
 		awsConfig.WithHTTPClient(client),
@@ -180,17 +180,17 @@ func loadAWSConfig(instance config.Instance, client *http.Client, trace bool, lo
 	if instance.AWSRoleArn != "" {
 		stsCfg, err := awsConfig.LoadDefaultConfig(context.Background(), options...)
 		if err != nil {
-			return awsV2.Config{}, err
+			return aws.Config{}, err
 		}
 
 		stsClient := sts.NewFromConfig(stsCfg)
 		provider := stscreds.NewAssumeRoleProvider(stsClient, instance.AWSRoleArn)
-		stsCfg.Credentials = awsV2.NewCredentialsCache(provider)
+		stsCfg.Credentials = aws.NewCredentialsCache(provider)
 		return stsCfg, nil
 	}
 
 	if instance.AWSAccessKey != "" && instance.AWSSecretKey != "" {
-		staticCreds := awsV2.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+		staticCreds := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
 			instance.AWSAccessKey,
 			instance.AWSSecretKey,
 			"",
