@@ -148,8 +148,8 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	return res, nil
 }
 
-// GetSession returns AWS config and full instance information for given region and instance.
-func (s *Sessions) GetSession(region, instance string) (*aws.Config, *Instance) {
+// GetConfig returns AWS config and full instance information for given region and instance.
+func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
 	for key, instances := range s.sessions {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {

@@ -36,11 +36,11 @@ func TestSession(t *testing.T) {
 	sessions, err := New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
-	am56s, am56i := sessions.GetSession("us-east-1", "autotest-aurora-mysql-56")
-	p10s, p10i := sessions.GetSession("us-east-1", "autotest-psql-10")
-	m57s, m57i := sessions.GetSession("us-west-2", "autotest-mysql-57")
-	ap11s, ap11i := sessions.GetSession("us-west-2", "autotest-aurora-psql-11")
-	ns, ni := sessions.GetSession("us-west-2", "no-such-instance")
+	am56s, am56i := sessions.GetConfig("us-east-1", "autotest-aurora-mysql-56")
+	p10s, p10i := sessions.GetConfig("us-east-1", "autotest-psql-10")
+	m57s, m57i := sessions.GetConfig("us-west-2", "autotest-mysql-57")
+	ap11s, ap11i := sessions.GetConfig("us-west-2", "autotest-aurora-psql-11")
+	ns, ni := sessions.GetConfig("us-west-2", "no-such-instance")
 
 	if reflect.DeepEqual(am56s, p10s) {
 		assert.Fail(t, "autotest-aurora-mysql-56 and autotest-psql-10 should not share config - different keys (implicit and explicit)")

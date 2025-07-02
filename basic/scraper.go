@@ -32,7 +32,7 @@ type Scraper struct {
 }
 
 func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric) *Scraper {
-	cfg, _ := collector.sessions.GetSession(instance.Region, instance.Instance)
+	cfg, _ := collector.sessions.GetConfig(instance.Region, instance.Instance)
 	if cfg == nil {
 		return nil
 	}
