@@ -49,8 +49,8 @@ func TestScraper(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			// test that there are no new metrics
-			s := newScraper(session, instances, logger)
+			cfg := sess.Configs[session]
+			s := newScraper(cfg, instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, messages := s.scrape(context.Background())
 			require.Len(t, metrics, len(instances))
@@ -165,7 +165,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			s := newScraper(session, instances, logger)
+			s := newScraper(sess.Configs[session], instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, _ := s.scrape(context.Background())
 
