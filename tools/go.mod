@@ -1,6 +1,6 @@
 module github.com/percona/rds_exporter/tools
 
-go 1.23
+go 1.24.9
 
 require (
 	github.com/AlekSi/gocoverutil v0.2.0
