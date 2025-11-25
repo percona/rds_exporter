@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.1
 	github.com/go-kit/log v0.2.1
 	github.com/percona/exporter_shared v0.7.4
-	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
