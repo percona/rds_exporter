@@ -251,4 +251,9 @@ var Metrics = []Metric{
 		prometheusName: "aws_rds_replica_lag",
 		prometheusHelp: "The amount of time a read replica DB instance lags behind the source DB instance. Unit: Seconds",
 	},
+	{
+		cwName:         "ACUUtilization",
+		prometheusName: "aws_rds_acu_utilization",
+		prometheusHelp: "This value is calculated as the value of the ServerlessDatabaseCapacity metric divided by the maximum ACU value of the DB cluster. Unit: Percent",
+	},
 }
