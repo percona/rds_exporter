@@ -34,21 +34,19 @@ jobs:
 
     - name: Run Tests
       env:
-        AWS_ACCESS_KEY: AKIAZPBRO3QWCEHJTL35
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make test-race
 
     - name: Run Codecov
       env:
-        AWS_ACCESS_KEY: AKIAZPBRO3QWCEHJTL35
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       run: make codecov
 
     - name: Run debug commands on failure
       if: ${{ failure() }}
       run: |
-        env
-        go version
-        go env
-        pwd
+        env | sort
+        go env | sort
         git status
