@@ -16,8 +16,9 @@ import (
 
 var (
 	Period = 60 * time.Second
-	Delay  = 600 * time.Second
 	Range  = 600 * time.Second
+
+	defaultDelay = 600 * time.Second
 )
 
 type Scraper struct {
@@ -25,13 +26,14 @@ type Scraper struct {
 	instance  *config.Instance
 	collector *Collector
 	ch        chan<- prometheus.Metric
+	delay     time.Duration
 
 	// internal
 	svc         *cloudwatch.Client
 	constLabels prometheus.Labels
 }
 
-func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric) *Scraper {
+func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric, delay time.Duration) *Scraper {
 	cfg, _ := collector.sessions.GetConfig(instance.Region, instance.Instance)
 	if cfg == nil {
 		return nil
@@ -55,6 +57,7 @@ func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prome
 		instance:  instance,
 		collector: collector,
 		ch:        ch,
+		delay:     delay,
 
 		// internal
 		svc:         svc,
@@ -93,7 +96,7 @@ func (s *Scraper) Scrape() {
 
 func (s *Scraper) scrapeMetric(metric Metric) error {
 	now := time.Now()
-	end := now.Add(-Delay)
+	end := now.Add(-s.delay)
 
 	params := &cloudwatch.GetMetricStatisticsInput{
 		EndTime:    aws.Time(end),

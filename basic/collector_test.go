@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/percona/exporter_shared/helpers"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/percona/exporter_shared/helpers"
 	"github.com/percona/rds_exporter/client"
 	"github.com/percona/rds_exporter/config"
 	"github.com/percona/rds_exporter/sessions"
@@ -24,7 +24,7 @@ func TestCollector(t *testing.T) {
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
-	c := New(cfg, sess, logger)
+	c := New(cfg, sess, logger, defaultDelay)
 
 	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
 	sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
@@ -68,7 +68,7 @@ func TestCollectorDisableBasicMetrics(t *testing.T) {
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, false)
 	require.NoError(t, err)
 
-	c := New(cfg, sess, logger)
+	c := New(cfg, sess, logger, defaultDelay)
 
 	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
 	actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
