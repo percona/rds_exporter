@@ -127,13 +127,16 @@ func TestRefreshResourceIDs(t *testing.T) {
 			},
 		},
 		logStreamNames: []string{"old-resource-id", "same-resource-id"},
+		svc:            nil,
 		resourceIDResolver: &fakeResourceIDResolver{
 			resourceIDs: map[string]string{
 				"blue-green-primary": "new-resource-id",
 				"unchanged-primary":  "same-resource-id",
 			},
 		},
-		logger: logger,
+		nextStartTime:             time.Time{},
+		logger:                    logger,
+		testDisallowUnknownFields: false,
 	}
 
 	err := s.refreshResourceIDs(t.Context())
