@@ -8,9 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/rds"
-	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/percona/exporter_shared/helpers"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
@@ -96,44 +93,50 @@ func TestScraper(t *testing.T) {
 	}
 }
 
-type fakeRDSClient struct {
+type fakeResourceIDResolver struct {
 	resourceIDs map[string]string
 }
 
-func (c *fakeRDSClient) DescribeDBInstances(_ context.Context, input *rds.DescribeDBInstancesInput, _ ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
-	instanceID := aws.ToString(input.DBInstanceIdentifier)
-	return &rds.DescribeDBInstancesOutput{
-		DBInstances: []types.DBInstance{
-			{
-				DBInstanceIdentifier: aws.String(instanceID),
-				DbiResourceId:        aws.String(c.resourceIDs[instanceID]),
-			},
-		},
-	}, nil
+func (r *fakeResourceIDResolver) ResourceID(_ context.Context, instanceID string) (string, error) {
+	return r.resourceIDs[instanceID], nil
 }
 
 func TestRefreshResourceIDs(t *testing.T) {
+	t.Parallel()
+
 	logger := promlog.New(&promlog.Config{})
-	s := newScraper(aws.Config{}, []sessions.Instance{
-		{
-			Region:     "us-east-1",
-			Instance:   "blue-green-primary",
-			ResourceID: "old-resource-id",
+	s := &scraper{
+		instances: []sessions.Instance{
+			{
+				Region:                     "us-east-1",
+				Instance:                   "blue-green-primary",
+				DisableBasicMetrics:        false,
+				DisableEnhancedMetrics:     false,
+				ResourceID:                 "old-resource-id",
+				Labels:                     nil,
+				EnhancedMonitoringInterval: 0,
+			},
+			{
+				Region:                     "us-east-1",
+				Instance:                   "unchanged-primary",
+				DisableBasicMetrics:        false,
+				DisableEnhancedMetrics:     false,
+				ResourceID:                 "same-resource-id",
+				Labels:                     nil,
+				EnhancedMonitoringInterval: 0,
+			},
 		},
-		{
-			Region:     "us-east-1",
-			Instance:   "unchanged-primary",
-			ResourceID: "same-resource-id",
+		logStreamNames: []string{"old-resource-id", "same-resource-id"},
+		resourceIDResolver: &fakeResourceIDResolver{
+			resourceIDs: map[string]string{
+				"blue-green-primary": "new-resource-id",
+				"unchanged-primary":  "same-resource-id",
+			},
 		},
-	}, logger)
-	s.rdsClient = &fakeRDSClient{
-		resourceIDs: map[string]string{
-			"blue-green-primary": "new-resource-id",
-			"unchanged-primary":  "same-resource-id",
-		},
+		logger: logger,
 	}
 
-	err := s.refreshResourceIDs(context.Background())
+	err := s.refreshResourceIDs(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, "new-resource-id", s.instances[0].ResourceID)

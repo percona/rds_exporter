@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -15,18 +14,18 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-type rdsClient interface {
-	DescribeDBInstances(context.Context, *rds.DescribeDBInstancesInput, ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
+type resourceIDResolver interface {
+	ResourceID(ctx context.Context, instanceID string) (string, error)
 }
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
-	instances      []sessions.Instance
-	logStreamNames []string
-	svc            *cloudwatchlogs.Client
-	rdsClient      rdsClient
-	nextStartTime  time.Time
-	logger         log.Logger
+	instances          []sessions.Instance
+	logStreamNames     []string
+	svc                *cloudwatchlogs.Client
+	resourceIDResolver resourceIDResolver
+	nextStartTime      time.Time
+	logger             log.Logger
 
 	testDisallowUnknownFields bool // for tests only
 }
@@ -38,12 +37,12 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 	}
 
 	return &scraper{
-		instances:      instances,
-		logStreamNames: logStreamNames,
-		svc:            cloudwatchlogs.NewFromConfig(cfg),
-		rdsClient:      rds.NewFromConfig(cfg),
-		nextStartTime:  time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
-		logger:         log.With(logger, "component", "enhanced"),
+		instances:          instances,
+		logStreamNames:     logStreamNames,
+		svc:                cloudwatchlogs.NewFromConfig(cfg),
+		resourceIDResolver: sessions.NewResourceIDResolver(cfg),
+		nextStartTime:      time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
+		logger:             log.With(logger, "component", "enhanced"),
 	}
 }
 
@@ -174,18 +173,12 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 }
 
 func (s *scraper) refreshResourceIDs(ctx context.Context) error {
-	for i, instance := range s.instances {
-		output, err := s.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-			DBInstanceIdentifier: aws.String(instance.Instance),
-		})
+	for instanceIndex, instance := range s.instances {
+		resourceID, err := s.resourceIDResolver.ResourceID(ctx, instance.Instance)
 		if err != nil {
-			return err
-		}
-		if len(output.DBInstances) == 0 {
-			continue
+			return fmt.Errorf("failed to refresh resource ID for %s: %w", instance.Instance, err)
 		}
 
-		resourceID := aws.ToString(output.DBInstances[0].DbiResourceId)
 		if resourceID == "" || resourceID == instance.ResourceID {
 			continue
 		}
@@ -197,8 +190,8 @@ func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 			"old_resource_id", instance.ResourceID,
 			"new_resource_id", resourceID,
 		)
-		s.instances[i].ResourceID = resourceID
-		s.logStreamNames[i] = resourceID
+		s.instances[instanceIndex].ResourceID = resourceID
+		s.logStreamNames[instanceIndex] = resourceID
 	}
 
 	return nil

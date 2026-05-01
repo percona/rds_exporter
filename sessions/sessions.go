@@ -45,6 +45,37 @@ type Sessions struct {
 	Configs  map[string]aws.Config
 }
 
+// ResourceIDResolver resolves the current RDS resource ID for a DB instance.
+type ResourceIDResolver struct {
+	svc *rds.Client
+}
+
+// NewResourceIDResolver creates a resolver using the given AWS config.
+func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
+	return &ResourceIDResolver{
+		svc: rds.NewFromConfig(cfg),
+	}
+}
+
+// ResourceID returns the current RDS resource ID for a DB instance identifier.
+func (r *ResourceIDResolver) ResourceID(ctx context.Context, instanceID string) (string, error) {
+	output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
+		DBInstanceIdentifier: aws.String(instanceID),
+		Filters:              nil,
+		Marker:               nil,
+		MaxRecords:           nil,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe DB instance: %w", err)
+	}
+
+	if len(output.DBInstances) == 0 {
+		return "", nil
+	}
+
+	return aws.ToString(output.DBInstances[0].DbiResourceId), nil
+}
+
 // New creates a new sessions pool for given configuration.
 func New(instances []config.Instance, client *http.Client, logger log.Logger, trace bool) (*Sessions, error) {
 	logger = log.With(logger, "component", "sessions")
