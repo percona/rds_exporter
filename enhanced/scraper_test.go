@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/percona/exporter_shared/helpers"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
@@ -91,6 +94,52 @@ func TestScraper(t *testing.T) {
 		*goldenTXT = true
 		TestParse(t)
 	}
+}
+
+type fakeRDSClient struct {
+	resourceIDs map[string]string
+}
+
+func (c *fakeRDSClient) DescribeDBInstances(_ context.Context, input *rds.DescribeDBInstancesInput, _ ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+	instanceID := aws.ToString(input.DBInstanceIdentifier)
+	return &rds.DescribeDBInstancesOutput{
+		DBInstances: []types.DBInstance{
+			{
+				DBInstanceIdentifier: aws.String(instanceID),
+				DbiResourceId:        aws.String(c.resourceIDs[instanceID]),
+			},
+		},
+	}, nil
+}
+
+func TestRefreshResourceIDs(t *testing.T) {
+	logger := promlog.New(&promlog.Config{})
+	s := newScraper(aws.Config{}, []sessions.Instance{
+		{
+			Region:     "us-east-1",
+			Instance:   "blue-green-primary",
+			ResourceID: "old-resource-id",
+		},
+		{
+			Region:     "us-east-1",
+			Instance:   "unchanged-primary",
+			ResourceID: "same-resource-id",
+		},
+	}, logger)
+	s.rdsClient = &fakeRDSClient{
+		resourceIDs: map[string]string{
+			"blue-green-primary": "new-resource-id",
+			"unchanged-primary":  "same-resource-id",
+		},
+	}
+
+	err := s.refreshResourceIDs(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, "new-resource-id", s.instances[0].ResourceID)
+	assert.Equal(t, "new-resource-id", s.logStreamNames[0])
+	assert.Equal(t, "same-resource-id", s.instances[1].ResourceID)
+	assert.Equal(t, "same-resource-id", s.logStreamNames[1])
 }
 
 func TestBetterTimes(t *testing.T) {

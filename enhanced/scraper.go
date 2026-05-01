@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,11 +15,16 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
+type rdsClient interface {
+	DescribeDBInstances(context.Context, *rds.DescribeDBInstancesInput, ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
+}
+
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
 	instances      []sessions.Instance
 	logStreamNames []string
 	svc            *cloudwatchlogs.Client
+	rdsClient      rdsClient
 	nextStartTime  time.Time
 	logger         log.Logger
 
@@ -35,6 +41,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		instances:      instances,
 		logStreamNames: logStreamNames,
 		svc:            cloudwatchlogs.NewFromConfig(cfg),
+		rdsClient:      rds.NewFromConfig(cfg),
 		nextStartTime:  time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
 		logger:         log.With(logger, "component", "enhanced"),
 	}
@@ -64,6 +71,10 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
 	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
+
+	if err := s.refreshResourceIDs(ctx); err != nil {
+		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
+	}
 
 	// LogStreamNames parameter supports up to 100 items.
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
@@ -160,6 +171,37 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 		resMessages[resourceID] = allMessages[resourceID][timestamp]
 	}
 	return resMetrics, resMessages
+}
+
+func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+	for i, instance := range s.instances {
+		output, err := s.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
+			DBInstanceIdentifier: aws.String(instance.Instance),
+		})
+		if err != nil {
+			return err
+		}
+		if len(output.DBInstances) == 0 {
+			continue
+		}
+
+		resourceID := aws.ToString(output.DBInstances[0].DbiResourceId)
+		if resourceID == "" || resourceID == instance.ResourceID {
+			continue
+		}
+
+		level.Info(s.logger).Log(
+			"msg", "RDS resource ID changed.",
+			"region", instance.Region,
+			"instance", instance.Instance,
+			"old_resource_id", instance.ResourceID,
+			"new_resource_id", resourceID,
+		)
+		s.instances[i].ResourceID = resourceID
+		s.logStreamNames[i] = resourceID
+	}
+
+	return nil
 }
 
 // betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request
