@@ -47,7 +47,7 @@ func New(config *config.Config, sessions *sessions.Sessions, logger log.Logger) 
 	}
 }
 
-func (e *Collector) Describe(ch chan<- *prometheus.Desc) {
+func (e *Collector) Describe(chan<- *prometheus.Desc) {
 	// unchecked collector
 }
 

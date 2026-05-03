@@ -1,0 +1,19 @@
+FROM golang:1.25.8-alpine AS build
+
+WORKDIR /usr/src/rds_exporter
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -o /bin/rds_exporter .
+
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates && \
+    update-ca-certificates
+
+COPY --from=build /bin/rds_exporter /bin/rds_exporter
+
+EXPOSE 9042
+ENTRYPOINT ["/bin/rds_exporter", "--config.file=/etc/rds_exporter/config.yml"]
