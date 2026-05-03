@@ -15,7 +15,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/percona/rds_exporter/basic"
-	"github.com/percona/rds_exporter/client"
+	rdsclient "github.com/percona/rds_exporter/client"
 	"github.com/percona/rds_exporter/config"
 	"github.com/percona/rds_exporter/enhanced"
 	"github.com/percona/rds_exporter/sessions"
@@ -47,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := client.New(logger)
+	client := rdsclient.New(logger)
 	sess, err := sessions.New(cfg.Instances, client.HTTP(), logger, *logTraceF)
 	if err != nil {
 		level.Error(logger).Log("msg", "Can't create sessions", "error", err)

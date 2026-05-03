@@ -28,7 +28,7 @@ type Instance struct {
 	DisableEnhancedMetrics     bool
 	ResourceID                 string
 	Labels                     map[string]string
-	EnhancedMonitoringInterval time.Duration
+	MonitoringInterval         time.Duration
 }
 
 func (i Instance) String() string {
@@ -105,6 +105,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 				Labels:                 instance.Labels,
 				DisableBasicMetrics:    instance.DisableBasicMetrics,
 				DisableEnhancedMetrics: instance.DisableEnhancedMetrics,
+				MonitoringInterval:     time.Duration(instance.MonitoringInterval),
 			})
 			continue
 		}
@@ -121,6 +122,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			Labels:                 instance.Labels,
 			DisableBasicMetrics:    instance.DisableBasicMetrics,
 			DisableEnhancedMetrics: instance.DisableEnhancedMetrics,
+			MonitoringInterval:     time.Duration(instance.MonitoringInterval),
 		})
 	}
 
@@ -141,10 +143,12 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 				for i, instance := range res.sessions[key] {
 					if dbInstance.DBInstanceIdentifier != nil && *dbInstance.DBInstanceIdentifier == instance.Instance {
 						if dbInstance.DbiResourceId != nil {
+							if instance.MonitoringInterval > 0 {
+								res.sessions[key][i].MonitoringInterval = instance.MonitoringInterval * time.Second
+							} else if dbInstance.MonitoringInterval != nil {
+								res.sessions[key][i].MonitoringInterval = time.Duration(*dbInstance.MonitoringInterval) * time.Second
+							}
 							res.sessions[key][i].ResourceID = *dbInstance.DbiResourceId
-						}
-						if dbInstance.MonitoringInterval != nil {
-							res.sessions[key][i].EnhancedMonitoringInterval = time.Duration(*dbInstance.MonitoringInterval) * time.Second
 						}
 					}
 				}
@@ -180,7 +184,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	fmt.Fprintf(w, "Region\tInstance\tResource ID\tInterval\n")
 	for _, instances := range res.sessions {
 		for _, instance := range instances {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", instance.Region, instance.Instance, instance.ResourceID, instance.EnhancedMonitoringInterval)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", instance.Region, instance.Instance, instance.ResourceID, instance.MonitoringInterval)
 		}
 	}
 	_ = w.Flush()

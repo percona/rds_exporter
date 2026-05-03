@@ -24,8 +24,9 @@ type Collector struct {
 
 // Maximal and minimal metrics update interval.
 const (
-	maxInterval = 60 * time.Second
-	minInterval = 2 * time.Second
+	defaultInterval = 60 * time.Second
+	maxInterval     = 1800 * time.Second
+	minInterval     = 2 * time.Second
 )
 
 // NewCollector creates new collector and starts scrapers.
@@ -41,16 +42,12 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 		cfg := sessions.Configs[session]
 		s := newScraper(cfg, enabledInstances, logger)
 
-		interval := maxInterval
+		interval := defaultInterval
 		for _, instance := range enabledInstances {
-			if instance.EnhancedMonitoringInterval > 0 && instance.EnhancedMonitoringInterval < interval {
-				interval = instance.EnhancedMonitoringInterval
-			}
+			interval = getMonitoringInterval(instance.MonitoringInterval, s.logger)
+			level.Info(s.logger).Log("msg",
+				fmt.Sprintf("Updating enhanced metrics every %v, for instance: %s", interval, instance.Instance))
 		}
-		if interval < minInterval {
-			interval = minInterval
-		}
-		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", interval))
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
 		m, _ := s.scrape(context.TODO())
@@ -66,6 +63,26 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	}
 
 	return c
+}
+
+func getMonitoringInterval(interval time.Duration, logger log.Logger) time.Duration {
+	if int(interval) > 0 {
+		if int(interval) < int(maxInterval) && int(interval) > int(minInterval) {
+			return interval
+		} else if int(interval) < int(minInterval) {
+			level.Warn(logger).Log("msg",
+				fmt.Sprintf("Interval '%d' is less than the minimum interval,"+
+					"setting the interval to the minimum value: %ds", interval/time.Second, minInterval/time.Second))
+			return minInterval
+		} else if int(interval) > int(maxInterval) {
+			level.Warn(logger).Log("msg",
+				fmt.Sprintf("Interval %d equals or exceeeds the maximum interval,"+
+					"setting the interval to the maximum value: %ds", interval/time.Second, maxInterval/time.Second))
+			return maxInterval
+		}
+	}
+
+	return defaultInterval
 }
 
 func getEnabledInstances(instances []sessions.Instance) []sessions.Instance {
@@ -90,7 +107,7 @@ func (c *Collector) setMetrics(m map[string][]prometheus.Metric) {
 }
 
 // Describe implements prometheus.Collector.
-func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
+func (c *Collector) Describe(chan<- *prometheus.Desc) {
 	// unchecked collector
 }
 
