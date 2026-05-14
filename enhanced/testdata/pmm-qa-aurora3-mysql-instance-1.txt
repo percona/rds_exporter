@@ -1,0 +1,575 @@
+# HELP node_cpu_average The percentage of CPU utilization.
+# TYPE node_cpu_average gauge
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="guest",region="us-east-2"} 0
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="idle",region="us-east-2"} 88.9
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="irq",region="us-east-2"} 0
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="nice",region="us-east-2"} 1.6
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="steal",region="us-east-2"} 0.8
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="system",region="us-east-2"} 2.9
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="total",region="us-east-2"} 11.1
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="user",region="us-east-2"} 5.7
+node_cpu_average{cpu="All",instance="pmm-qa-aurora3-mysql-instance-1",mode="wait",region="us-east-2"} 0.1
+# HELP node_disk_read_bytes_total The total number of bytes read successfully.
+# TYPE node_disk_read_bytes_total counter
+node_disk_read_bytes_total{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_disk_written_bytes_total The total number of bytes written successfully.
+# TYPE node_disk_written_bytes_total counter
+node_disk_written_bytes_total{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 978944
+# HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
+# TYPE node_filesystem_avail_bytes gauge
+node_filesystem_avail_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora3-mysql-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 2.6870878208e+10
+# HELP node_filesystem_files Filesystem total file nodes.
+# TYPE node_filesystem_files gauge
+node_filesystem_files{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora3-mysql-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 2.147483648e+09
+# HELP node_filesystem_files_free Filesystem total free file nodes.
+# TYPE node_filesystem_files_free gauge
+node_filesystem_files_free{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora3-mysql-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 2.144011264e+09
+# HELP node_filesystem_free_bytes Filesystem free space in bytes.
+# TYPE node_filesystem_free_bytes gauge
+node_filesystem_free_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora3-mysql-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 2.6870878208e+10
+# HELP node_filesystem_size_bytes Filesystem size in bytes.
+# TYPE node_filesystem_size_bytes gauge
+node_filesystem_size_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora3-mysql-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 3.3677918208e+10
+# HELP node_load1 The number of processes requesting CPU time over the last minute.
+# TYPE node_load1 gauge
+node_load1{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.14
+# HELP node_memory_Active_bytes Memory information field Active_bytes.
+# TYPE node_memory_Active_bytes gauge
+node_memory_Active_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.093001216e+09
+# HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
+# TYPE node_memory_Buffers_bytes gauge
+node_memory_Buffers_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.66821888e+08
+# HELP node_memory_Cached_bytes Memory information field Cached_bytes.
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 9.0597376e+08
+# HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
+# TYPE node_memory_Dirty_bytes gauge
+node_memory_Dirty_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.490944e+06
+# HELP node_memory_HugePages_Free Memory information field HugePages_Free.
+# TYPE node_memory_HugePages_Free gauge
+node_memory_HugePages_Free{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 711
+# HELP node_memory_HugePages_Rsvd Memory information field HugePages_Rsvd.
+# TYPE node_memory_HugePages_Rsvd gauge
+node_memory_HugePages_Rsvd{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 710
+# HELP node_memory_HugePages_Surp Memory information field HugePages_Surp.
+# TYPE node_memory_HugePages_Surp gauge
+node_memory_HugePages_Surp{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_memory_HugePages_Total Memory information field HugePages_Total.
+# TYPE node_memory_HugePages_Total gauge
+node_memory_HugePages_Total{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 767
+# HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
+# TYPE node_memory_Hugepagesize_bytes gauge
+node_memory_Hugepagesize_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2.097152e+06
+# HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
+# TYPE node_memory_Inactive_bytes gauge
+node_memory_Inactive_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.005101056e+09
+# HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
+# TYPE node_memory_Mapped_bytes gauge
+node_memory_Mapped_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.06868736e+08
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.3346816e+08
+# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 4.073263104e+09
+# HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
+# TYPE node_memory_PageTables_bytes gauge
+node_memory_PageTables_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 7.540736e+06
+# HELP node_memory_Slab_bytes Memory information field Slab_bytes.
+# TYPE node_memory_Slab_bytes gauge
+node_memory_Slab_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.65576704e+08
+# HELP node_memory_SwapCached_bytes Memory information field SwapCached.
+# TYPE node_memory_SwapCached_bytes gauge
+node_memory_SwapCached_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2.809856e+06
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 4.234407936e+09
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 4.2949632e+09
+# HELP node_memory_Writeback_bytes Memory information field Writeback_bytes.
+# TYPE node_memory_Writeback_bytes gauge
+node_memory_Writeback_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_procs_blocked Number of processes blocked waiting for I/O to complete.
+# TYPE node_procs_blocked gauge
+node_procs_blocked{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_procs_running Number of processes in runnable state.
+# TYPE node_procs_running gauge
+node_procs_running{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_vmstat_pswpin /proc/vmstat information field pswpin
+# TYPE node_vmstat_pswpin gauge
+node_vmstat_pswpin{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP node_vmstat_pswpout /proc/vmstat information field pswpout
+# TYPE node_vmstat_pswpout gauge
+node_vmstat_pswpout{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_General_numVCPUs The number of virtual CPUs for the DB instance.
+# TYPE rdsosmetrics_General_numVCPUs gauge
+rdsosmetrics_General_numVCPUs{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2
+# HELP rdsosmetrics_cpuUtilization_guest The percentage of CPU in use by guest programs.
+# TYPE rdsosmetrics_cpuUtilization_guest gauge
+rdsosmetrics_cpuUtilization_guest{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_cpuUtilization_idle The percentage of CPU that is idle.
+# TYPE rdsosmetrics_cpuUtilization_idle gauge
+rdsosmetrics_cpuUtilization_idle{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 88.9
+# HELP rdsosmetrics_cpuUtilization_irq The percentage of CPU in use by software interrupts.
+# TYPE rdsosmetrics_cpuUtilization_irq gauge
+rdsosmetrics_cpuUtilization_irq{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_cpuUtilization_nice The percentage of CPU in use by programs running at lowest priority.
+# TYPE rdsosmetrics_cpuUtilization_nice gauge
+rdsosmetrics_cpuUtilization_nice{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.6
+# HELP rdsosmetrics_cpuUtilization_steal The percentage of CPU in use by other virtual machines.
+# TYPE rdsosmetrics_cpuUtilization_steal gauge
+rdsosmetrics_cpuUtilization_steal{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.8
+# HELP rdsosmetrics_cpuUtilization_system The percentage of CPU in use by the kernel.
+# TYPE rdsosmetrics_cpuUtilization_system gauge
+rdsosmetrics_cpuUtilization_system{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2.9
+# HELP rdsosmetrics_cpuUtilization_total The total percentage of the CPU in use. This value includes the nice value.
+# TYPE rdsosmetrics_cpuUtilization_total gauge
+rdsosmetrics_cpuUtilization_total{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 11.1
+# HELP rdsosmetrics_cpuUtilization_user The percentage of CPU in use by user programs.
+# TYPE rdsosmetrics_cpuUtilization_user gauge
+rdsosmetrics_cpuUtilization_user{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 5.7
+# HELP rdsosmetrics_cpuUtilization_wait The percentage of CPU unused while waiting for I/O access.
+# TYPE rdsosmetrics_cpuUtilization_wait gauge
+rdsosmetrics_cpuUtilization_wait{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.1
+# HELP rdsosmetrics_diskIO_avgQueueLen The number of requests waiting in the I/O device's queue.
+# TYPE rdsosmetrics_diskIO_avgQueueLen gauge
+rdsosmetrics_diskIO_avgQueueLen{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_avgReqSz The average request size, in kilobytes.
+# TYPE rdsosmetrics_diskIO_avgReqSz gauge
+rdsosmetrics_diskIO_avgReqSz{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 10.62
+# HELP rdsosmetrics_diskIO_await The number of milliseconds required to respond to requests, including queue time and service time.
+# TYPE rdsosmetrics_diskIO_await gauge
+rdsosmetrics_diskIO_await{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.44
+# HELP rdsosmetrics_diskIO_diskQueueDepth The number of outstanding IOs (read/write requests) waiting to access the disk.
+# TYPE rdsosmetrics_diskIO_diskQueueDepth gauge
+rdsosmetrics_diskIO_diskQueueDepth{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readIOsPS The number of read operations per second.
+# TYPE rdsosmetrics_diskIO_readIOsPS gauge
+rdsosmetrics_diskIO_readIOsPS{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+rdsosmetrics_diskIO_readIOsPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readKb The total number of kilobytes read.
+# TYPE rdsosmetrics_diskIO_readKb gauge
+rdsosmetrics_diskIO_readKb{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readKbPS The number of kilobytes read per second.
+# TYPE rdsosmetrics_diskIO_readKbPS gauge
+rdsosmetrics_diskIO_readKbPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readLatency The average amount of time taken per disk I/O operation.
+# TYPE rdsosmetrics_diskIO_readLatency gauge
+rdsosmetrics_diskIO_readLatency{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readThroughput The average number of bytes read from disk per second.
+# TYPE rdsosmetrics_diskIO_readThroughput gauge
+rdsosmetrics_diskIO_readThroughput{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_rrqmPS The number of merged read requests queued per second.
+# TYPE rdsosmetrics_diskIO_rrqmPS gauge
+rdsosmetrics_diskIO_rrqmPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_tps The number of I/O transactions per second.
+# TYPE rdsosmetrics_diskIO_tps gauge
+rdsosmetrics_diskIO_tps{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 3
+# HELP rdsosmetrics_diskIO_util The percentage of CPU time during which requests were issued.
+# TYPE rdsosmetrics_diskIO_util gauge
+rdsosmetrics_diskIO_util{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.03
+# HELP rdsosmetrics_diskIO_writeIOsPS The number of write operations per second.
+# TYPE rdsosmetrics_diskIO_writeIOsPS gauge
+rdsosmetrics_diskIO_writeIOsPS{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 3.4
+rdsosmetrics_diskIO_writeIOsPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 3
+# HELP rdsosmetrics_diskIO_writeKb The total number of kilobytes written.
+# TYPE rdsosmetrics_diskIO_writeKb gauge
+rdsosmetrics_diskIO_writeKb{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 956
+# HELP rdsosmetrics_diskIO_writeKbPS The number of kilobytes written per second.
+# TYPE rdsosmetrics_diskIO_writeKbPS gauge
+rdsosmetrics_diskIO_writeKbPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 15.93
+# HELP rdsosmetrics_diskIO_writeLatency The average amount of time taken per disk I/O operation.
+# TYPE rdsosmetrics_diskIO_writeLatency gauge
+rdsosmetrics_diskIO_writeLatency{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.49
+# HELP rdsosmetrics_diskIO_writeThroughput The average number of bytes written to disk per second.
+# TYPE rdsosmetrics_diskIO_writeThroughput gauge
+rdsosmetrics_diskIO_writeThroughput{device="",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 17363.82
+# HELP rdsosmetrics_diskIO_wrqmPS The number of merged write requests queued per second.
+# TYPE rdsosmetrics_diskIO_wrqmPS gauge
+rdsosmetrics_diskIO_wrqmPS{device="rdstemp",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_fileSys_maxFiles The maximum number of files that can be created for the file system.
+# TYPE rdsosmetrics_fileSys_maxFiles gauge
+rdsosmetrics_fileSys_maxFiles{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 2.097152e+06
+# HELP rdsosmetrics_fileSys_total The total number of disk space available for the file system, in kilobytes.
+# TYPE rdsosmetrics_fileSys_total gauge
+rdsosmetrics_fileSys_total{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 3.2888592e+07
+# HELP rdsosmetrics_fileSys_used The amount of disk space used by files in the file system, in kilobytes.
+# TYPE rdsosmetrics_fileSys_used gauge
+rdsosmetrics_fileSys_used{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 6.6475e+06
+# HELP rdsosmetrics_fileSys_usedFilePercent The percentage of available files in use.
+# TYPE rdsosmetrics_fileSys_usedFilePercent gauge
+rdsosmetrics_fileSys_usedFilePercent{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 0.16
+# HELP rdsosmetrics_fileSys_usedFiles The number of files in the file system.
+# TYPE rdsosmetrics_fileSys_usedFiles gauge
+rdsosmetrics_fileSys_usedFiles{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 3391
+# HELP rdsosmetrics_fileSys_usedPercent The percentage of the file-system disk space in use.
+# TYPE rdsosmetrics_fileSys_usedPercent gauge
+rdsosmetrics_fileSys_usedPercent{instance="pmm-qa-aurora3-mysql-instance-1",mount_point="/rdsdbdata",name="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",region="us-east-2"} 20.21
+# HELP rdsosmetrics_loadAverageMinute_fifteen The number of processes requesting CPU time over the last 15 minutes.
+# TYPE rdsosmetrics_loadAverageMinute_fifteen gauge
+rdsosmetrics_loadAverageMinute_fifteen{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.53
+# HELP rdsosmetrics_loadAverageMinute_five The number of processes requesting CPU time over the last 5 minutes.
+# TYPE rdsosmetrics_loadAverageMinute_five gauge
+rdsosmetrics_loadAverageMinute_five{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.48
+# HELP rdsosmetrics_loadAverageMinute_one The number of processes requesting CPU time over the last minute.
+# TYPE rdsosmetrics_loadAverageMinute_one gauge
+rdsosmetrics_loadAverageMinute_one{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0.14
+# HELP rdsosmetrics_memory_active The amount of assigned memory, in kilobytes.
+# TYPE rdsosmetrics_memory_active gauge
+rdsosmetrics_memory_active{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.067384e+06
+# HELP rdsosmetrics_memory_buffers The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes.
+# TYPE rdsosmetrics_memory_buffers gauge
+rdsosmetrics_memory_buffers{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 162912
+# HELP rdsosmetrics_memory_cached The amount of memory used for caching file system–based I/O.
+# TYPE rdsosmetrics_memory_cached gauge
+rdsosmetrics_memory_cached{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 884740
+# HELP rdsosmetrics_memory_dirty The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes.
+# TYPE rdsosmetrics_memory_dirty gauge
+rdsosmetrics_memory_dirty{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1456
+# HELP rdsosmetrics_memory_free The amount of unassigned memory, in kilobytes.
+# TYPE rdsosmetrics_memory_free gauge
+rdsosmetrics_memory_free{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 130340
+# HELP rdsosmetrics_memory_hugePagesFree The number of free huge pages. Huge pages are a feature of the Linux kernel.
+# TYPE rdsosmetrics_memory_hugePagesFree gauge
+rdsosmetrics_memory_hugePagesFree{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 711
+# HELP rdsosmetrics_memory_hugePagesRsvd The number of committed huge pages.
+# TYPE rdsosmetrics_memory_hugePagesRsvd gauge
+rdsosmetrics_memory_hugePagesRsvd{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 710
+# HELP rdsosmetrics_memory_hugePagesSize The size for each huge pages unit, in kilobytes.
+# TYPE rdsosmetrics_memory_hugePagesSize gauge
+rdsosmetrics_memory_hugePagesSize{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2048
+# HELP rdsosmetrics_memory_hugePagesSurp The number of available surplus huge pages over the total.
+# TYPE rdsosmetrics_memory_hugePagesSurp gauge
+rdsosmetrics_memory_hugePagesSurp{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_memory_hugePagesTotal The total number of huge pages for the system.
+# TYPE rdsosmetrics_memory_hugePagesTotal gauge
+rdsosmetrics_memory_hugePagesTotal{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 767
+# HELP rdsosmetrics_memory_inactive The amount of least-frequently used memory pages, in kilobytes.
+# TYPE rdsosmetrics_memory_inactive gauge
+rdsosmetrics_memory_inactive{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 981544
+# HELP rdsosmetrics_memory_mapped The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes.
+# TYPE rdsosmetrics_memory_mapped gauge
+rdsosmetrics_memory_mapped{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 104364
+# HELP rdsosmetrics_memory_pageTables The amount of memory used by page tables, in kilobytes.
+# TYPE rdsosmetrics_memory_pageTables gauge
+rdsosmetrics_memory_pageTables{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 7364
+# HELP rdsosmetrics_memory_slab The amount of reusable kernel data structures, in kilobytes.
+# TYPE rdsosmetrics_memory_slab gauge
+rdsosmetrics_memory_slab{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 161696
+# HELP rdsosmetrics_memory_total The total amount of memory, in kilobytes.
+# TYPE rdsosmetrics_memory_total gauge
+rdsosmetrics_memory_total{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 3.977796e+06
+# HELP rdsosmetrics_memory_writeback The amount of dirty pages in RAM that are still being written to the backing storage, in kilobytes.
+# TYPE rdsosmetrics_memory_writeback gauge
+rdsosmetrics_memory_writeback{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_network_rx The number of bytes received per second.
+# TYPE rdsosmetrics_network_rx gauge
+rdsosmetrics_network_rx{instance="pmm-qa-aurora3-mysql-instance-1",interface="eth0",region="us-east-2"} 1437.42
+# HELP rdsosmetrics_network_tx The number of bytes uploaded per second.
+# TYPE rdsosmetrics_network_tx gauge
+rdsosmetrics_network_tx{instance="pmm-qa-aurora3-mysql-instance-1",interface="eth0",region="us-east-2"} 20206.45
+# HELP rdsosmetrics_processList_cpuUsedPc The percentage of CPU used by the process.
+# TYPE rdsosmetrics_processList_cpuUsedPc gauge
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 0.09
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 5.76
+rdsosmetrics_processList_cpuUsedPc{id="18405",instance="pmm-qa-aurora3-mysql-instance-1",name="Aurora Storage Daemon",parentID="1",region="us-east-2",tgid="18405"} 0.58
+rdsosmetrics_processList_cpuUsedPc{id="22893",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="22896",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="26952",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26953",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26954",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26955",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: AwsEventLoop 1",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26956",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26957",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26961",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26962",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: log_lvl_mo",parentID="1",region="us-east-2",tgid="26952"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="26971",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0.07
+rdsosmetrics_processList_cpuUsedPc{id="26972",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0.06
+rdsosmetrics_processList_cpuUsedPc{id="26973",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26974",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26975",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26976",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26977",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26978",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26982",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_ibuf",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26983",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_rd-1",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26984",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-1",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26985",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-2",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26986",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-3",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26987",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-4",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26988",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_lra-0",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26989",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_akp-0",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26993",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_lock_to",parentID="1",region="us-east-2",tgid="26952"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="26994",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_err_mon",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26995",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_mon",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="26999",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_buf_resize",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27000",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_btr_tggl-0",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27001",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_src_main",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27002",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_dict_stats",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27003",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_fts_opt",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27005",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.06
+rdsosmetrics_processList_cpuUsedPc{id="27250",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27251",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="27252",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.88
+rdsosmetrics_processList_cpuUsedPc{id="27253",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.04
+rdsosmetrics_processList_cpuUsedPc{id="27254",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27255",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27256",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27257",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27258",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27259",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27260",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27263",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27264",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="27271",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.17
+rdsosmetrics_processList_cpuUsedPc{id="28527",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="28528",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="28529",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="28530",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="28531",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="28532",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="28533",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="28534",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="28535",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="28540",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="32623",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+rdsosmetrics_processList_cpuUsedPc{id="32666",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="32667",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 0
+# HELP rdsosmetrics_processList_memoryUsedPc The amount of memory used by the process, in kilobytes.
+# TYPE rdsosmetrics_processList_memoryUsedPc gauge
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 1.02
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 12.85
+rdsosmetrics_processList_memoryUsedPc{id="18405",instance="pmm-qa-aurora3-mysql-instance-1",name="Aurora Storage Daemon",parentID="1",region="us-east-2",tgid="18405"} 3.43
+rdsosmetrics_processList_memoryUsedPc{id="22893",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="22896",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26952",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26953",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26954",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26955",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: AwsEventLoop 1",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26956",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26957",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26961",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26962",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: log_lvl_mo",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26971",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26972",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26973",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26974",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26975",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26976",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26977",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26978",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26982",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_ibuf",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26983",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_rd-1",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26984",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-1",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26985",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-2",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26986",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-3",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26987",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-4",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26988",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_lra-0",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26989",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_akp-0",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26993",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_lock_to",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26994",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_err_mon",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26995",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_mon",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="26999",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_buf_resize",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27000",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_btr_tggl-0",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27001",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_src_main",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27002",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_dict_stats",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27003",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_fts_opt",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27005",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27250",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27251",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27252",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27253",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27254",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27255",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27256",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27257",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27258",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27259",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27260",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27263",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27264",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="27271",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28527",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28528",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28529",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28530",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28531",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28532",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28533",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28534",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28535",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="28540",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="32623",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="32666",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+rdsosmetrics_processList_memoryUsedPc{id="32667",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 11.41
+# HELP rdsosmetrics_processList_rss The amount of RAM allocated to the process, in kilobytes.
+# TYPE rdsosmetrics_processList_rss gauge
+rdsosmetrics_processList_rss{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 40492
+rdsosmetrics_processList_rss{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 511132
+rdsosmetrics_processList_rss{id="18405",instance="pmm-qa-aurora3-mysql-instance-1",name="Aurora Storage Daemon",parentID="1",region="us-east-2",tgid="18405"} 136288
+rdsosmetrics_processList_rss{id="22893",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="22896",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26952",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26953",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26954",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26955",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: AwsEventLoop 1",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26956",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26957",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26961",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26962",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: log_lvl_mo",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26971",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26972",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26973",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26974",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26975",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26976",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26977",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26978",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26982",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_ibuf",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26983",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_rd-1",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26984",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-1",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26985",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-2",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26986",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-3",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26987",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-4",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26988",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_lra-0",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26989",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_akp-0",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26993",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_lock_to",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26994",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_err_mon",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26995",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_mon",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="26999",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_buf_resize",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27000",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_btr_tggl-0",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27001",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_src_main",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27002",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_dict_stats",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27003",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_fts_opt",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27005",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27250",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27251",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27252",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27253",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27254",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27255",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27256",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27257",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27258",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27259",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27260",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27263",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27264",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="27271",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28527",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28528",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28529",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28530",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28531",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28532",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28533",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28534",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28535",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="28540",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="32623",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="32666",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+rdsosmetrics_processList_rss{id="32667",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 453988
+# HELP rdsosmetrics_processList_vss The amount of virtual memory allocated to the process, in kilobytes.
+# TYPE rdsosmetrics_processList_vss gauge
+rdsosmetrics_processList_vss{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 1.465984e+06
+rdsosmetrics_processList_vss{id="0",instance="pmm-qa-aurora3-mysql-instance-1",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 7.935756e+06
+rdsosmetrics_processList_vss{id="18405",instance="pmm-qa-aurora3-mysql-instance-1",name="Aurora Storage Daemon",parentID="1",region="us-east-2",tgid="18405"} 2.027088e+06
+rdsosmetrics_processList_vss{id="22893",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="22896",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26952",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26953",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26954",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26955",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: AwsEventLoop 1",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26956",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26957",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26961",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26962",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: log_lvl_mo",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26971",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26972",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26973",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26974",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26975",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26976",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26977",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26978",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: boot",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26982",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_ibuf",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26983",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_rd-1",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26984",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-1",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26985",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-2",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26986",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-3",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26987",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_io_wr-4",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26988",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_lra-0",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26989",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_akp-0",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26993",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_lock_to",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26994",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_err_mon",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26995",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_srv_mon",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="26999",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_buf_resize",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27000",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_btr_tggl-0",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27001",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_src_main",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27002",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_dict_stats",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27003",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: ib_fts_opt",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27005",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27250",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27251",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27252",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27253",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27254",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27255",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27256",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27257",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27258",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27259",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27260",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27263",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27264",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="27271",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28527",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28528",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28529",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28530",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28531",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28532",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28533",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28534",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28535",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="28540",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="32623",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="32666",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+rdsosmetrics_processList_vss{id="32667",instance="pmm-qa-aurora3-mysql-instance-1",name="aurora: mysqld",parentID="1",region="us-east-2",tgid="26952"} 2.744372e+06
+# HELP rdsosmetrics_swap_cached The amount of swap memory, in kilobytes, used as cache memory.
+# TYPE rdsosmetrics_swap_cached gauge
+rdsosmetrics_swap_cached{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2744
+# HELP rdsosmetrics_swap_free The total amount of swap memory free, in kilobytes.
+# TYPE rdsosmetrics_swap_free gauge
+rdsosmetrics_swap_free{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 4.135164e+06
+# HELP rdsosmetrics_swap_in The total amount of memory, in kilobytes, swapped in from disk.
+# TYPE rdsosmetrics_swap_in gauge
+rdsosmetrics_swap_in{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_swap_out The total amount of memory, in kilobytes, swapped out to disk.
+# TYPE rdsosmetrics_swap_out gauge
+rdsosmetrics_swap_out{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_swap_total The total amount of swap memory available, in kilobytes.
+# TYPE rdsosmetrics_swap_total gauge
+rdsosmetrics_swap_total{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 4.1943e+06
+# HELP rdsosmetrics_tasks_blocked The number of tasks that are blocked.
+# TYPE rdsosmetrics_tasks_blocked gauge
+rdsosmetrics_tasks_blocked{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_running The number of tasks that are running.
+# TYPE rdsosmetrics_tasks_running gauge
+rdsosmetrics_tasks_running{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_sleeping The number of tasks that are sleeping.
+# TYPE rdsosmetrics_tasks_sleeping gauge
+rdsosmetrics_tasks_sleeping{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 88
+# HELP rdsosmetrics_tasks_stopped The number of tasks that are stopped.
+# TYPE rdsosmetrics_tasks_stopped gauge
+rdsosmetrics_tasks_stopped{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_total The total number of tasks.
+# TYPE rdsosmetrics_tasks_total gauge
+rdsosmetrics_tasks_total{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 88
+# HELP rdsosmetrics_tasks_zombie The number of child tasks that are inactive with an active parent task.
+# TYPE rdsosmetrics_tasks_zombie gauge
+rdsosmetrics_tasks_zombie{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP rdsosmetrics_timestamp Metrics timestamp (UNIX seconds).
+# TYPE rdsosmetrics_timestamp counter
+rdsosmetrics_timestamp{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 1.778744899e+09
