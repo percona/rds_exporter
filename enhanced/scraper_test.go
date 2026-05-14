@@ -47,7 +47,6 @@ func TestScraper(t *testing.T) {
 	require.NoError(t, err)
 
 	for session, instances := range sess.AllSessions() {
-		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			cfg := sess.Configs[session]
 			s := newScraper(cfg, instances, logger)
@@ -61,7 +60,7 @@ func TestScraper(t *testing.T) {
 				// We can't do that directly, so we do it by comparing produced metrics
 				// (minus values and processList metrics).
 
-				instanceName := strings.TrimPrefix(instance.Instance, "autotest-")
+				instanceName := instance.Instance
 
 				actualMetrics := helpers.ReadMetrics(metrics[instance.ResourceID])
 				sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
@@ -218,7 +217,6 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 	}
 
 	for session, instances := range sess.AllSessions() {
-		session, instances := session, instances
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			s := newScraper(sess.Configs[session], instances, logger)
 			s.testDisallowUnknownFields = true
