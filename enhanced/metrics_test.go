@@ -14,12 +14,11 @@ func TestParse(t *testing.T) {
 		region   string
 		instance string
 	}{
-		{"us-east-1", "aurora-mysql-56"},
-		{"us-west-1", "psql-10"},
-		{"us-west-2", "mysql-57"},
-		{"us-west-2", "aurora-psql-11"},
+		{"us-east-2", "pmm-qa-aurora3-mysql-instance-1"},
+		{"us-east-2", "pmm-qa-aurora-postgres-13-5-instance-1"},
+		{"us-east-2", "pmm-qa-rds-mysql-8-4"},
+		{"us-east-2", "pmm-qa-pgsql-16"},
 	} {
-		data := data
 		t.Run(data.instance, func(t *testing.T) {
 			// Test that metrics created from fixed testdata JSON produce expected result.
 
