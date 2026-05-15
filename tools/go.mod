@@ -1,6 +1,6 @@
 module github.com/percona/rds_exporter/tools
 
-go 1.25.8
+go 1.26.3
 
 require (
 	github.com/golangci/golangci-lint/v2 v2.12.2
