@@ -105,7 +105,7 @@ func TestRefreshResourceIDs(t *testing.T) {
 	t.Parallel()
 
 	logger := promlog.New(&promlog.Config{})
-	s := &scraper{
+	scraper := &scraper{
 		instances: []sessions.Instance{
 			{
 				Region:                     "us-east-1",
@@ -139,13 +139,13 @@ func TestRefreshResourceIDs(t *testing.T) {
 		testDisallowUnknownFields: false,
 	}
 
-	err := s.refreshResourceIDs(t.Context())
+	err := scraper.refreshResourceIDs(t.Context())
 
 	require.NoError(t, err)
-	assert.Equal(t, "new-resource-id", s.instances[0].ResourceID)
-	assert.Equal(t, "new-resource-id", s.logStreamNames[0])
-	assert.Equal(t, "same-resource-id", s.instances[1].ResourceID)
-	assert.Equal(t, "same-resource-id", s.logStreamNames[1])
+	assert.Equal(t, "new-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "new-resource-id", scraper.logStreamNames[0])
+	assert.Equal(t, "same-resource-id", scraper.instances[1].ResourceID)
+	assert.Equal(t, "same-resource-id", scraper.logStreamNames[1])
 }
 
 func TestBetterTimes(t *testing.T) {
