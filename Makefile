@@ -50,14 +50,10 @@ docker:
 	@docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
 
 check:
-	bin/golangci-lint run -c=.golangci.yml --out-format=line-number
+	bin/golangci-lint run
 
-codecov: gocoverutil
-	@bin/gocoverutil -coverprofile=coverage.txt test $(pkgs)
-	@curl -s https://codecov.io/bash | bash -s - -X fix
-
-gocoverutil:
-	@$(GO) build -modfile=tools/go.mod -o bin/gocoverutil github.com/AlekSi/gocoverutil
+codecov:
+	@$(GO) test -coverprofile=coverage.txt -covermode=atomic ./...
 
 release:
 	@$(GO) build -ldflags="$(GO_BUILD_LDFLAGS)" -o $(PMM_RELEASE_PATH)/rds_exporter

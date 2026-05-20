@@ -1,20 +1,32 @@
 ---
-linters-settings:
-  lll:
-    line-length: 140
-    tab-width: 4
+version: "2"
 
-  unused:
-    check-exported: true
-
-  unparam:
-    check-exported: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: false
 
 linters:
-  enable-all: true
+  default: all
+  disable:
+    - gomodguard
+    - wsl
+  settings:
+    lll:
+      line-length: 140
+      tab-width: 4
+    unparam:
+      check-exported: true
+  exclusions:
+    presets: []
+    rules:
+      - text: 'G104'
+        linters:
+          - gosec
 
-issues:
-  exclude-use-default: false
-  exclude:
-    # gas: Duplicated errcheck checks
-    - 'G104: Errors unhandled'
+formatters:
+  enable:
+    - gofmt
+    - goimports
