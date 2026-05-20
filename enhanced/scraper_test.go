@@ -2,6 +2,7 @@ package enhanced
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -94,17 +95,22 @@ func TestScraper(t *testing.T) {
 
 type fakeResourceIDResolver struct {
 	resourceIDs map[string]string
+	err         error
+	calls       int
 }
 
-func (r *fakeResourceIDResolver) ResourceID(_ context.Context, instanceID string) (string, error) {
-	return r.resourceIDs[instanceID], nil
+func (r *fakeResourceIDResolver) ResourceIDs(_ context.Context) (map[string]string, error) {
+	r.calls++
+	if r.err != nil {
+		return nil, r.err
+	}
+
+	return r.resourceIDs, nil
 }
 
-func TestRefreshResourceIDs(t *testing.T) {
-	t.Parallel()
-
+func newTestScraper(resourceIDResolver resourceIDResolver) *scraper {
 	logger := promlog.New(&promlog.Config{})
-	scraper := &scraper{
+	return &scraper{
 		instances: []sessions.Instance{
 			{
 				Region:                     "us-east-1",
@@ -125,26 +131,133 @@ func TestRefreshResourceIDs(t *testing.T) {
 				EnhancedMonitoringInterval: 0,
 			},
 		},
-		logStreamNames: []string{"old-resource-id", "same-resource-id"},
-		svc:            nil,
-		resourceIDResolver: &fakeResourceIDResolver{
-			resourceIDs: map[string]string{
-				"blue-green-primary": "new-resource-id",
-				"unchanged-primary":  "same-resource-id",
-			},
-		},
+		logStreamNames:            []string{"old-resource-id", "same-resource-id"},
+		svc:                       nil,
+		resourceIDResolver:        resourceIDResolver,
+		nextResourceIDRefresh:     time.Time{},
 		nextStartTime:             time.Time{},
 		logger:                    logger,
 		testDisallowUnknownFields: false,
 	}
+}
+
+func TestRefreshResourceIDs(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeResourceIDResolver{
+		resourceIDs: map[string]string{
+			"blue-green-primary": "new-resource-id",
+			"unchanged-primary":  "same-resource-id",
+		},
+		err:   nil,
+		calls: 0,
+	}
+	scraper := newTestScraper(resolver)
 
 	err := scraper.refreshResourceIDs(t.Context())
 
 	require.NoError(t, err)
+	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, "new-resource-id", scraper.instances[0].ResourceID)
 	assert.Equal(t, "new-resource-id", scraper.logStreamNames[0])
 	assert.Equal(t, "same-resource-id", scraper.instances[1].ResourceID)
 	assert.Equal(t, "same-resource-id", scraper.logStreamNames[1])
+}
+
+func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
+	t.Parallel()
+
+	resolverErr := errors.New("describe failed")
+	resolver := &fakeResourceIDResolver{
+		resourceIDs: nil,
+		err:         resolverErr,
+		calls:       0,
+	}
+	scraper := newTestScraper(resolver)
+
+	err := scraper.refreshResourceIDs(t.Context())
+
+	require.ErrorIs(t, err, resolverErr)
+	assert.Equal(t, 1, resolver.calls)
+	assert.Equal(t, "old-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "old-resource-id", scraper.logStreamNames[0])
+}
+
+func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeResourceIDResolver{
+		resourceIDs: map[string]string{
+			"blue-green-primary": "",
+			"unchanged-primary":  "same-resource-id",
+		},
+		err:   nil,
+		calls: 0,
+	}
+	scraper := newTestScraper(resolver)
+
+	err := scraper.refreshResourceIDs(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, resolver.calls)
+	assert.Equal(t, "old-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "old-resource-id", scraper.logStreamNames[0])
+	assert.Equal(t, "same-resource-id", scraper.instances[1].ResourceID)
+	assert.Equal(t, "same-resource-id", scraper.logStreamNames[1])
+}
+
+func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeResourceIDResolver{
+		resourceIDs: map[string]string{
+			"blue-green-primary": "old-resource-id",
+			"unchanged-primary":  "same-resource-id",
+		},
+		err:   nil,
+		calls: 0,
+	}
+	scraper := newTestScraper(resolver)
+
+	err := scraper.refreshResourceIDs(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, resolver.calls)
+	assert.Equal(t, "old-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "old-resource-id", scraper.logStreamNames[0])
+	assert.Equal(t, "same-resource-id", scraper.instances[1].ResourceID)
+	assert.Equal(t, "same-resource-id", scraper.logStreamNames[1])
+}
+
+func TestRefreshResourceIDsIfNeededSkipsUntilNextRefresh(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeResourceIDResolver{
+		resourceIDs: map[string]string{
+			"blue-green-primary": "new-resource-id",
+			"unchanged-primary":  "same-resource-id",
+		},
+		err:   nil,
+		calls: 0,
+	}
+	scraper := newTestScraper(resolver)
+	scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
+
+	err := scraper.refreshResourceIDsIfNeeded(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, resolver.calls)
+	assert.Equal(t, "old-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "old-resource-id", scraper.logStreamNames[0])
+
+	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
+
+	err = scraper.refreshResourceIDsIfNeeded(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, resolver.calls)
+	assert.Equal(t, "new-resource-id", scraper.instances[0].ResourceID)
+	assert.Equal(t, "new-resource-id", scraper.logStreamNames[0])
 }
 
 func TestBetterTimes(t *testing.T) {

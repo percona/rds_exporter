@@ -57,23 +57,32 @@ func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
 	}
 }
 
-// ResourceID returns the current RDS resource ID for a DB instance identifier.
-func (r *ResourceIDResolver) ResourceID(ctx context.Context, instanceID string) (string, error) {
-	output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(instanceID),
-		Filters:              nil,
-		Marker:               nil,
-		MaxRecords:           nil,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to describe DB instance: %w", err)
+// ResourceIDs returns current RDS resource IDs keyed by DB instance identifier.
+func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string, error) {
+	resourceIDs := make(map[string]string)
+	var marker *string
+	for {
+		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
+			Marker: marker,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
+		}
+
+		for _, dbInstance := range output.DBInstances {
+			instanceID := aws.ToString(dbInstance.DBInstanceIdentifier)
+			resourceID := aws.ToString(dbInstance.DbiResourceId)
+			if instanceID != "" && resourceID != "" {
+				resourceIDs[instanceID] = resourceID
+			}
+		}
+
+		if marker = output.Marker; marker == nil {
+			break
+		}
 	}
 
-	if len(output.DBInstances) == 0 {
-		return "", nil
-	}
-
-	return aws.ToString(output.DBInstances[0].DbiResourceId), nil
+	return resourceIDs, nil
 }
 
 // New creates a new sessions pool for given configuration.

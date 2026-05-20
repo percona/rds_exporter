@@ -15,17 +15,20 @@ import (
 )
 
 type resourceIDResolver interface {
-	ResourceID(ctx context.Context, instanceID string) (string, error)
+	ResourceIDs(ctx context.Context) (map[string]string, error)
 }
+
+const resourceIDRefreshInterval = 5 * time.Minute
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
-	instances          []sessions.Instance
-	logStreamNames     []string
-	svc                *cloudwatchlogs.Client
-	resourceIDResolver resourceIDResolver
-	nextStartTime      time.Time
-	logger             log.Logger
+	instances             []sessions.Instance
+	logStreamNames        []string
+	svc                   *cloudwatchlogs.Client
+	resourceIDResolver    resourceIDResolver
+	nextResourceIDRefresh time.Time
+	nextStartTime         time.Time
+	logger                log.Logger
 
 	testDisallowUnknownFields bool // for tests only
 }
@@ -37,12 +40,13 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 	}
 
 	return &scraper{
-		instances:          instances,
-		logStreamNames:     logStreamNames,
-		svc:                cloudwatchlogs.NewFromConfig(cfg),
-		resourceIDResolver: sessions.NewResourceIDResolver(cfg),
-		nextStartTime:      time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
-		logger:             log.With(logger, "component", "enhanced"),
+		instances:             instances,
+		logStreamNames:        logStreamNames,
+		svc:                   cloudwatchlogs.NewFromConfig(cfg),
+		resourceIDResolver:    sessions.NewResourceIDResolver(cfg),
+		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
+		nextStartTime:         time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
+		logger:                log.With(logger, "component", "enhanced"),
 	}
 }
 
@@ -71,7 +75,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
 	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
 
-	if err := s.refreshResourceIDs(ctx); err != nil {
+	if err := s.refreshResourceIDsIfNeeded(ctx); err != nil {
 		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
 	}
 
@@ -172,14 +176,32 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	return resMetrics, resMessages
 }
 
-func (s *scraper) refreshResourceIDs(ctx context.Context) error {
-	for instanceIndex, instance := range s.instances {
-		resourceID, err := s.resourceIDResolver.ResourceID(ctx, instance.Instance)
-		if err != nil {
-			return fmt.Errorf("failed to refresh resource ID for %s: %w", instance.Instance, err)
-		}
+func (s *scraper) refreshResourceIDsIfNeeded(ctx context.Context) error {
+	if time.Now().Before(s.nextResourceIDRefresh) {
+		return nil
+	}
 
-		if resourceID == "" || resourceID == instance.ResourceID {
+	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
+	return s.refreshResourceIDs(ctx)
+}
+
+func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+	resourceIDs, err := s.resourceIDResolver.ResourceIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to refresh resource IDs: %w", err)
+	}
+
+	for instanceIndex, instance := range s.instances {
+		resourceID := resourceIDs[instance.Instance]
+		if resourceID == "" {
+			level.Warn(s.logger).Log(
+				"msg", "RDS resource ID not found.",
+				"region", instance.Region,
+				"instance", instance.Instance,
+			)
+			continue
+		}
+		if resourceID == instance.ResourceID {
 			continue
 		}
 
@@ -187,8 +209,7 @@ func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 			"msg", "RDS resource ID changed.",
 			"region", instance.Region,
 			"instance", instance.Instance,
-			"old_resource_id", instance.ResourceID,
-			"new_resource_id", resourceID,
+			"resource_id", resourceID,
 		)
 		s.instances[instanceIndex].ResourceID = resourceID
 		s.logStreamNames[instanceIndex] = resourceID
