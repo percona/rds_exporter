@@ -212,11 +212,17 @@ func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 			"instance", instance.Instance,
 			"resource_id", resourceID,
 		)
-		s.instances[instanceIndex].ResourceID = resourceID
-		s.logStreamNames[instanceIndex] = resourceID
+		s.updateResourceID(instanceIndex, resourceID)
 	}
 
 	return nil
+}
+
+func (s *scraper) updateResourceID(instanceIndex int, resourceID string) {
+	// Scrapes for a single scraper run serially, so these paired slices can be
+	// updated in place as long as scrape execution is not parallelized.
+	s.instances[instanceIndex].ResourceID = resourceID
+	s.logStreamNames[instanceIndex] = resourceID
 }
 
 // betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request
