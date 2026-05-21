@@ -19,6 +19,8 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
+var errDescribeFailed = errors.New("describe failed")
+
 func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 	res := make([]*helpers.Metric, 0, len(metrics))
 	processList := make(map[string]struct{})
@@ -167,17 +169,16 @@ func TestRefreshResourceIDs(t *testing.T) {
 func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
 	t.Parallel()
 
-	resolverErr := errors.New("describe failed")
 	resolver := &fakeResourceIDResolver{
 		resourceIDs: nil,
-		err:         resolverErr,
+		err:         errDescribeFailed,
 		calls:       0,
 	}
 	scraper := newTestScraper(resolver)
 
 	err := scraper.refreshResourceIDs(t.Context())
 
-	require.ErrorIs(t, err, resolverErr)
+	require.ErrorIs(t, err, errDescribeFailed)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, "old-resource-id", scraper.instances[0].ResourceID)
 	assert.Equal(t, "old-resource-id", scraper.logStreamNames[0])

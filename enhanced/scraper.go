@@ -201,6 +201,7 @@ func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 			)
 			continue
 		}
+
 		if resourceID == instance.ResourceID {
 			continue
 		}

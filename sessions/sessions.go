@@ -60,10 +60,15 @@ func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
 // ResourceIDs returns current RDS resource IDs keyed by DB instance identifier.
 func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string, error) {
 	resourceIDs := make(map[string]string)
+
 	var marker *string
+
 	for {
 		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-			Marker: marker,
+			DBInstanceIdentifier: nil,
+			Filters:              nil,
+			Marker:               marker,
+			MaxRecords:           nil,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
