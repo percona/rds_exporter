@@ -238,7 +238,7 @@ func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
 	assert.Equal(t, sameResourceID, scraper.logStreamNames[1])
 }
 
-func TestRefreshResourceIDsIfNeededSkipsUntilNextRefresh(t *testing.T) {
+func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	t.Parallel()
 
 	resolver := &fakeResourceIDResolver{
@@ -252,7 +252,7 @@ func TestRefreshResourceIDsIfNeededSkipsUntilNextRefresh(t *testing.T) {
 	scraper := newTestScraper(resolver)
 	scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
 
-	err := scraper.refreshResourceIDsIfNeeded(t.Context())
+	err := scraper.refreshResourceIDs(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 0, resolver.calls)
@@ -261,7 +261,7 @@ func TestRefreshResourceIDsIfNeededSkipsUntilNextRefresh(t *testing.T) {
 
 	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 
-	err = scraper.refreshResourceIDsIfNeeded(t.Context())
+	err = scraper.refreshResourceIDs(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)

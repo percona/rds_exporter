@@ -75,7 +75,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
 	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
 
-	if err := s.refreshResourceIDsIfNeeded(ctx); err != nil {
+	if err := s.refreshResourceIDs(ctx); err != nil {
 		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
 	}
 
@@ -182,10 +182,10 @@ func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 	}
 
 	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
-	return s.refreshResourceIDs(ctx)
+	return s.updateResourceIDs(ctx)
 }
 
-func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+func (s *scraper) updateResourceIDs(ctx context.Context) error {
 	resourceIDs, err := s.resourceIDResolver.ResourceIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to refresh resource IDs: %w", err)
