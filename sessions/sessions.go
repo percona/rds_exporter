@@ -63,7 +63,7 @@ func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string
 
 	var marker *string
 	for {
-		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
+		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{ //nolint:exhaustruct
 			Marker: marker,
 		})
 		if err != nil {
