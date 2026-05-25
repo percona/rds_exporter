@@ -65,10 +65,7 @@ func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string
 
 	for {
 		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-			DBInstanceIdentifier: nil,
-			Filters:              nil,
 			Marker:               marker,
-			MaxRecords:           nil,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
