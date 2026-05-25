@@ -176,7 +176,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	return resMetrics, resMessages
 }
 
-func (s *scraper) refreshResourceIDsIfNeeded(ctx context.Context) error {
+func (s *scraper) refreshResourceIDs(ctx context.Context) error {
 	if time.Now().Before(s.nextResourceIDRefresh) {
 		return nil
 	}
