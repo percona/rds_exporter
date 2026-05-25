@@ -62,10 +62,9 @@ func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string
 	resourceIDs := make(map[string]string)
 
 	var marker *string
-
 	for {
 		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-			Marker:               marker,
+			Marker: marker,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
