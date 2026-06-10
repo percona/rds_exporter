@@ -14,13 +14,21 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
+type resourceIDResolver interface {
+	ResourceIDs(ctx context.Context) (map[string]string, error)
+}
+
+const resourceIDRefreshInterval = 5 * time.Minute
+
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
-	instances      []sessions.Instance
-	logStreamNames []string
-	svc            *cloudwatchlogs.Client
-	nextStartTime  time.Time
-	logger         log.Logger
+	instances             []sessions.Instance
+	logStreamNames        []string
+	svc                   *cloudwatchlogs.Client
+	resourceIDResolver    resourceIDResolver
+	nextResourceIDRefresh time.Time
+	nextStartTime         time.Time
+	logger                log.Logger
 
 	testDisallowUnknownFields bool // for tests only
 }
@@ -32,11 +40,13 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 	}
 
 	return &scraper{
-		instances:      instances,
-		logStreamNames: logStreamNames,
-		svc:            cloudwatchlogs.NewFromConfig(cfg),
-		nextStartTime:  time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
-		logger:         log.With(logger, "component", "enhanced"),
+		instances:             instances,
+		logStreamNames:        logStreamNames,
+		svc:                   cloudwatchlogs.NewFromConfig(cfg),
+		resourceIDResolver:    sessions.NewResourceIDResolver(cfg),
+		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
+		nextStartTime:         time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
+		logger:                log.With(logger, "component", "enhanced"),
 	}
 }
 
@@ -64,6 +74,10 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
 	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
+
+	if err := s.refreshResourceIDs(ctx); err != nil {
+		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
+	}
 
 	// LogStreamNames parameter supports up to 100 items.
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
@@ -160,6 +174,55 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 		resMessages[resourceID] = allMessages[resourceID][timestamp]
 	}
 	return resMetrics, resMessages
+}
+
+func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+	if time.Now().Before(s.nextResourceIDRefresh) {
+		return nil
+	}
+
+	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
+	return s.updateResourceIDs(ctx)
+}
+
+func (s *scraper) updateResourceIDs(ctx context.Context) error {
+	resourceIDs, err := s.resourceIDResolver.ResourceIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to refresh resource IDs: %w", err)
+	}
+
+	for instanceIndex, instance := range s.instances {
+		resourceID := resourceIDs[instance.Instance]
+		if resourceID == "" {
+			level.Warn(s.logger).Log(
+				"msg", "RDS resource ID not found.",
+				"region", instance.Region,
+				"instance", instance.Instance,
+			)
+			continue
+		}
+
+		if resourceID == instance.ResourceID {
+			continue
+		}
+
+		level.Info(s.logger).Log(
+			"msg", "RDS resource ID changed.",
+			"region", instance.Region,
+			"instance", instance.Instance,
+			"resource_id", resourceID,
+		)
+		s.updateResourceID(instanceIndex, resourceID)
+	}
+
+	return nil
+}
+
+func (s *scraper) updateResourceID(instanceIndex int, resourceID string) {
+	// Scrapes for a single scraper run serially, so these paired slices can be
+	// updated in place as long as scrape execution is not parallelized.
+	s.instances[instanceIndex].ResourceID = resourceID
+	s.logStreamNames[instanceIndex] = resourceID
 }
 
 // betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request
