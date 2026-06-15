@@ -59,25 +59,25 @@ func TestSession(t *testing.T) {
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora3-mysql-instance-1",
 		ResourceID:                 "db-DFQSTXQUYKPPAFNHGTJ27P5PTU",
-		EnhancedMonitoringInterval: time.Minute,
+		MonitoringInterval: time.Minute,
 	}
 	p13iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora-postgres-13-5-instance-1",
 		ResourceID:                 "db-ZUYAKAIMBFOPJOW3I5YKUI3XXY",
-		EnhancedMonitoringInterval: time.Minute,
+		MonitoringInterval: time.Minute,
 	}
 	m84iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-rds-mysql-8-4",
 		ResourceID:                 "db-POWENXD5M5PQ34OZFZKSUPNX64",
-		EnhancedMonitoringInterval: time.Minute,
+		MonitoringInterval: time.Minute,
 	}
 	ap16iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-pgsql-16",
 		ResourceID:                 "db-H5NM4CLYE5MF4DSEIZAX2BSWNE",
-		EnhancedMonitoringInterval: time.Minute,
+		MonitoringInterval: time.Minute,
 	}
 
 	assert.Equal(t, &am57iExpected, am57i)
