@@ -184,7 +184,8 @@ func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]s
 	return enabled
 }
 
-// An expired sample contributes no metrics, so an outage renders as a gap rather than a flat line.
+// collectSamples emits the stored sample of every instance along with its health. An expired sample
+// contributes no metrics, so an outage renders as a gap rather than a flat line.
 func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) {
 	for key, state := range c.metrics {
 		current := now.Before(state.expiresAt)
@@ -256,9 +257,10 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	c.prune(now)
 }
 
-// prune releases what has not been refreshed for staleRetention. A monitored instance keeps its
-// entry without its payload, so a long outage stays reported as down instead of resolving the alert
-// by making the series disappear; anything else, such as a retired resource ID, is dropped.
+// prune releases the payload of what has not been refreshed for staleRetention. A monitored instance
+// keeps its entry, so a long outage stays reported as down instead of resolving the alert by making
+// the series disappear; an entry for an instance the collector does not monitor is dropped, so a key
+// that should not be there cannot report health forever.
 func (c *Collector) prune(now time.Time) {
 	for key, state := range c.metrics {
 		if now.Sub(state.receivedAt) <= staleRetention {
