@@ -305,6 +305,35 @@ func TestScrapeStopsOnContextCancellation(t *testing.T) {
 	assert.Zero(t, scraper.missing.len())
 }
 
+func TestScrapeIsolatesEachBatchIndependently(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(2 * maxLogStreamsPerRequest)
+	healthy := streams[len(streams)-1]
+
+	// Every stream of the first batch is missing, plus the first stream of the second batch.
+	missing := make(map[string]struct{}, maxLogStreamsPerRequest+1)
+	for _, stream := range streams[:maxLogStreamsPerRequest+1] {
+		missing[stream] = struct{}{}
+	}
+
+	client := &fakeLogsClient{
+		events:   eventsFor(healthy),
+		missing:  missing,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.NotEmpty(t, metrics[testKey(healthy)],
+		"a batch full of missing streams must not spend the recovery budget of unrelated batches")
+	assert.LessOrEqual(t, len(client.calls), 2*(maxIsolationCalls+1),
+		"isolation must stay bounded per batch")
+}
+
 func TestScrapeBoundsIsolationCalls(t *testing.T) {
 	t.Parallel()
 

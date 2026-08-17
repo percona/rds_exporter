@@ -219,7 +219,6 @@ func (s *scraper) region() string {
 // scrape performs a single scrape.
 func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
 	sink := newEventSink()
-	s.isolationCalls = 0
 
 	err := s.refreshInstanceStates(ctx)
 	if err != nil {
@@ -286,6 +285,10 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	if err == nil || !isResourceNotFound(err) {
 		return err
 	}
+
+	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the
+	// batches after it from finding and excluding theirs.
+	s.isolationCalls = 0
 
 	return s.isolateMissing(ctx, streams, sink)
 }

@@ -9,7 +9,7 @@ const (
 	maxProbesPerScrape = 8
 	halves             = 2
 
-	// maxIsolationCalls bounds the extra requests one scrape may spend on finding missing streams,
+	// maxIsolationCalls bounds the extra requests one batch may spend on finding its missing streams,
 	// so a region where every stream is missing converges over a few scrapes instead of flooding AWS.
 	maxIsolationCalls = 32
 )
