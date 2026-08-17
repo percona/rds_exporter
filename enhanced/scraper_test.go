@@ -211,6 +211,19 @@ func TestScrapeFollowsTheMonitoringIntervalAWSReports(t *testing.T) {
 	assert.Equal(t, 5*time.Second, scraper.result(nil).interval, "the collector needs the interval to set expiry")
 }
 
+func TestRetune(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{events: nil, missing: nil, errs: nil, pageSize: 0, calls: nil}
+	scraper := scraperWithStreams(client, oldResourceID)
+	ticker := time.NewTicker(time.Hour)
+
+	t.Cleanup(ticker.Stop)
+
+	assert.Equal(t, time.Minute, scraper.retune(time.Hour, ticker), "the ticker follows the reported interval")
+	assert.Equal(t, time.Minute, scraper.retune(time.Minute, ticker), "an unchanged interval leaves the ticker alone")
+}
+
 func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
 	t.Parallel()
 
