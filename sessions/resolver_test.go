@@ -33,7 +33,7 @@ func (c *fakeRDSClient) DescribeDBInstances(
 	_ *rds.DescribeDBInstancesInput,
 	_ ...func(*rds.Options),
 ) (*rds.DescribeDBInstancesOutput, error) {
-	if c.err != nil {
+	if c.calls >= len(c.pages) {
 		return nil, c.err
 	}
 
@@ -138,6 +138,25 @@ func TestInstanceStates(t *testing.T) {
 		states, err := (&ResourceIDResolver{svc: client}).InstanceStates(t.Context())
 
 		require.ErrorIs(t, err, errDescribeRefused)
-		assert.Nil(t, states)
+		assert.Empty(t, states)
+	})
+
+	t.Run("keeps the states of the pages it read", func(t *testing.T) {
+		t.Parallel()
+
+		client := &fakeRDSClient{
+			pages: []*rds.DescribeDBInstancesOutput{
+				describePage(aws.String("next"), dbInstance("first", firstResourceID, aws.Int32(60))),
+			},
+			err:   errDescribeRefused,
+			calls: 0,
+		}
+
+		states, err := (&ResourceIDResolver{svc: client}).InstanceStates(t.Context())
+
+		require.ErrorIs(t, err, errDescribeRefused)
+		assert.Equal(t, map[string]InstanceState{
+			"first": {ResourceID: firstResourceID, MonitoringInterval: time.Minute},
+		}, states, "an instance missing from the result loses its monitoring, so a failed page must not discard the rest")
 	})
 }

@@ -66,6 +66,8 @@ func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
 }
 
 // InstanceStates returns the current AWS state of every DB instance, keyed by DB instance identifier.
+// An error is returned with the states of the pages that were read, because an instance missing from
+// the result loses its monitoring: dropping them all over one failed page is the worse outcome.
 func (r *ResourceIDResolver) InstanceStates(ctx context.Context) (map[string]InstanceState, error) {
 	states := make(map[string]InstanceState)
 
@@ -73,7 +75,7 @@ func (r *ResourceIDResolver) InstanceStates(ctx context.Context) (map[string]Ins
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
+			return states, fmt.Errorf("failed to describe DB instances: %w", err)
 		}
 
 		for _, dbInstance := range output.DBInstances {
@@ -131,13 +133,10 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 		})
 	}
 
-	// add resource ID and monitoring interval to all instances
 	for key, cfg := range res.Configs {
 		states, err := NewResourceIDResolver(cfg).InstanceStates(context.Background())
 		if err != nil {
 			level.Error(logger).Log("msg", "Failed to get instance states.", "error", err)
-
-			continue
 		}
 
 		for idx, instance := range res.sessions[key] {
