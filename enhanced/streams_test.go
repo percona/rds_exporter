@@ -160,7 +160,7 @@ func TestScrapeReprobesMissingStream(t *testing.T) { //nolint:funlen
 	})
 }
 
-func TestScrapeRearmsProbeOfSilentStream(t *testing.T) {
+func TestScrapeStopsExcludingSilentStream(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeLogsClient{
@@ -180,16 +180,16 @@ func TestScrapeRearmsProbeOfSilentStream(t *testing.T) {
 
 	scraper.scrape(t.Context())
 
-	assert.True(t, scraper.missing.probeAfter[missingResourceID].After(time.Now()),
-		"a stream that answers without events must not stay due for a probe")
+	assert.Zero(t, scraper.missing.len(),
+		"CloudWatch answering the request proves the stream exists, whether or not it published")
 
 	client.calls = nil
 
 	scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1)
-	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams,
-		"a silent stream must not spend a probe slot on every scrape")
+	assert.Equal(t, []string{oldResourceID, missingResourceID}, client.calls[0].streams,
+		"a stream that exists must be requested again instead of waiting for another probe")
 }
 
 func TestScrapeClearsMissingStreamWhenMonitoringIsDisabled(t *testing.T) {

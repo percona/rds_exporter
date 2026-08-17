@@ -415,21 +415,27 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 		}
 	}
 
-	s.rearmProbes(streams)
+	s.clearAccepted(streams)
 
 	return nil
 }
 
-// rearmProbes gives another TTL to the excluded streams CloudWatch accepted but that delivered no
-// event. handleEvent clears the ones that reported, so what is left here exists without publishing,
-// and would otherwise stay due and spend one of the scrape's probe slots forever.
-func (s *scraper) rearmProbes(streams []string) {
-	now := time.Now()
-
+// clearAccepted stops excluding the log streams of a request CloudWatch answered. A rejection names
+// no stream, so answering the request is the only positive evidence that every stream listed in it
+// exists. Waiting for an event instead would keep a stream that exists but published nothing inside
+// the request window excluded for another TTL, and since the window is only as wide as the fastest
+// instance's reporting interval, that is the common case rather than the exception.
+func (s *scraper) clearAccepted(streams []string) {
 	for _, stream := range streams {
-		if s.missing.marked(stream) {
-			s.missing.mark(stream, now)
+		if !s.missing.clear(stream) {
+			continue
 		}
+
+		level.Info(s.logger).Log(
+			"msg", "CloudWatch log stream exists again; resuming Enhanced Monitoring requests.",
+			"log_stream", stream,
+			"instance", s.instanceNameFor(stream),
+		)
 	}
 }
 
@@ -457,11 +463,6 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		level.Error(logger).Log("msg", "Failed to find instance.")
 
 		return
-	}
-
-	if s.missing.clear(logStreamName) {
-		level.Info(logger).Log("msg", "CloudWatch log stream is back; resuming Enhanced Monitoring requests.",
-			"log_stream", logStreamName)
 	}
 
 	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
