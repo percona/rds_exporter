@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/go-kit/log"
@@ -174,4 +175,44 @@ func TestStart(t *testing.T) {
 			// drain until start closes the channel
 		}
 	})
+
+	t.Run("delivers a result to the reader", func(t *testing.T) {
+		t.Parallel()
+
+		scraper := scraperWithStreams(nil, oldResourceID)
+		results := make(chan scrapeResult, 1)
+
+		assert.True(t, scraper.send(t.Context(), results, scraper.result(nil)))
+		assert.Len(t, results, 1)
+	})
+
+	t.Run("gives up sending once the context is cancelled", func(t *testing.T) {
+		t.Parallel()
+
+		scraper := scraperWithStreams(nil, oldResourceID)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		// Nothing drains the channel, so an unguarded send would block the scraper for good.
+		assert.False(t, scraper.send(ctx, make(chan scrapeResult), scraper.result(nil)))
+	})
+}
+
+func TestScrapeOnce(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   eventsFor(oldResourceID),
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID)
+
+	metrics := scraper.scrapeOnce(t.Context(), time.Nanosecond)
+
+	assert.Empty(t, metrics, "a scrape must not outlive the interval it belongs to")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
 }

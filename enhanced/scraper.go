@@ -198,17 +198,36 @@ func (s *scraper) start(ctx context.Context, results chan<- scrapeResult) {
 			return
 		}
 
-		scrapeCtx, cancel := context.WithTimeout(ctx, interval)
-		metrics, _ := s.scrape(scrapeCtx)
-		cancel()
+		metrics := s.scrapeOnce(ctx, interval)
 
-		select {
-		case results <- s.result(metrics):
-		case <-ctx.Done():
+		if !s.send(ctx, results, s.result(metrics)) {
 			return
 		}
 
 		interval = s.retune(interval, ticker)
+	}
+}
+
+// scrapeOnce bounds a scrape by the interval it belongs to. Isolating missing log streams costs
+// extra requests per batch, so without a deadline one scrape of a region where nothing exists could
+// keep running while the collector waits for it.
+func (s *scraper) scrapeOnce(ctx context.Context, interval time.Duration) map[instanceKey]instanceMetrics {
+	scrapeCtx, cancel := context.WithTimeout(ctx, interval)
+	defer cancel()
+
+	metrics, _ := s.scrape(scrapeCtx)
+
+	return metrics
+}
+
+// send delivers a result unless the scraper is stopping, so shutting down cannot block on a channel
+// nobody drains any more.
+func (s *scraper) send(ctx context.Context, results chan<- scrapeResult, result scrapeResult) bool {
+	select {
+	case results <- result:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 

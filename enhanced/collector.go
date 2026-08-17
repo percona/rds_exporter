@@ -113,7 +113,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", s.interval()))
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
-		metrics, _ := s.scrape(ctx)
+		metrics := s.scrapeOnce(ctx, s.interval())
 		collector.setMetrics(s.result(metrics), time.Now())
 
 		results := make(chan scrapeResult)
