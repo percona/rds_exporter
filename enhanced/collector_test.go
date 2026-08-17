@@ -1,6 +1,7 @@
 package enhanced
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -362,6 +363,65 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		}
 
 		assert.Equal(t, 1, ups)
+	})
+
+	t.Run("expires a sample whose event is already older than the TTL", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "lagging")
+
+		collector.setMetrics(scrapeResult{
+			metrics: map[instanceKey]instanceMetrics{
+				testKey("lagging"): {metrics: sampleMetrics("lagging"), eventTime: now.Add(-2 * minMetricsTTL)},
+			},
+			errorCounts: nil,
+			region:      testRegion,
+			interval:    time.Minute,
+		}, now)
+
+		metrics := collect(t, collector)
+
+		// Expiry follows the event timestamp, so a clock lagging further behind than the TTL renders as a
+		// gap. Reporting the sample instead would be the flat line this whole change exists to remove.
+		assert.Nil(t, findMetric(metrics, osMetricName, "lagging"))
+
+		up := findMetric(metrics, upMetricName, "lagging")
+		require.NotNil(t, up)
+		assert.InDelta(t, 0.0, up.Value, 0)
+	})
+}
+
+func TestStop(t *testing.T) {
+	t.Parallel()
+
+	t.Run("does nothing when no scraper was started", func(t *testing.T) {
+		t.Parallel()
+
+		newCollector(promlog.New(&promlog.Config{})).Stop()
+	})
+
+	t.Run("waits for the scrapers to finish", func(t *testing.T) {
+		t.Parallel()
+
+		collector := newCollector(promlog.New(&promlog.Config{}))
+		ctx, cancel := context.WithCancel(t.Context())
+		collector.cancel = cancel
+
+		finished := make(chan struct{})
+
+		collector.wg.Go(func() {
+			<-ctx.Done()
+			close(finished)
+		})
+
+		collector.Stop()
+
+		select {
+		case <-finished:
+		default:
+			t.Fatal("Stop must not return before the scrapers have finished")
+		}
 	})
 }
 

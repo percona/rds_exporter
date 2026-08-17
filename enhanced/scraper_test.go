@@ -160,6 +160,13 @@ func newTestScraperWith(
 	}
 }
 
+func TestRegion(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, testRegion, scraperWithStreams(nil, oldResourceID).region())
+	assert.Empty(t, scraperWithStreams(nil).region(), "a session without instances has no region to report under")
+}
+
 func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
 	t.Parallel()
 

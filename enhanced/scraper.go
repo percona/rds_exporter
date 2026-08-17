@@ -29,7 +29,9 @@ const (
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
 	maxLogStreamsPerRequest = 100
 
-	// maxLookback bounds how far back a request may reach after a failed scrape or an outage.
+	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
+	// timestamped further behind the exporter's clock than this are never requested at all, so an
+	// instance whose clock lags that much reports a gap rather than samples.
 	maxLookback = 3 * time.Minute
 
 	// maxFutureSkew is how far ahead of the exporter's own clock an event may be timestamped. It
