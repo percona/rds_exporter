@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,54 +33,71 @@ const (
 	maxLookback = 3 * time.Minute
 )
 
+// instanceKey identifies an instance independently of its RDS resource ID, which changes on a
+// blue/green switchover.
+type instanceKey struct {
+	region   string
+	instance string
+}
+
+func keyOf(instance sessions.Instance) instanceKey {
+	return instanceKey{region: instance.Region, instance: instance.Instance}
+}
+
+// instanceMetrics is one instance's most recent Enhanced Monitoring sample.
+type instanceMetrics struct {
+	metrics   []prometheus.Metric
+	eventTime time.Time
+}
+
 // eventSink accumulates the metrics parsed out of log events, per instance and event timestamp.
 type eventSink struct {
-	metrics  map[string]map[time.Time][]prometheus.Metric
-	messages map[string]map[time.Time]string
+	metrics  map[instanceKey]map[time.Time][]prometheus.Metric
+	messages map[instanceKey]map[time.Time]string
 }
 
 func newEventSink() *eventSink {
 	return &eventSink{
-		metrics:  make(map[string]map[time.Time][]prometheus.Metric),
-		messages: make(map[string]map[time.Time]string),
+		metrics:  make(map[instanceKey]map[time.Time][]prometheus.Metric),
+		messages: make(map[instanceKey]map[time.Time]string),
 	}
 }
 
-func (sink *eventSink) add(resourceID string, timestamp time.Time, metrics []prometheus.Metric, message string) {
-	if sink.metrics[resourceID] == nil {
-		sink.metrics[resourceID] = make(map[time.Time][]prometheus.Metric)
+func (sink *eventSink) add(key instanceKey, timestamp time.Time, metrics []prometheus.Metric, message string) {
+	if sink.metrics[key] == nil {
+		sink.metrics[key] = make(map[time.Time][]prometheus.Metric)
 	}
 
-	sink.metrics[resourceID][timestamp] = metrics
+	sink.metrics[key][timestamp] = metrics
 
-	if sink.messages[resourceID] == nil {
-		sink.messages[resourceID] = make(map[time.Time]string)
+	if sink.messages[key] == nil {
+		sink.messages[key] = make(map[time.Time]string)
 	}
 
-	sink.messages[resourceID][timestamp] = message
+	sink.messages[key][timestamp] = message
 }
 
 // times returns the event timestamps collected for each instance.
-func (sink *eventSink) times() map[string][]time.Time {
-	res := make(map[string][]time.Time, len(sink.metrics))
-	for resourceID, events := range sink.metrics {
-		res[resourceID] = make([]time.Time, 0, len(events))
+func (sink *eventSink) times() map[instanceKey][]time.Time {
+	res := make(map[instanceKey][]time.Time, len(sink.metrics))
+	for key, events := range sink.metrics {
+		res[key] = make([]time.Time, 0, len(events))
 		for timestamp := range events {
-			res[resourceID] = append(res[resourceID], timestamp)
+			res[key] = append(res[key], timestamp)
 		}
 	}
 
 	return res
 }
 
-// latest returns the metrics and messages of the given timestamp for each instance.
-func (sink *eventSink) latest(times map[string]time.Time) (map[string][]prometheus.Metric, map[string]string) {
-	metrics := make(map[string][]prometheus.Metric, len(times))
-	messages := make(map[string]string, len(times))
+// latest returns the sample of the given timestamp for each instance.
+func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
+	metrics := make(map[instanceKey]instanceMetrics, len(times))
+	messages := make(map[instanceKey]string, len(times))
 
-	for resourceID, timestamp := range times {
-		metrics[resourceID] = sink.metrics[resourceID][timestamp]
-		messages[resourceID] = sink.messages[resourceID][timestamp]
+	for key, timestamp := range times {
+		metrics[key] = instanceMetrics{metrics: sink.metrics[key][timestamp], eventTime: timestamp}
+		messages[key] = sink.messages[key][timestamp]
 	}
 
 	return metrics, messages
@@ -92,6 +110,7 @@ type scraper struct {
 	stateResolver         instanceStateResolver
 	missing               *missingStreams
 	isolationCalls        int
+	errorCounts           map[string]uint64
 	nextResourceIDRefresh time.Time
 	nextStartTime         time.Time
 	logger                log.Logger
@@ -106,6 +125,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		stateResolver:         sessions.NewResourceIDResolver(cfg),
 		missing:               newMissingStreams(),
 		isolationCalls:        0,
+		errorCounts:           make(map[string]uint64),
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
@@ -140,10 +160,20 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 	return streams
 }
 
-// start scrapes metrics in loop and sends them to the channel until context is canceled.
-func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- map[string][]prometheus.Metric) {
+// scrapeResult is what a single scrape hands over to the collector.
+type scrapeResult struct {
+	metrics     map[instanceKey]instanceMetrics
+	errorCounts map[string]uint64 // error kind -> occurrences during the scrape
+	region      string
+}
+
+// start scrapes metrics in loop and sends them to the channel until context is canceled. It owns
+// the channel, so the receiver's range loop ends when the scraper stops.
+func (s *scraper) start(ctx context.Context, interval time.Duration, results chan<- scrapeResult) {
 	ticker := time.NewTicker(interval)
+
 	defer ticker.Stop()
+	defer close(results)
 
 	for {
 		select {
@@ -154,14 +184,36 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 		}
 
 		scrapeCtx, cancel := context.WithTimeout(ctx, interval)
-		m, _ := s.scrape(scrapeCtx)
+		metrics, _ := s.scrape(scrapeCtx)
 		cancel()
-		ch <- m
+
+		select {
+		case results <- s.result(metrics):
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
+// result packages a scrape for the collector and resets the error counters.
+func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
+	counts := s.errorCounts
+	s.errorCounts = make(map[string]uint64)
+
+	return scrapeResult{metrics: metrics, errorCounts: counts, region: s.region()}
+}
+
+// region returns the region the scraper's session covers.
+func (s *scraper) region() string {
+	if len(s.instances) == 0 {
+		return ""
+	}
+
+	return s.instances[0].Region
+}
+
 // scrape performs a single scrape.
-func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
+func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
 	sink := newEventSink()
 	s.isolationCalls = 0
 
@@ -179,9 +231,11 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 		}
 
 		scrapeErr = errors.Join(scrapeErr, batchErr)
+		kind := errorKind(batchErr)
+		s.errorCounts[kind]++
 
 		level.Error(s.logger).Log("msg", "Failed to collect enhanced metrics.",
-			"error", batchErr, "kind", errorKind(batchErr), "batch_size", len(streams))
+			"error", batchErr, "kind", kind, "batch_size", len(streams))
 
 		if isContextError(batchErr) {
 			break
@@ -308,14 +362,14 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 	return nil
 }
 
-// instanceNameFor returns the DB instance identifier owning the given log stream, for logging.
+// instanceNameFor returns the DB instance identifiers using the given log stream, for logging.
 func (s *scraper) instanceNameFor(logStreamName string) string {
-	instance := s.instanceFor(logStreamName)
-	if instance == nil {
-		return ""
+	names := make([]string, 0, 1)
+	for _, instance := range s.instancesFor(logStreamName) {
+		names = append(names, instance.Instance)
 	}
 
-	return instance.Instance
+	return strings.Join(names, ",")
 }
 
 // handleEvent parses a single log event and stores its metrics under the owning instance.
@@ -326,25 +380,19 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
 		"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
 
-	instance := s.instanceFor(aws.ToString(event.LogStreamName))
-	if instance == nil {
+	logStreamName := aws.ToString(event.LogStreamName)
+
+	instances := s.instancesFor(logStreamName)
+	if len(instances) == 0 {
 		level.Error(logger).Log("msg", "Failed to find instance.")
 
 		return
 	}
 
-	if s.missing.clear(instance.ResourceID) {
+	if s.missing.clear(logStreamName) {
 		level.Info(logger).Log("msg", "CloudWatch log stream is back; resuming Enhanced Monitoring requests.",
-			"region", instance.Region, "instance", instance.Instance)
+			"log_stream", logStreamName)
 	}
-
-	if instance.DisableEnhancedMetrics {
-		level.Debug(logger).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
-
-		return
-	}
-
-	logger = log.With(logger, "region", instance.Region, "instance", instance.Instance)
 
 	osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
 	if err != nil {
@@ -359,25 +407,39 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 	}
 
 	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
-	level.Debug(logger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
 
-	sink.add(
-		instance.ResourceID,
-		timestamp,
-		osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
-		aws.ToString(event.Message),
-	)
+	// Several configured instances can share a resource ID, and each of them needs its own sample.
+	for _, instance := range instances {
+		if instance.DisableEnhancedMetrics {
+			level.Debug(logger).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
+
+			continue
+		}
+
+		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
+		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
+			osMetrics.Timestamp.UTC(), timestamp))
+
+		sink.add(
+			keyOf(instance),
+			timestamp,
+			osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
+			aws.ToString(event.Message),
+		)
+	}
 }
 
-// instanceFor returns the instance owning the given log stream, or nil when no instance does.
-func (s *scraper) instanceFor(logStreamName string) *sessions.Instance {
+// instancesFor returns every instance using the given log stream.
+func (s *scraper) instancesFor(logStreamName string) []sessions.Instance {
+	res := make([]sessions.Instance, 0, 1)
+
 	for _, instance := range s.instances {
 		if instance.ResourceID == logStreamName {
-			return &instance
+			res = append(res, instance)
 		}
 	}
 
-	return nil
+	return res
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {
@@ -448,17 +510,17 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 // betterTimes returns the newest event timestamp per instance, the oldest of those timestamps, which
 // is the earliest point the next request must start from, and whether any events were collected at
 // all. When nothing was collected the caller must keep its current start time.
-func betterTimes(allTimes map[string][]time.Time) (map[string]time.Time, time.Time, bool) {
-	times := make(map[string]time.Time, len(allTimes)) // ResourceID -> timestamp
+func betterTimes(allTimes map[instanceKey][]time.Time) (map[instanceKey]time.Time, time.Time, bool) {
+	times := make(map[instanceKey]time.Time, len(allTimes))
 
 	var oldestNewest time.Time
 
-	for resourceID, events := range allTimes {
+	for key, events := range allTimes {
 		var newest time.Time
 		for _, timestamp := range events {
 			if newest.Before(timestamp) {
 				newest = timestamp
-				times[resourceID] = timestamp
+				times[key] = timestamp
 			}
 		}
 

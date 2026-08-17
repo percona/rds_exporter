@@ -76,13 +76,13 @@ func TestScraper(t *testing.T) {
 
 				instanceName := instance.Instance
 
-				actualMetrics := helpers.ReadMetrics(metrics[instance.ResourceID])
+				actualMetrics := helpers.ReadMetrics(metrics[keyOf(instance)].metrics)
 				sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
 				actualMetrics = filterMetrics(actualMetrics)
 				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 				if *golden {
-					writeTestDataJSON(t, instanceName, []byte(messages[instance.ResourceID]))
+					writeTestDataJSON(t, instanceName, []byte(messages[keyOf(instance)]))
 				}
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
@@ -152,6 +152,7 @@ func newTestScraperWith(
 		stateResolver:             stateResolver,
 		missing:                   newMissingStreams(),
 		isolationCalls:            0,
+		errorCounts:               make(map[string]uint64),
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
@@ -181,8 +182,8 @@ func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
 
 	require.Len(t, client.calls, 1)
 	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[oldResourceID])
-	assert.Empty(t, metrics[sameResourceID])
+	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
+	assert.Empty(t, metrics[testKey(unchangedPrimaryInstance)])
 }
 
 func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
@@ -262,9 +263,9 @@ func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
 
 	require.Len(t, client.calls, 1)
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[oldResourceID])
-	assert.NotEmpty(t, metrics[sameResourceID])
-	assert.Contains(t, messages[oldResourceID], oldResourceID)
+	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
+	assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)])
+	assert.Contains(t, messages[testKey(blueGreenPrimaryInstance)], oldResourceID)
 }
 
 func TestRefreshResourceIDs(t *testing.T) {
@@ -382,8 +383,8 @@ func TestBetterTimes(t *testing.T) {
 
 	type testdata struct {
 		name                  string
-		allTimes              map[string][]time.Time
-		expectedTimes         map[string]time.Time
+		allTimes              map[instanceKey][]time.Time
+		expectedTimes         map[instanceKey]time.Time
 		expectedNextStartTime time.Time
 		expectedCollected     bool
 	}
@@ -391,68 +392,68 @@ func TestBetterTimes(t *testing.T) {
 		{
 			name: "no events",
 			// Nothing was collected, so the caller must keep its current start time.
-			allTimes:              map[string][]time.Time{},
-			expectedTimes:         map[string]time.Time{},
+			allTimes:              map[instanceKey][]time.Time{},
+			expectedTimes:         map[instanceKey]time.Time{},
 			expectedNextStartTime: time.Time{},
 			expectedCollected:     false,
 		},
 		{
 			name: "single instance",
-			allTimes: map[string][]time.Time{
-				"1": {
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
 				},
 			},
-			expectedTimes: map[string]time.Time{
-				"1": time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("1"): time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
 			},
 			expectedNextStartTime: time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
 			expectedCollected:     true,
 		},
 		{
 			name: "duplicate timestamps",
-			allTimes: map[string][]time.Time{
-				"1": {
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 				},
 			},
-			expectedTimes: map[string]time.Time{
-				"1": time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("1"): time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 			},
 			expectedNextStartTime: time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 			expectedCollected:     true,
 		},
 		{
 			name: "oldest newest event across instances",
-			allTimes: map[string][]time.Time{
-				"1": {
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
 				},
-				"2": {
+				testKey("2"): {
 					time.Date(2018, 9, 29, 16, 25, 46, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 46, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
 				},
-				"3": {
+				testKey("3"): {
 					time.Date(2018, 9, 29, 16, 25, 51, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 26, 51, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
 				},
-				"4": {
+				testKey("4"): {
 					time.Date(2018, 9, 29, 16, 26, 3, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 27, 3, 0, time.UTC),
 					time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
 				},
 			},
-			expectedTimes: map[string]time.Time{
-				"1": time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
-				"2": time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
-				"3": time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
-				"4": time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("1"): time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
+				testKey("2"): time.Date(2018, 9, 29, 16, 27, 46, 0, time.UTC),
+				testKey("3"): time.Date(2018, 9, 29, 16, 27, 51, 0, time.UTC),
+				testKey("4"): time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
 			},
 			expectedNextStartTime: time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
 			expectedCollected:     true,
@@ -501,7 +502,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 			metrics, _ := s.scrape(context.Background())
 
 			for _, instance := range instances {
-				actualMetrics := helpers.ReadMetrics(metrics[instance.ResourceID])
+				actualMetrics := helpers.ReadMetrics(metrics[keyOf(instance)].metrics)
 				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 				name := instance.Instance
 				if instance.DisableEnhancedMetrics {

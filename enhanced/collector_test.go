@@ -1,0 +1,252 @@
+package enhanced
+
+import (
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/percona/exporter_shared/helpers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/promlog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const osMetricName = "node_cpu_average"
+
+func testKey(instance string) instanceKey {
+	return instanceKey{region: testRegion, instance: instance}
+}
+
+func testCollector(states map[instanceKey]instanceState) *Collector {
+	collector := newCollector(promlog.New(&promlog.Config{}))
+	collector.metrics = states
+
+	return collector
+}
+
+// sampleMetrics returns one OS metric carrying the labels the collector must not alter.
+func sampleMetrics(instance string) []prometheus.Metric {
+	desc := prometheus.NewDesc(osMetricName, "The percentage of CPU in use.", nil, prometheus.Labels{
+		regionLabel:   testRegion,
+		instanceLabel: instance,
+	})
+
+	return []prometheus.Metric{prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1)}
+}
+
+func collect(t *testing.T, collector *Collector) []*helpers.Metric {
+	t.Helper()
+
+	ch := make(chan prometheus.Metric, 100)
+	collector.Collect(ch)
+	close(ch)
+
+	collected := make([]prometheus.Metric, 0, len(ch))
+	for metric := range ch {
+		collected = append(collected, metric)
+	}
+
+	return helpers.ReadMetrics(collected)
+}
+
+func findMetric(metrics []*helpers.Metric, name, instance string) *helpers.Metric {
+	for _, metric := range metrics {
+		if metric.Name == name && metric.Labels[instanceLabel] == instance {
+			return metric
+		}
+	}
+
+	return nil
+}
+
+func TestCollectSkipsExpiredMetrics(t *testing.T) {
+	t.Parallel()
+
+	eventTime := time.Now().Add(-time.Minute)
+	collector := testCollector(map[instanceKey]instanceState{
+		testKey("fresh"): {
+			metrics:   sampleMetrics("fresh"),
+			eventTime: eventTime,
+			expiresAt: time.Now().Add(time.Minute),
+		},
+		testKey("expired"): {
+			metrics:   sampleMetrics("expired"),
+			eventTime: eventTime,
+			expiresAt: time.Now().Add(-time.Minute),
+		},
+	})
+
+	metrics := collect(t, collector)
+
+	assert.NotNil(t, findMetric(metrics, osMetricName, "fresh"))
+	assert.Nil(t, findMetric(metrics, osMetricName, "expired"),
+		"stale values must render as a gap instead of a flat line")
+
+	fresh := findMetric(metrics, upMetricName, "fresh")
+	require.NotNil(t, fresh)
+	assert.InDelta(t, 1.0, fresh.Value, 0)
+
+	expired := findMetric(metrics, upMetricName, "expired")
+	require.NotNil(t, expired)
+	assert.InDelta(t, 0.0, expired.Value, 0, "an outage must stay alertable on a value, not on absence")
+}
+
+func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
+	t.Parallel()
+
+	eventTime := time.Now().Add(-time.Minute)
+	collector := testCollector(map[instanceKey]instanceState{})
+	result := scrapeResult{
+		metrics: map[instanceKey]instanceMetrics{
+			testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
+		},
+		errorCounts: nil,
+		region:      testRegion,
+	}
+
+	collector.setMetrics(result, time.Minute)
+	firstExpiry := collector.metrics[testKey("primary")].expiresAt
+
+	// FilterLogEvents StartTime is inclusive, so the newest event of the slowest instance comes back
+	// on every scrape. Expiry must follow the event timestamp, not the wall clock.
+	collector.setMetrics(result, time.Minute)
+
+	assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
+}
+
+func TestSetMetricsRemovesLongExpiredInstances(t *testing.T) {
+	t.Parallel()
+
+	collector := testCollector(map[instanceKey]instanceState{
+		testKey("retired"): {
+			metrics:   sampleMetrics("retired"),
+			eventTime: time.Now().Add(-staleRetention - time.Minute),
+			expiresAt: time.Now().Add(-staleRetention),
+		},
+	})
+
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion}, time.Minute)
+
+	assert.Empty(t, collector.metrics, "an instance that stopped reporting must eventually disappear")
+}
+
+func TestSetMetricsReplacesInstanceAfterResourceIDChange(t *testing.T) {
+	t.Parallel()
+
+	collector := testCollector(map[instanceKey]instanceState{})
+	key := testKey("promoted")
+
+	collector.setMetrics(scrapeResult{
+		metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now().Add(-time.Minute)}},
+		errorCounts: nil,
+		region:      testRegion,
+	}, time.Minute)
+	collector.setMetrics(scrapeResult{
+		metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
+		errorCounts: nil,
+		region:      testRegion,
+	}, time.Minute)
+
+	require.Len(t, collector.metrics, 1, "a switchover must replace the instance, not duplicate its label set")
+
+	metrics := collect(t, collector)
+
+	ups := 0
+
+	for _, metric := range metrics {
+		if metric.Name == upMetricName {
+			ups++
+		}
+	}
+
+	assert.Equal(t, 1, ups)
+}
+
+func TestMetricsTTL(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		interval    time.Duration
+		expectedTTL time.Duration
+	}{
+		{interval: 2 * time.Second, expectedTTL: minMetricsTTL},
+		{interval: 10 * time.Second, expectedTTL: minMetricsTTL},
+		{interval: time.Minute, expectedTTL: minMetricsTTL},
+		{interval: 5 * time.Minute, expectedTTL: 15 * time.Minute},
+	} {
+		t.Run(testCase.interval.String(), func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expectedTTL, metricsTTL(testCase.interval))
+		})
+	}
+}
+
+func TestCollectorEmitsSelfMetrics(t *testing.T) {
+	t.Parallel()
+
+	eventTime := time.Now().Add(-time.Minute).Truncate(time.Second)
+	collector := testCollector(map[instanceKey]instanceState{
+		testKey("primary"): {
+			metrics:   sampleMetrics("primary"),
+			eventTime: eventTime,
+			expiresAt: time.Now().Add(time.Minute),
+		},
+	})
+	collector.errors[errorKey{region: testRegion, kind: errorKindThrottling}] = 3
+
+	metrics := collect(t, collector)
+
+	lastEvent := findMetric(metrics, lastEventMetricName, "primary")
+	require.NotNil(t, lastEvent)
+	assert.InDelta(t, float64(eventTime.Unix()), lastEvent.Value, 0)
+	assert.Equal(t, testRegion, lastEvent.Labels[regionLabel])
+
+	var errorsMetric *helpers.Metric
+
+	for _, metric := range metrics {
+		if metric.Name == scrapeErrorsMetricName {
+			errorsMetric = metric
+		}
+	}
+
+	require.NotNil(t, errorsMetric)
+	assert.InDelta(t, 3.0, errorsMetric.Value, 0)
+	assert.Equal(t, errorKindThrottling, errorsMetric.Labels[kindLabel])
+}
+
+func TestCollectorConcurrentCollectAndSetMetrics(t *testing.T) {
+	t.Parallel()
+
+	collector := testCollector(map[instanceKey]instanceState{})
+
+	var waitGroup sync.WaitGroup
+
+	for iteration := range 20 {
+		waitGroup.Add(2)
+
+		go func() {
+			defer waitGroup.Done()
+
+			collector.setMetrics(scrapeResult{
+				metrics: map[instanceKey]instanceMetrics{
+					testKey("primary"): {
+						metrics:   sampleMetrics("primary"),
+						eventTime: time.Now().Add(time.Duration(iteration) * time.Second),
+					},
+				},
+				errorCounts: map[string]uint64{errorKindOther: 1},
+				region:      testRegion,
+			}, time.Minute)
+		}()
+
+		go func() {
+			defer waitGroup.Done()
+
+			collect(t, collector)
+		}()
+	}
+
+	waitGroup.Wait()
+}

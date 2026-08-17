@@ -59,17 +59,17 @@ func TestScrapeIsolatesMissingLogStream(t *testing.T) {
 
 	metrics, _ := scraper.scrape(t.Context())
 
-	assert.NotEmpty(t, metrics[oldResourceID], "a missing stream must not starve the instances before it")
-	assert.NotEmpty(t, metrics[sameResourceID], "a missing stream must not starve the instances after it")
-	assert.Empty(t, metrics[missingResourceID])
+	assert.NotEmpty(t, metrics[testKey(oldResourceID)], "a missing stream must not starve the instances before it")
+	assert.NotEmpty(t, metrics[testKey(sameResourceID)], "a missing stream must not starve the instances after it")
+	assert.Empty(t, metrics[testKey(missingResourceID)])
 
 	client.calls = nil
 	metrics, _ = scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1, "a known missing stream must not cost an extra request")
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[oldResourceID])
-	assert.NotEmpty(t, metrics[sameResourceID])
+	assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+	assert.NotEmpty(t, metrics[testKey(sameResourceID)])
 }
 
 func TestScrapeReprobesMissingStream(t *testing.T) {
@@ -113,7 +113,7 @@ func TestScrapeReprobesMissingStream(t *testing.T) {
 
 		metrics, _ := scraper.scrape(t.Context())
 
-		assert.NotEmpty(t, metrics[missingResourceID])
+		assert.NotEmpty(t, metrics[testKey(missingResourceID)])
 		assert.Zero(t, scraper.missing.len())
 	})
 }
@@ -147,7 +147,7 @@ func TestScrapeClearsMissingStreamOnResourceIDChange(t *testing.T) {
 	assert.Zero(t, scraper.missing.len(), "the retired resource ID must not stay in the missing set")
 	require.Len(t, client.calls, 1)
 	assert.Equal(t, []string{newResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[newResourceID])
+	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
 }
 
 func TestScrapeKeepsStreamsOnRecoverableError(t *testing.T) {
@@ -203,7 +203,7 @@ func TestScrapeKeepsPartialResults(t *testing.T) {
 
 		metrics, _ := scraper.scrape(t.Context())
 
-		assert.NotEmpty(t, metrics[oldResourceID], "events already read must survive a later page error")
+		assert.NotEmpty(t, metrics[testKey(oldResourceID)], "events already read must survive a later page error")
 	})
 
 	t.Run("when an earlier batch fails", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestScrapeKeepsPartialResults(t *testing.T) {
 		metrics, _ := scraper.scrape(t.Context())
 
 		assert.Len(t, client.calls, 2)
-		assert.NotEmpty(t, metrics[streams[len(streams)-1]], "a failed batch must not skip the batches after it")
+		assert.NotEmpty(t, metrics[testKey(streams[len(streams)-1])], "a failed batch must not skip the batches after it")
 	})
 }
 
