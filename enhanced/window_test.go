@@ -77,6 +77,7 @@ func TestScrapeIgnoresEventsTimestampedInTheFuture(t *testing.T) {
 		accepted bool
 	}{
 		{name: "within the tolerated clock drift", skew: maxFutureSkew / 2, accepted: true},
+		{name: "at the tolerated clock drift", skew: maxFutureSkew, accepted: true},
 		{name: "beyond the tolerated clock drift", skew: 90 * time.Minute, accepted: false},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

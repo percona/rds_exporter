@@ -165,7 +165,7 @@ func TestPruneKeepsConfiguredInstancesReported(t *testing.T) {
 		},
 	}, "down")
 
-	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute})
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute}, time.Now())
 
 	metrics := collect(t, collector)
 
@@ -177,6 +177,28 @@ func TestPruneKeepsConfiguredInstancesReported(t *testing.T) {
 	lastEvent := findMetric(metrics, lastEventMetricName, "down")
 	require.NotNil(t, lastEvent, "support needs to know when the instance was last seen")
 	assert.InDelta(t, float64(eventTime.Unix()), lastEvent.Value, 0)
+}
+
+func TestPruneKeepsASampleUntilTheRetentionHasPassed(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	collector := configuredCollector(map[instanceKey]instanceState{
+		testKey("borderline"): {
+			metrics:    sampleMetrics("borderline"),
+			eventTime:  now.Add(-staleRetention),
+			expiresAt:  now,
+			receivedAt: now.Add(-staleRetention),
+		},
+	}, "borderline")
+
+	collector.prune(now)
+
+	assert.NotNil(t, collector.metrics[testKey("borderline")].metrics, "the retention is inclusive")
+
+	collector.prune(now.Add(time.Nanosecond))
+
+	assert.Nil(t, collector.metrics[testKey("borderline")].metrics)
 }
 
 func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
@@ -193,12 +215,12 @@ func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
 		interval:    time.Minute,
 	}
 
-	collector.setMetrics(result)
+	collector.setMetrics(result, time.Now())
 	firstExpiry := collector.metrics[testKey("primary")].expiresAt
 
 	// FilterLogEvents StartTime is inclusive, so the newest event of the slowest instance comes back
 	// on every scrape. Expiry must follow the event timestamp, not the wall clock.
-	collector.setMetrics(result)
+	collector.setMetrics(result, time.Now())
 
 	assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
 }
@@ -226,7 +248,7 @@ func TestSetMetricsRestoresAnInstanceWhosePayloadWasReleased(t *testing.T) {
 		errorCounts: nil,
 		region:      testRegion,
 		interval:    time.Minute,
-	})
+	}, time.Now())
 
 	state := collector.metrics[testKey("promoted")]
 	assert.NotNil(t, state.metrics, "an instance with no payload left must be able to start reporting again")
@@ -245,7 +267,7 @@ func TestSetMetricsRemovesLongExpiredInstances(t *testing.T) {
 		},
 	})
 
-	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute})
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute}, time.Now())
 
 	assert.Empty(t, collector.metrics, "an instance no longer configured must eventually disappear")
 }
@@ -261,13 +283,13 @@ func TestSetMetricsReplacesInstanceAfterResourceIDChange(t *testing.T) {
 		errorCounts: nil,
 		region:      testRegion,
 		interval:    time.Minute,
-	})
+	}, time.Now())
 	collector.setMetrics(scrapeResult{
 		metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
 		errorCounts: nil,
 		region:      testRegion,
 		interval:    time.Minute,
-	})
+	}, time.Now())
 
 	require.Len(t, collector.metrics, 1, "a switchover must replace the instance, not duplicate its label set")
 
@@ -317,7 +339,7 @@ func TestSetMetricsFollowsTheReportedInterval(t *testing.T) {
 		errorCounts: nil,
 		region:      testRegion,
 		interval:    10 * time.Minute,
-	})
+	}, time.Now())
 
 	assert.Equal(t, eventTime.Add(metricsTTL(10*time.Minute)), collector.metrics[testKey("primary")].expiresAt,
 		"expiry must follow the interval AWS reports now, not the one reported at startup")
@@ -380,7 +402,7 @@ func TestCollectorConcurrentCollectAndSetMetrics(t *testing.T) {
 				errorCounts: map[string]uint64{errorKindOther: 1},
 				region:      testRegion,
 				interval:    time.Minute,
-			})
+			}, time.Now())
 		}()
 
 		go func() {

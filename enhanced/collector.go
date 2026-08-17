@@ -120,7 +120,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
 		metrics, _ := s.scrape(ctx)
-		collector.setMetrics(s.result(metrics))
+		collector.setMetrics(s.result(metrics), time.Now())
 
 		results := make(chan scrapeResult)
 
@@ -130,7 +130,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 			defer collector.wg.Done()
 
 			for result := range results {
-				collector.setMetrics(result)
+				collector.setMetrics(result, time.Now())
 			}
 		}()
 
@@ -241,7 +241,7 @@ func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 }
 
 // setMetrics saves the latest scraped metrics and drops instances that stopped reporting long ago.
-func (c *Collector) setMetrics(result scrapeResult) {
+func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
@@ -262,7 +262,7 @@ func (c *Collector) setMetrics(result scrapeResult) {
 			metrics:    fresh.metrics,
 			eventTime:  fresh.eventTime,
 			expiresAt:  fresh.eventTime.Add(ttl),
-			receivedAt: time.Now(),
+			receivedAt: now,
 		}
 	}
 
@@ -270,7 +270,7 @@ func (c *Collector) setMetrics(result scrapeResult) {
 		c.errors[errorKey{region: result.region, kind: kind}] += count
 	}
 
-	c.prune(time.Now())
+	c.prune(now)
 }
 
 // prune releases what has not been refreshed for staleRetention. A monitored instance keeps its
