@@ -65,7 +65,7 @@ func TestScraper(t *testing.T) {
 			cfg := sess.Configs[session]
 			s := newScraper(cfg, instances, logger)
 			s.testDisallowUnknownFields = true
-			metrics, messages := s.scrape(context.Background())
+			metrics, messages := s.scrape(t.Context())
 			require.Len(t, metrics, len(instances))
 			require.Len(t, messages, len(instances))
 
@@ -545,7 +545,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			s := newScraper(sess.Configs[session], instances, logger)
 			s.testDisallowUnknownFields = true
-			metrics, _ := s.scrape(context.Background())
+			metrics, _ := s.scrape(t.Context())
 
 			for _, instance := range instances {
 				actualMetrics := helpers.ReadMetrics(metrics[keyOf(instance)].metrics)
