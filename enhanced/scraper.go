@@ -31,6 +31,10 @@ const (
 
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage.
 	maxLookback = 3 * time.Minute
+
+	// maxFutureSkew is how far ahead of the exporter's own clock an event may be timestamped. It
+	// tolerates clock drift between the exporter host and AWS, and nothing more.
+	maxFutureSkew = time.Minute
 )
 
 // instanceKey identifies an instance independently of its RDS resource ID, which changes on a
@@ -397,6 +401,11 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 			"log_stream", logStreamName)
 	}
 
+	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
+	if !s.usableTimestamp(timestamp, logger) {
+		return
+	}
+
 	osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
 	if err != nil {
 		// only for tests
@@ -408,8 +417,6 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 
 		return
 	}
-
-	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
 
 	// Several configured instances can share a resource ID, and each of them needs its own sample.
 	for _, instance := range instances {
@@ -430,6 +437,22 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 			aws.ToString(event.Message),
 		)
 	}
+}
+
+// usableTimestamp reports whether an event timestamp can be trusted. CloudWatch accepts log events
+// dated up to two hours ahead, and the timestamp drives both the next request window and the cache
+// entry's expiry, so one future-dated event would otherwise stall the whole session's requests and
+// suppress every later sample of the instance it belongs to.
+func (s *scraper) usableTimestamp(timestamp time.Time, logger log.Logger) bool {
+	if !timestamp.After(time.Now().Add(maxFutureSkew)) {
+		return true
+	}
+
+	s.errorCounts[errorKindFutureEvent]++
+
+	level.Warn(logger).Log("msg", "Ignoring Enhanced Monitoring event timestamped in the future.")
+
+	return false
 }
 
 // instancesFor returns every instance using the given log stream.

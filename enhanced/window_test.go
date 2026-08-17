@@ -68,6 +68,52 @@ func TestScrapeKeepsStartTimeWhenBatchFails(t *testing.T) {
 	assert.Equal(t, startTime, scraper.nextStartTime, "a partially failed scrape must not drop the events it missed")
 }
 
+func TestScrapeIgnoresEventsTimestampedInTheFuture(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		name     string
+		skew     time.Duration
+		accepted bool
+	}{
+		{name: "within the tolerated clock drift", skew: maxFutureSkew / 2, accepted: true},
+		{name: "beyond the tolerated clock drift", skew: 90 * time.Minute, accepted: false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			eventTime := time.Now().Add(testCase.skew).UTC().Truncate(time.Second)
+			client := &fakeLogsClient{
+				events: map[string][]types.FilteredLogEvent{
+					oldResourceID: {osMetricsEvent(oldResourceID, eventTime)},
+				},
+				missing:  nil,
+				errs:     nil,
+				pageSize: 0,
+				calls:    nil,
+			}
+			scraper := scraperWithStreams(client, oldResourceID)
+			startTime := scraper.nextStartTime
+
+			metrics, _ := scraper.scrape(t.Context())
+
+			if testCase.accepted {
+				assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+				assert.Equal(t, eventTime, scraper.nextStartTime)
+				assert.Zero(t, scraper.errorCounts[errorKindFutureEvent])
+
+				return
+			}
+
+			assert.Empty(t, metrics,
+				"a future timestamp would freeze the cache entry it lands in and never expire")
+			assert.Equal(t, startTime, scraper.nextStartTime,
+				"a future timestamp must not push the request window past legitimate events")
+			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindFutureEvent])
+		})
+	}
+}
+
 func TestScrapeClampsStartTimeToLookback(t *testing.T) {
 	t.Parallel()
 
