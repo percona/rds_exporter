@@ -46,6 +46,9 @@ type instanceState struct {
 	metrics   []prometheus.Metric
 	eventTime time.Time
 	expiresAt time.Time
+	// receivedAt is when the sample was stored. Retention is measured against it rather than against
+	// the event timestamp, which CloudWatch lets the monitored account choose.
+	receivedAt time.Time
 }
 
 type errorKey struct {
@@ -64,6 +67,10 @@ type Collector struct {
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+
+	// configured is every instance the collector monitors, so health can be reported for instances
+	// that have never delivered a sample.
+	configured map[instanceKey]struct{}
 
 	rw      sync.RWMutex
 	metrics map[instanceKey]instanceState
@@ -88,11 +95,12 @@ func newCollector(logger log.Logger) *Collector {
 		errorsDesc: prometheus.NewDesc(scrapeErrorsMetricName,
 			"Number of failed Enhanced Monitoring scrapes, by error kind.",
 			[]string{regionLabel, kindLabel}, nil),
-		cancel:  nil,
-		wg:      sync.WaitGroup{},
-		rw:      sync.RWMutex{},
-		metrics: make(map[instanceKey]instanceState),
-		errors:  make(map[errorKey]uint64),
+		cancel:     nil,
+		wg:         sync.WaitGroup{},
+		configured: make(map[instanceKey]struct{}),
+		rw:         sync.RWMutex{},
+		metrics:    make(map[instanceKey]instanceState),
+		errors:     make(map[errorKey]uint64),
 	}
 }
 
@@ -106,6 +114,10 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 	for session, instances := range sessions.AllSessions() {
 		enabledInstances := getEnabledInstances(instances)
+		for _, instance := range enabledInstances {
+			collector.configured[keyOf(instance)] = struct{}{}
+		}
+
 		cfg := sessions.Configs[session]
 		s := newScraper(cfg, enabledInstances, logger)
 
@@ -176,36 +188,57 @@ func getEnabledInstances(instances []sessions.Instance) []sessions.Instance {
 }
 
 // Describe implements prometheus.Collector.
-func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
+func (c *Collector) Describe(_ chan<- *prometheus.Desc) {
 	// unchecked collector
 }
 
 // Collect implements prometheus.Collector.
-func (c *Collector) Collect(ch chan<- prometheus.Metric) {
+func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
 
-	now := time.Now()
+	c.collectSamples(out, time.Now())
+	c.collectSilentInstances(out)
+	c.collectErrors(out)
+}
 
+// collectSamples emits the metrics of the instances that reported, and the health of all of them.
+// An expired sample contributes no metrics, so an outage renders as a gap rather than a flat line.
+func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) {
 	for key, state := range c.metrics {
 		current := now.Before(state.expiresAt)
 		if current {
 			for _, m := range state.metrics {
-				ch <- m
+				out <- m
 			}
 		}
 
-		ch <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, boolToFloat(current),
+		out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, boolToFloat(current),
 			key.region, key.instance)
 
 		if !state.eventTime.IsZero() {
-			ch <- prometheus.MustNewConstMetric(c.lastEventDesc, prometheus.GaugeValue,
+			out <- prometheus.MustNewConstMetric(c.lastEventDesc, prometheus.GaugeValue,
 				float64(state.eventTime.Unix()), key.region, key.instance)
 		}
 	}
+}
 
+// collectSilentInstances reports the instances that have never delivered a sample as down. Enhanced
+// Monitoring disabled in AWS, or a log stream that does not exist, otherwise leaves an instance with
+// no series at all, which can only be alerted on with absent().
+func (c *Collector) collectSilentInstances(out chan<- prometheus.Metric) {
+	for key := range c.configured {
+		if _, reported := c.metrics[key]; reported {
+			continue
+		}
+
+		out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, 0, key.region, key.instance)
+	}
+}
+
+func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 	for key, count := range c.errors {
-		ch <- prometheus.MustNewConstMetric(c.errorsDesc, prometheus.CounterValue, float64(count),
+		out <- prometheus.MustNewConstMetric(c.errorsDesc, prometheus.CounterValue, float64(count),
 			key.region, key.kind)
 	}
 }
@@ -223,9 +256,10 @@ func (c *Collector) setMetrics(result scrapeResult, ttl time.Duration) {
 		}
 
 		c.metrics[key] = instanceState{
-			metrics:   fresh.metrics,
-			eventTime: fresh.eventTime,
-			expiresAt: fresh.eventTime.Add(ttl),
+			metrics:    fresh.metrics,
+			eventTime:  fresh.eventTime,
+			expiresAt:  fresh.eventTime.Add(ttl),
+			receivedAt: time.Now(),
 		}
 	}
 
@@ -236,11 +270,23 @@ func (c *Collector) setMetrics(result scrapeResult, ttl time.Duration) {
 	c.prune(time.Now())
 }
 
+// prune releases what has not been refreshed for staleRetention. A monitored instance keeps its
+// entry without its payload, so a long outage stays reported as down instead of resolving the alert
+// by making the series disappear; anything else, such as a retired resource ID, is dropped.
 func (c *Collector) prune(now time.Time) {
 	for key, state := range c.metrics {
-		if now.Sub(state.eventTime) > staleRetention {
-			delete(c.metrics, key)
+		if now.Sub(state.receivedAt) <= staleRetention {
+			continue
 		}
+
+		if _, configured := c.configured[key]; !configured {
+			delete(c.metrics, key)
+
+			continue
+		}
+
+		state.metrics = nil
+		c.metrics[key] = state
 	}
 }
 

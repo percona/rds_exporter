@@ -72,6 +72,30 @@ func TestScrapeIsolatesMissingLogStream(t *testing.T) {
 	assert.NotEmpty(t, metrics[testKey(sameResourceID)])
 }
 
+func TestScrapeCountsMissingStreamOnce(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   eventsFor(oldResourceID),
+		missing:  map[string]struct{}{missingResourceID: {}},
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID, missingResourceID)
+
+	scraper.scrape(t.Context())
+
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound],
+		"a missing stream must be visible as an error, not silently swallowed")
+
+	scraper.errorCounts = make(map[string]uint64)
+	scraper.scrape(t.Context())
+
+	assert.Zero(t, scraper.errorCounts[errorKindNotFound],
+		"an already excluded stream must not inflate the counter on every scrape")
+}
+
 func TestScrapeReprobesMissingStream(t *testing.T) {
 	t.Parallel()
 

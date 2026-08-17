@@ -319,11 +319,14 @@ func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *event
 	return s.isolateMissing(ctx, streams, sink)
 }
 
-// markMissing excludes a log stream from later requests, logging only the first time.
+// markMissing excludes a log stream from later requests. It reports and logs only the transition, so
+// that a permanently missing stream neither inflates the counter nor floods the log every scrape.
 func (s *scraper) markMissing(logStreamName string) {
 	if !s.missing.mark(logStreamName, time.Now()) {
 		return
 	}
+
+	s.errorCounts[errorKindNotFound]++
 
 	level.Warn(s.logger).Log(
 		"msg", "CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests.",

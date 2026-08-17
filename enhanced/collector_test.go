@@ -25,6 +25,17 @@ func testCollector(states map[instanceKey]instanceState) *Collector {
 	return collector
 }
 
+// configuredCollector returns a collector monitoring the named instances, whether or not they have
+// ever delivered a sample.
+func configuredCollector(states map[instanceKey]instanceState, instances ...string) *Collector {
+	collector := testCollector(states)
+	for _, instance := range instances {
+		collector.configured[testKey(instance)] = struct{}{}
+	}
+
+	return collector
+}
+
 // sampleMetrics returns one OS metric carrying the labels the collector must not alter.
 func sampleMetrics(instance string) []prometheus.Metric {
 	desc := prometheus.NewDesc(osMetricName, "The percentage of CPU in use.", nil, prometheus.Labels{
@@ -66,14 +77,16 @@ func TestCollectSkipsExpiredMetrics(t *testing.T) {
 	eventTime := time.Now().Add(-time.Minute)
 	collector := testCollector(map[instanceKey]instanceState{
 		testKey("fresh"): {
-			metrics:   sampleMetrics("fresh"),
-			eventTime: eventTime,
-			expiresAt: time.Now().Add(time.Minute),
+			metrics:    sampleMetrics("fresh"),
+			eventTime:  eventTime,
+			expiresAt:  time.Now().Add(time.Minute),
+			receivedAt: time.Now(),
 		},
 		testKey("expired"): {
-			metrics:   sampleMetrics("expired"),
-			eventTime: eventTime,
-			expiresAt: time.Now().Add(-time.Minute),
+			metrics:    sampleMetrics("expired"),
+			eventTime:  eventTime,
+			expiresAt:  time.Now().Add(-time.Minute),
+			receivedAt: time.Now(),
 		},
 	})
 
@@ -90,6 +103,57 @@ func TestCollectSkipsExpiredMetrics(t *testing.T) {
 	expired := findMetric(metrics, upMetricName, "expired")
 	require.NotNil(t, expired)
 	assert.InDelta(t, 0.0, expired.Value, 0, "an outage must stay alertable on a value, not on absence")
+}
+
+func TestCollectReportsInstancesThatNeverDelivered(t *testing.T) {
+	t.Parallel()
+
+	collector := configuredCollector(map[instanceKey]instanceState{
+		testKey("reporting"): {
+			metrics:    sampleMetrics("reporting"),
+			eventTime:  time.Now().Add(-time.Minute),
+			expiresAt:  time.Now().Add(time.Minute),
+			receivedAt: time.Now(),
+		},
+	}, "reporting", "unmonitored")
+
+	metrics := collect(t, collector)
+
+	unmonitored := findMetric(metrics, upMetricName, "unmonitored")
+	require.NotNil(t, unmonitored, "an instance without Enhanced Monitoring must still be alertable")
+	assert.InDelta(t, 0.0, unmonitored.Value, 0)
+	assert.Nil(t, findMetric(metrics, osMetricName, "unmonitored"))
+
+	reporting := findMetric(metrics, upMetricName, "reporting")
+	require.NotNil(t, reporting)
+	assert.InDelta(t, 1.0, reporting.Value, 0)
+}
+
+func TestPruneKeepsConfiguredInstancesReported(t *testing.T) {
+	t.Parallel()
+
+	eventTime := time.Now().Add(-staleRetention - time.Minute)
+	collector := configuredCollector(map[instanceKey]instanceState{
+		testKey("down"): {
+			metrics:    sampleMetrics("down"),
+			eventTime:  eventTime,
+			expiresAt:  time.Now().Add(-staleRetention),
+			receivedAt: eventTime,
+		},
+	}, "down")
+
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion}, time.Minute)
+
+	metrics := collect(t, collector)
+
+	down := findMetric(metrics, upMetricName, "down")
+	require.NotNil(t, down, "an outage longer than the retention must not resolve the alert by itself")
+	assert.InDelta(t, 0.0, down.Value, 0)
+	assert.Nil(t, findMetric(metrics, osMetricName, "down"), "the stale payload must be released")
+
+	lastEvent := findMetric(metrics, lastEventMetricName, "down")
+	require.NotNil(t, lastEvent, "support needs to know when the instance was last seen")
+	assert.InDelta(t, float64(eventTime.Unix()), lastEvent.Value, 0)
 }
 
 func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
@@ -120,15 +184,16 @@ func TestSetMetricsRemovesLongExpiredInstances(t *testing.T) {
 
 	collector := testCollector(map[instanceKey]instanceState{
 		testKey("retired"): {
-			metrics:   sampleMetrics("retired"),
-			eventTime: time.Now().Add(-staleRetention - time.Minute),
-			expiresAt: time.Now().Add(-staleRetention),
+			metrics:    sampleMetrics("retired"),
+			eventTime:  time.Now().Add(-staleRetention - time.Minute),
+			expiresAt:  time.Now().Add(-staleRetention),
+			receivedAt: time.Now().Add(-staleRetention - time.Minute),
 		},
 	})
 
 	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion}, time.Minute)
 
-	assert.Empty(t, collector.metrics, "an instance that stopped reporting must eventually disappear")
+	assert.Empty(t, collector.metrics, "an instance no longer configured must eventually disappear")
 }
 
 func TestSetMetricsReplacesInstanceAfterResourceIDChange(t *testing.T) {
@@ -189,9 +254,10 @@ func TestCollectorEmitsSelfMetrics(t *testing.T) {
 	eventTime := time.Now().Add(-time.Minute).Truncate(time.Second)
 	collector := testCollector(map[instanceKey]instanceState{
 		testKey("primary"): {
-			metrics:   sampleMetrics("primary"),
-			eventTime: eventTime,
-			expiresAt: time.Now().Add(time.Minute),
+			metrics:    sampleMetrics("primary"),
+			eventTime:  eventTime,
+			expiresAt:  time.Now().Add(time.Minute),
+			receivedAt: time.Now(),
 		},
 	})
 	collector.errors[errorKey{region: testRegion, kind: errorKindThrottling}] = 3
