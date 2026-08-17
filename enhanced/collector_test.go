@@ -10,6 +10,8 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/percona/rds_exporter/sessions"
 )
 
 const osMetricName = "node_cpu_average"
@@ -69,6 +71,27 @@ func findMetric(metrics []*helpers.Metric, name, instance string) *helpers.Metri
 	}
 
 	return nil
+}
+
+func TestConfigureCoversEverySessionBeforeScraping(t *testing.T) {
+	t.Parallel()
+
+	disabled := testInstance("disabled", "disabled-resource-id")
+	disabled.DisableEnhancedMetrics = true
+
+	collector := newCollector(promlog.New(&promlog.Config{}))
+	enabled := collector.configure(map[string][]sessions.Instance{
+		"session-a": {testInstance("primary", oldResourceID)},
+		"session-b": {testInstance("replica", newResourceID), disabled},
+	})
+
+	// prune reads the set from the drain goroutine of a session that is already scraping, so no
+	// session may still be missing from it by then.
+	assert.Equal(t, map[instanceKey]struct{}{
+		testKey("primary"): {},
+		testKey("replica"): {},
+	}, collector.configured)
+	assert.Len(t, enabled["session-b"], 1, "an instance PMM disabled must not be scraped")
 }
 
 func TestCollectSkipsExpiredMetrics(t *testing.T) {

@@ -112,12 +112,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	ctx, cancel := context.WithCancel(context.Background())
 	collector.cancel = cancel
 
-	for session, instances := range sessions.AllSessions() {
-		enabledInstances := getEnabledInstances(instances)
-		for _, instance := range enabledInstances {
-			collector.configured[keyOf(instance)] = struct{}{}
-		}
-
+	for session, enabledInstances := range collector.configure(sessions.AllSessions()) {
 		cfg := sessions.Configs[session]
 		s := newScraper(cfg, enabledInstances, logger)
 
@@ -149,6 +144,22 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	}
 
 	return collector
+}
+
+// configure records every instance the collector monitors and returns them grouped by session. The
+// set has to be complete before the first scraper starts, because prune reads it from every drain
+// goroutine and nothing writes it afterwards.
+func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]sessions.Instance {
+	enabled := make(map[string][]sessions.Instance, len(all))
+
+	for session, instances := range all {
+		enabled[session] = getEnabledInstances(instances)
+		for _, instance := range enabled[session] {
+			c.configured[keyOf(instance)] = struct{}{}
+		}
+	}
+
+	return enabled
 }
 
 // Stop stops the scrapers and waits for them to finish.
