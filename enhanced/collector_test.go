@@ -175,10 +175,15 @@ func TestCollect(t *testing.T) { //nolint:funlen
 
 		metrics := collect(t, collector)
 
+		up := findMetric(metrics, upMetricName, "primary")
+		require.NotNil(t, up)
+		assert.InDelta(t, 1.0, up.Value, 0)
+		assert.Equal(t, prometheus.Labels{regionLabel: testRegion, instanceLabel: "primary"}, up.Labels)
+
 		lastEvent := findMetric(metrics, lastEventMetricName, "primary")
 		require.NotNil(t, lastEvent)
 		assert.InDelta(t, float64(eventTime.Unix()), lastEvent.Value, 0)
-		assert.Equal(t, testRegion, lastEvent.Labels[regionLabel])
+		assert.Equal(t, prometheus.Labels{regionLabel: testRegion, instanceLabel: "primary"}, lastEvent.Labels)
 
 		var errorsMetric *helpers.Metric
 
@@ -190,7 +195,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 
 		require.NotNil(t, errorsMetric)
 		assert.InDelta(t, 3.0, errorsMetric.Value, 0)
-		assert.Equal(t, errorKindThrottling, errorsMetric.Labels[kindLabel])
+		assert.Equal(t, prometheus.Labels{regionLabel: testRegion, kindLabel: errorKindThrottling}, errorsMetric.Labels)
 	})
 
 	t.Run("runs concurrently with the scrapers", func(t *testing.T) {

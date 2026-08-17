@@ -96,7 +96,7 @@ func TestScrapeCountsMissingStreamOnce(t *testing.T) {
 		"an already excluded stream must not inflate the counter on every scrape")
 }
 
-func TestScrapeReprobesMissingStream(t *testing.T) {
+func TestScrapeReprobesMissingStream(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
 	newClient := func() *fakeLogsClient {
@@ -122,6 +122,24 @@ func TestScrapeReprobesMissingStream(t *testing.T) {
 
 		require.Len(t, client.calls, 1)
 		assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
+	})
+
+	t.Run("still missing when the probe comes due", func(t *testing.T) {
+		t.Parallel()
+
+		client := newClient()
+		scraper := scraperWithStreams(client, oldResourceID, missingResourceID)
+		scraper.scrape(t.Context())
+
+		scraper.missing.probeAfter[missingResourceID] = time.Now().Add(-time.Minute)
+		scraper.errorCounts = make(map[string]uint64)
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, 1, scraper.missing.len(), "a stream that is still missing stays excluded")
+		assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a stream already excluded must not be reported again")
+		assert.True(t, scraper.missing.probeAfter[missingResourceID].After(time.Now()),
+			"a failed probe must wait another TTL")
 	})
 
 	t.Run("heals once the stream exists", func(t *testing.T) {
@@ -395,6 +413,53 @@ func TestScrapeIsolatesEachBatchIndependently(t *testing.T) {
 		"a batch full of missing streams must not spend the recovery budget of unrelated batches")
 	assert.LessOrEqual(t, len(client.calls), 2*(maxIsolationCalls+1),
 		"isolation must stay bounded per batch")
+}
+
+func TestScrapeStaggersProbesAcrossScrapes(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(4 * maxProbesPerScrape)
+	client := &fakeLogsClient{events: nil, missing: nil, errs: nil, pageSize: 0, calls: nil}
+	scraper := scraperWithStreams(client, streams...)
+
+	for _, stream := range streams {
+		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL))
+	}
+
+	batches := scraper.batches(time.Now())
+
+	require.Len(t, batches, 1)
+	assert.Len(t, batches[0], maxProbesPerScrape,
+		"a fleet of missing streams must not spend a whole scrape on probes")
+}
+
+func TestScrapeLeavesBatchesForTheNextScrapeWhenTimeRunsOut(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(150)
+	healthy := streams[len(streams)-1]
+	client := &fakeLogsClient{
+		events:   eventsFor(healthy),
+		missing:  map[string]struct{}{streams[0]: {}},
+		errs:     []error{nil, context.DeadlineExceeded},
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+	startTime := scraper.nextStartTime
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	// The scrape is bounded by its interval, so isolation can run out of time. What it did not
+	// attribute is retried on the next scrape, with the streams it did exclude already left out.
+	for _, call := range client.calls {
+		assert.NotContains(t, call.streams, healthy,
+			"the batches behind the one that ran out of time wait for the next scrape")
+	}
+
+	assert.Empty(t, metrics[testKey(healthy)])
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+	assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
 }
 
 func TestScrapeBoundsIsolationCalls(t *testing.T) {

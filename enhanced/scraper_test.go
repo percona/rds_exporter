@@ -327,6 +327,7 @@ func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	assert.Zero(t, scraper.missing.len(), "a resolver failure says nothing about which streams exist")
 }
 
 func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
