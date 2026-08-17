@@ -399,7 +399,22 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 		}
 	}
 
+	s.rearmProbes(streams)
+
 	return nil
+}
+
+// rearmProbes gives another TTL to the excluded streams CloudWatch accepted but that delivered no
+// event. handleEvent clears the ones that reported, so what is left here exists without publishing,
+// and would otherwise stay due and spend one of the scrape's probe slots forever.
+func (s *scraper) rearmProbes(streams []string) {
+	now := time.Now()
+
+	for _, stream := range streams {
+		if s.missing.marked(stream) {
+			s.missing.mark(stream, now)
+		}
+	}
 }
 
 // instanceNameFor returns the DB instance identifiers using the given log stream, for logging.
@@ -563,6 +578,13 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 		"instance", instance.Instance,
 		"interval", interval,
 	)
+
+	if interval <= 0 {
+		// The stream is not requested at all any more, so its exclusion must not outlive it:
+		// re-enabling Enhanced Monitoring would otherwise wait for a probe to come due.
+		s.missing.clear(instance.ResourceID)
+	}
+
 	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
 }
 

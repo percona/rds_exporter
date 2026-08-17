@@ -142,6 +142,69 @@ func TestScrapeReprobesMissingStream(t *testing.T) {
 	})
 }
 
+func TestScrapeRearmsProbeOfSilentStream(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   eventsFor(oldResourceID),
+		missing:  map[string]struct{}{missingResourceID: {}},
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID, missingResourceID)
+	scraper.scrape(t.Context())
+	require.Equal(t, 1, scraper.missing.len())
+
+	// The stream exists again, but has published nothing inside the request window.
+	delete(client.missing, missingResourceID)
+	scraper.missing.probeAfter[missingResourceID] = time.Now().Add(-time.Minute)
+
+	scraper.scrape(t.Context())
+
+	assert.True(t, scraper.missing.probeAfter[missingResourceID].After(time.Now()),
+		"a stream that answers without events must not stay due for a probe")
+
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams,
+		"a silent stream must not spend a probe slot on every scrape")
+}
+
+func TestScrapeClearsMissingStreamWhenMonitoringIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   nil,
+		missing:  map[string]struct{}{oldResourceID: {}},
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := newTestScraperWithClient(client, []sessions.Instance{
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+	})
+	scraper.scrape(t.Context())
+	require.Equal(t, 1, scraper.missing.len())
+
+	scraper.stateResolver = &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 0},
+		},
+		err:   nil,
+		calls: 0,
+	}
+	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
+
+	scraper.scrape(t.Context())
+
+	assert.Zero(t, scraper.missing.len(),
+		"an exclusion must not outlive the log stream it excludes")
+}
+
 func TestScrapeClearsMissingStreamOnResourceIDChange(t *testing.T) {
 	t.Parallel()
 
