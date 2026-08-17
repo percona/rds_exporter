@@ -14,8 +14,8 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-type resourceIDResolver interface {
-	ResourceIDs(ctx context.Context) (map[string]string, error)
+type instanceStateResolver interface {
+	InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error)
 }
 
 const resourceIDRefreshInterval = 5 * time.Minute
@@ -23,9 +23,8 @@ const resourceIDRefreshInterval = 5 * time.Minute
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
 	instances             []sessions.Instance
-	logStreamNames        []string
 	svc                   cloudwatchlogs.FilterLogEventsAPIClient
-	resourceIDResolver    resourceIDResolver
+	stateResolver         instanceStateResolver
 	nextResourceIDRefresh time.Time
 	nextStartTime         time.Time
 	logger                log.Logger
@@ -34,20 +33,30 @@ type scraper struct {
 }
 
 func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
-	logStreamNames := make([]string, 0, len(instances))
-	for _, instance := range instances {
-		logStreamNames = append(logStreamNames, instance.ResourceID)
-	}
-
 	return &scraper{
 		instances:             instances,
-		logStreamNames:        logStreamNames,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
-		resourceIDResolver:    sessions.NewResourceIDResolver(cfg),
+		stateResolver:         sessions.NewResourceIDResolver(cfg),
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		nextStartTime:         time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
 	}
+}
+
+// enhancedStreams returns the log streams to request metrics from. Instances whose Enhanced
+// Monitoring is disabled in AWS have no log stream at all, and CloudWatch rejects the whole
+// request when any single requested stream does not exist.
+func (s *scraper) enhancedStreams() []string {
+	streams := make([]string, 0, len(s.instances))
+	for _, instance := range s.instances {
+		if instance.EnhancedMonitoringInterval <= 0 {
+			continue
+		}
+
+		streams = append(streams, instance.ResourceID)
+	}
+
+	return streams
 }
 
 // start scrapes metrics in loop and sends them to the channel until context is canceled.
@@ -75,13 +84,16 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
 	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
 
-	if err := s.refreshResourceIDs(ctx); err != nil {
-		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
+	err := s.refreshInstanceStates(ctx)
+	if err != nil {
+		level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
 	}
 
 	// LogStreamNames parameter supports up to 100 items.
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
-	streamCount := len(s.logStreamNames)
+	logStreamNames := s.enhancedStreams()
+
+	streamCount := len(logStreamNames)
 	for i := 0; i < streamCount; i += 100 {
 		sliceStart := i
 		sliceEnd := i + 100
@@ -91,7 +103,7 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 
 		input := &cloudwatchlogs.FilterLogEventsInput{
 			LogGroupName:   aws.String("RDSOSMetrics"),
-			LogStreamNames: s.logStreamNames[sliceStart:sliceEnd],
+			LogStreamNames: logStreamNames[sliceStart:sliceEnd],
 			StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
 		}
 
@@ -176,24 +188,25 @@ func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, m
 	return resMetrics, resMessages
 }
 
-func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 	if time.Now().Before(s.nextResourceIDRefresh) {
 		return nil
 	}
 
 	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
-	return s.updateResourceIDs(ctx)
+
+	return s.updateInstanceStates(ctx)
 }
 
-func (s *scraper) updateResourceIDs(ctx context.Context) error {
-	resourceIDs, err := s.resourceIDResolver.ResourceIDs(ctx)
+func (s *scraper) updateInstanceStates(ctx context.Context) error {
+	states, err := s.stateResolver.InstanceStates(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to refresh resource IDs: %w", err)
+		return fmt.Errorf("failed to refresh instance states: %w", err)
 	}
 
 	for instanceIndex, instance := range s.instances {
-		resourceID := resourceIDs[instance.Instance]
-		if resourceID == "" {
+		state, ok := states[instance.Instance]
+		if !ok || state.ResourceID == "" {
 			level.Warn(s.logger).Log(
 				"msg", "RDS resource ID not found.",
 				"region", instance.Region,
@@ -202,7 +215,9 @@ func (s *scraper) updateResourceIDs(ctx context.Context) error {
 			continue
 		}
 
-		if resourceID == instance.ResourceID {
+		s.updateMonitoringInterval(instanceIndex, state.MonitoringInterval)
+
+		if state.ResourceID == instance.ResourceID {
 			continue
 		}
 
@@ -210,19 +225,29 @@ func (s *scraper) updateResourceIDs(ctx context.Context) error {
 			"msg", "RDS resource ID changed.",
 			"region", instance.Region,
 			"instance", instance.Instance,
-			"resource_id", resourceID,
+			"resource_id", state.ResourceID,
 		)
-		s.updateResourceID(instanceIndex, resourceID)
+		s.instances[instanceIndex].ResourceID = state.ResourceID
 	}
 
 	return nil
 }
 
-func (s *scraper) updateResourceID(instanceIndex int, resourceID string) {
-	// Scrapes for a single scraper run serially, so these paired slices can be
-	// updated in place as long as scrape execution is not parallelized.
-	s.instances[instanceIndex].ResourceID = resourceID
-	s.logStreamNames[instanceIndex] = resourceID
+// updateMonitoringInterval records a change of the instance's Enhanced Monitoring state, which
+// decides whether the instance has a log stream to request at all.
+func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Duration) {
+	instance := s.instances[instanceIndex]
+	if instance.EnhancedMonitoringInterval == interval {
+		return
+	}
+
+	level.Info(s.logger).Log(
+		"msg", "RDS Enhanced Monitoring interval changed.",
+		"region", instance.Region,
+		"instance", instance.Instance,
+		"interval", interval,
+	)
+	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
 }
 
 // betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request

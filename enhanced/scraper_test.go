@@ -30,11 +30,7 @@ const (
 	testRegion               = "us-east-1"
 )
 
-var (
-	errDescribeFailed = errors.New("describe failed")
-
-	testEventTime = time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
-)
+var errDescribeFailed = errors.New("describe failed")
 
 func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 	res := make([]*helpers.Metric, 0, len(metrics))
@@ -110,72 +106,136 @@ func TestScraper(t *testing.T) {
 	}
 }
 
-type fakeResourceIDResolver struct {
-	resourceIDs map[string]string
-	err         error
-	calls       int
+type fakeStateResolver struct {
+	states map[string]sessions.InstanceState
+	err    error
+	calls  int
 }
 
-func (r *fakeResourceIDResolver) ResourceIDs(_ context.Context) (map[string]string, error) {
+func (r *fakeStateResolver) InstanceStates(_ context.Context) (map[string]sessions.InstanceState, error) {
 	r.calls++
 	if r.err != nil {
 		return nil, r.err
 	}
 
-	return r.resourceIDs, nil
+	return r.states, nil
 }
 
-func newTestScraper(resourceIDResolver resourceIDResolver) *scraper {
-	logger := promlog.New(&promlog.Config{})
-	return &scraper{
-		instances: []sessions.Instance{
-			{
-				Region:                     "us-east-1",
-				Instance:                   blueGreenPrimaryInstance,
-				DisableBasicMetrics:        false,
-				DisableEnhancedMetrics:     false,
-				ResourceID:                 oldResourceID,
-				Labels:                     nil,
-				EnhancedMonitoringInterval: 0,
-			},
-			{
-				Region:                     "us-east-1",
-				Instance:                   unchangedPrimaryInstance,
-				DisableBasicMetrics:        false,
-				DisableEnhancedMetrics:     false,
-				ResourceID:                 sameResourceID,
-				Labels:                     nil,
-				EnhancedMonitoringInterval: 0,
-			},
-		},
-		logStreamNames:            []string{oldResourceID, sameResourceID},
-		svc:                       nil,
-		resourceIDResolver:        resourceIDResolver,
-		nextResourceIDRefresh:     time.Time{},
-		nextStartTime:             time.Time{},
-		logger:                    logger,
-		testDisallowUnknownFields: false,
-	}
+func monitoredState(resourceID string) sessions.InstanceState {
+	return sessions.InstanceState{ResourceID: resourceID, MonitoringInterval: time.Minute}
 }
 
-// newTestScraperWithClient returns a scraper backed by a fake CloudWatch Logs client, with the
-// resource ID refresh parked in the future so only tests that ask for it exercise the resolver.
+func newTestScraper(stateResolver instanceStateResolver) *scraper {
+	return newTestScraperWith(nil, stateResolver, []sessions.Instance{
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+		testInstance(unchangedPrimaryInstance, sameResourceID),
+	}, time.Time{})
+}
+
+// newTestScraperWithClient parks the resource ID refresh in the future so that only tests asking
+// for a refresh exercise the resolver.
 func newTestScraperWithClient(client cloudwatchlogs.FilterLogEventsAPIClient, instances []sessions.Instance) *scraper {
-	logStreamNames := make([]string, 0, len(instances))
-	for _, instance := range instances {
-		logStreamNames = append(logStreamNames, instance.ResourceID)
-	}
+	resolver := &fakeStateResolver{states: nil, err: nil, calls: 0}
 
+	return newTestScraperWith(client, resolver, instances, time.Now().Add(time.Hour))
+}
+
+func newTestScraperWith(
+	client cloudwatchlogs.FilterLogEventsAPIClient,
+	stateResolver instanceStateResolver,
+	instances []sessions.Instance,
+	nextResourceIDRefresh time.Time,
+) *scraper {
 	return &scraper{
 		instances:                 instances,
-		logStreamNames:            logStreamNames,
 		svc:                       client,
-		resourceIDResolver:        &fakeResourceIDResolver{resourceIDs: nil, err: nil, calls: 0},
-		nextResourceIDRefresh:     time.Now().Add(time.Hour),
-		nextStartTime:             testEventTime.Add(-time.Minute),
+		stateResolver:             stateResolver,
+		nextResourceIDRefresh:     nextResourceIDRefresh,
+		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
 		testDisallowUnknownFields: false,
 	}
+}
+
+func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
+	t.Parallel()
+
+	unmonitored := testInstance(unchangedPrimaryInstance, sameResourceID)
+	unmonitored.EnhancedMonitoringInterval = 0
+
+	client := &fakeLogsClient{
+		events:   map[string][]types.FilteredLogEvent{oldResourceID: {osMetricsEvent(oldResourceID, testEventTime())}},
+		missing:  map[string]struct{}{sameResourceID: {}},
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := newTestScraperWithClient(client, []sessions.Instance{
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+		unmonitored,
+	})
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
+	assert.NotEmpty(t, metrics[oldResourceID])
+	assert.Empty(t, metrics[sameResourceID])
+}
+
+func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
+	t.Parallel()
+
+	t.Run("enabled later", func(t *testing.T) {
+		t.Parallel()
+
+		unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
+		unmonitored.EnhancedMonitoringInterval = 0
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+		scraper := newTestScraperWith(nil, resolver, []sessions.Instance{unmonitored}, time.Time{})
+
+		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+		assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
+		assert.Equal(t, []string{oldResourceID}, scraper.enhancedStreams())
+	})
+
+	t.Run("disabled later", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 0},
+			},
+			err:   nil,
+			calls: 0,
+		}
+		scraper := newTestScraperWith(nil, resolver, []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, oldResourceID),
+		}, time.Time{})
+
+		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+		assert.Zero(t, scraper.instances[0].EnhancedMonitoringInterval)
+		assert.Empty(t, scraper.enhancedStreams())
+	})
+}
+
+func TestRefreshKeepsMonitoringIntervalOnResolverError(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
+	scraper := newTestScraper(resolver)
+
+	require.ErrorIs(t, scraper.refreshInstanceStates(t.Context()), errDescribeFailed)
+
+	assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
+	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
@@ -183,8 +243,8 @@ func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
 
 	client := &fakeLogsClient{
 		events: map[string][]types.FilteredLogEvent{
-			oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime)},
-			sameResourceID: {osMetricsEvent(sameResourceID, testEventTime)},
+			oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime())},
+			sameResourceID: {osMetricsEvent(sameResourceID, testEventTime())},
 		},
 		missing:  nil,
 		errs:     nil,
@@ -208,97 +268,90 @@ func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
 func TestRefreshResourceIDs(t *testing.T) {
 	t.Parallel()
 
-	resolver := &fakeResourceIDResolver{
-		resourceIDs: map[string]string{
-			blueGreenPrimaryInstance: newResourceID,
-			unchangedPrimaryInstance: sameResourceID,
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: monitoredState(newResourceID),
+			unchangedPrimaryInstance: monitoredState(sameResourceID),
 		},
 		err:   nil,
 		calls: 0,
 	}
 	scraper := newTestScraper(resolver)
 
-	err := scraper.refreshResourceIDs(t.Context())
+	err := scraper.refreshInstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, newResourceID, scraper.logStreamNames[0])
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.logStreamNames[1])
+	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
 	t.Parallel()
 
-	resolver := &fakeResourceIDResolver{
-		resourceIDs: nil,
-		err:         errDescribeFailed,
-		calls:       0,
-	}
+	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
 	scraper := newTestScraper(resolver)
 
-	err := scraper.refreshResourceIDs(t.Context())
+	err := scraper.refreshInstanceStates(t.Context())
 
 	require.ErrorIs(t, err, errDescribeFailed)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, oldResourceID, scraper.logStreamNames[0])
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
 	t.Parallel()
 
-	resolver := &fakeResourceIDResolver{
-		resourceIDs: map[string]string{
-			blueGreenPrimaryInstance: "",
-			unchangedPrimaryInstance: sameResourceID,
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: monitoredState(""),
+			unchangedPrimaryInstance: monitoredState(sameResourceID),
 		},
 		err:   nil,
 		calls: 0,
 	}
 	scraper := newTestScraper(resolver)
 
-	err := scraper.refreshResourceIDs(t.Context())
+	err := scraper.refreshInstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, oldResourceID, scraper.logStreamNames[0])
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.logStreamNames[1])
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
 	t.Parallel()
 
-	resolver := &fakeResourceIDResolver{
-		resourceIDs: map[string]string{
-			blueGreenPrimaryInstance: oldResourceID,
-			unchangedPrimaryInstance: sameResourceID,
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: monitoredState(oldResourceID),
+			unchangedPrimaryInstance: monitoredState(sameResourceID),
 		},
 		err:   nil,
 		calls: 0,
 	}
 	scraper := newTestScraper(resolver)
 
-	err := scraper.refreshResourceIDs(t.Context())
+	err := scraper.refreshInstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, oldResourceID, scraper.logStreamNames[0])
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.logStreamNames[1])
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	t.Parallel()
 
-	resolver := &fakeResourceIDResolver{
-		resourceIDs: map[string]string{
-			blueGreenPrimaryInstance: newResourceID,
-			unchangedPrimaryInstance: sameResourceID,
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: monitoredState(newResourceID),
+			unchangedPrimaryInstance: monitoredState(sameResourceID),
 		},
 		err:   nil,
 		calls: 0,
@@ -306,21 +359,20 @@ func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	scraper := newTestScraper(resolver)
 	scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
 
-	err := scraper.refreshResourceIDs(t.Context())
+	err := scraper.refreshInstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 0, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, oldResourceID, scraper.logStreamNames[0])
 
 	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 
-	err = scraper.refreshResourceIDs(t.Context())
+	err = scraper.refreshInstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, newResourceID, scraper.logStreamNames[0])
+	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams())
 }
 
 func TestBetterTimes(t *testing.T) {
