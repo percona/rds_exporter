@@ -58,8 +58,7 @@ type errorKey struct {
 
 // Collector collects enhanced RDS metrics by utilizing several scrapers.
 type Collector struct {
-	sessions *sessions.Sessions
-	logger   log.Logger
+	logger log.Logger
 
 	upDesc        *prometheus.Desc
 	lastEventDesc *prometheus.Desc
@@ -84,8 +83,7 @@ func metricsTTL(interval time.Duration) time.Duration {
 
 func newCollector(logger log.Logger) *Collector {
 	return &Collector{
-		sessions: nil,
-		logger:   log.With(logger, "component", "enhanced"),
+		logger: log.With(logger, "component", "enhanced"),
 		upDesc: prometheus.NewDesc(upMetricName,
 			"Whether Enhanced Monitoring metrics for this instance are current (1) or stale (0).",
 			[]string{regionLabel, instanceLabel}, nil),
@@ -107,7 +105,6 @@ func newCollector(logger log.Logger) *Collector {
 // NewCollector creates new collector and starts scrapers.
 func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	collector := newCollector(logger)
-	collector.sessions = sessions
 
 	ctx, cancel := context.WithCancel(context.Background())
 	collector.cancel = cancel
