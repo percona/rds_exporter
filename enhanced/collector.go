@@ -116,13 +116,11 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 		cfg := sessions.Configs[session]
 		s := newScraper(cfg, enabledInstances, logger)
 
-		interval := scrapeInterval(enabledInstances)
-		ttl := metricsTTL(interval)
-		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", interval))
+		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", s.interval()))
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
 		metrics, _ := s.scrape(ctx)
-		collector.setMetrics(s.result(metrics), ttl)
+		collector.setMetrics(s.result(metrics))
 
 		results := make(chan scrapeResult)
 
@@ -132,14 +130,14 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 			defer collector.wg.Done()
 
 			for result := range results {
-				collector.setMetrics(result, ttl)
+				collector.setMetrics(result)
 			}
 		}()
 
 		go func() {
 			defer collector.wg.Done()
 
-			s.start(ctx, interval, results)
+			s.start(ctx, results)
 		}()
 	}
 
@@ -170,18 +168,6 @@ func (c *Collector) Stop() {
 
 	c.cancel()
 	c.wg.Wait()
-}
-
-// scrapeInterval returns the shortest Enhanced Monitoring interval AWS reports for the instances.
-func scrapeInterval(instances []sessions.Instance) time.Duration {
-	interval := maxInterval
-	for _, instance := range instances {
-		if instance.EnhancedMonitoringInterval > 0 && instance.EnhancedMonitoringInterval < interval {
-			interval = instance.EnhancedMonitoringInterval
-		}
-	}
-
-	return max(interval, minInterval)
 }
 
 func getEnabledInstances(instances []sessions.Instance) []sessions.Instance {
@@ -255,9 +241,11 @@ func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 }
 
 // setMetrics saves the latest scraped metrics and drops instances that stopped reporting long ago.
-func (c *Collector) setMetrics(result scrapeResult, ttl time.Duration) {
+func (c *Collector) setMetrics(result scrapeResult) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
+	ttl := metricsTTL(result.interval)
 
 	for key, fresh := range result.metrics {
 		// The request window starts at the newest event of the slowest instance, so that event is

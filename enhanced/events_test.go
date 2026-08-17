@@ -5,7 +5,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/go-kit/log"
@@ -149,7 +148,7 @@ func TestStartClosesChannelOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	results := make(chan scrapeResult)
 
-	go scraper.start(ctx, time.Millisecond, results)
+	go scraper.start(ctx, results)
 
 	cancel()
 

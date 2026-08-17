@@ -186,6 +186,31 @@ func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
 	assert.Empty(t, metrics[testKey(unchangedPrimaryInstance)])
 }
 
+func TestScrapeFollowsTheMonitoringIntervalAWSReports(t *testing.T) {
+	t.Parallel()
+
+	unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
+	unmonitored.EnhancedMonitoringInterval = 0
+
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 5 * time.Second},
+		},
+		err:   nil,
+		calls: 0,
+	}
+	client := &fakeLogsClient{events: nil, missing: nil, errs: nil, pageSize: 0, calls: nil}
+	scraper := newTestScraperWith(client, resolver, []sessions.Instance{unmonitored}, time.Time{})
+
+	require.Equal(t, maxInterval, scraper.interval(), "a session without Enhanced Monitoring has nothing to follow")
+
+	scraper.scrape(t.Context())
+
+	assert.Equal(t, 5*time.Second, scraper.interval(),
+		"enabling Enhanced Monitoring must speed the scrapes up without a restart")
+	assert.Equal(t, 5*time.Second, scraper.result(nil).interval, "the collector needs the interval to set expiry")
+}
+
 func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
 	t.Parallel()
 

@@ -165,7 +165,7 @@ func TestPruneKeepsConfiguredInstancesReported(t *testing.T) {
 		},
 	}, "down")
 
-	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion}, time.Minute)
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute})
 
 	metrics := collect(t, collector)
 
@@ -190,14 +190,15 @@ func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
 		},
 		errorCounts: nil,
 		region:      testRegion,
+		interval:    time.Minute,
 	}
 
-	collector.setMetrics(result, time.Minute)
+	collector.setMetrics(result)
 	firstExpiry := collector.metrics[testKey("primary")].expiresAt
 
 	// FilterLogEvents StartTime is inclusive, so the newest event of the slowest instance comes back
 	// on every scrape. Expiry must follow the event timestamp, not the wall clock.
-	collector.setMetrics(result, time.Minute)
+	collector.setMetrics(result)
 
 	assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
 }
@@ -214,7 +215,7 @@ func TestSetMetricsRemovesLongExpiredInstances(t *testing.T) {
 		},
 	})
 
-	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion}, time.Minute)
+	collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute})
 
 	assert.Empty(t, collector.metrics, "an instance no longer configured must eventually disappear")
 }
@@ -229,12 +230,14 @@ func TestSetMetricsReplacesInstanceAfterResourceIDChange(t *testing.T) {
 		metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now().Add(-time.Minute)}},
 		errorCounts: nil,
 		region:      testRegion,
-	}, time.Minute)
+		interval:    time.Minute,
+	})
 	collector.setMetrics(scrapeResult{
 		metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
 		errorCounts: nil,
 		region:      testRegion,
-	}, time.Minute)
+		interval:    time.Minute,
+	})
 
 	require.Len(t, collector.metrics, 1, "a switchover must replace the instance, not duplicate its label set")
 
@@ -269,6 +272,25 @@ func TestMetricsTTL(t *testing.T) {
 			assert.Equal(t, testCase.expectedTTL, metricsTTL(testCase.interval))
 		})
 	}
+}
+
+func TestSetMetricsFollowsTheReportedInterval(t *testing.T) {
+	t.Parallel()
+
+	eventTime := time.Now().Add(-time.Minute)
+	collector := testCollector(map[instanceKey]instanceState{})
+
+	collector.setMetrics(scrapeResult{
+		metrics: map[instanceKey]instanceMetrics{
+			testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
+		},
+		errorCounts: nil,
+		region:      testRegion,
+		interval:    10 * time.Minute,
+	})
+
+	assert.Equal(t, eventTime.Add(metricsTTL(10*time.Minute)), collector.metrics[testKey("primary")].expiresAt,
+		"expiry must follow the interval AWS reports now, not the one reported at startup")
 }
 
 func TestCollectorEmitsSelfMetrics(t *testing.T) {
@@ -327,7 +349,8 @@ func TestCollectorConcurrentCollectAndSetMetrics(t *testing.T) {
 				},
 				errorCounts: map[string]uint64{errorKindOther: 1},
 				region:      testRegion,
-			}, time.Minute)
+				interval:    time.Minute,
+			})
 		}()
 
 		go func() {

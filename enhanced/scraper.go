@@ -169,11 +169,26 @@ type scrapeResult struct {
 	metrics     map[instanceKey]instanceMetrics
 	errorCounts map[string]uint64 // error kind -> occurrences during the scrape
 	region      string
+	interval    time.Duration
+}
+
+// interval returns how often to scrape, following the shortest Enhanced Monitoring interval AWS
+// reports for the session.
+func (s *scraper) interval() time.Duration {
+	interval := maxInterval
+	for _, instance := range s.instances {
+		if instance.EnhancedMonitoringInterval > 0 && instance.EnhancedMonitoringInterval < interval {
+			interval = instance.EnhancedMonitoringInterval
+		}
+	}
+
+	return max(interval, minInterval)
 }
 
 // start scrapes metrics in loop and sends them to the channel until context is canceled. It owns
 // the channel, so the receiver's range loop ends when the scraper stops.
-func (s *scraper) start(ctx context.Context, interval time.Duration, results chan<- scrapeResult) {
+func (s *scraper) start(ctx context.Context, results chan<- scrapeResult) {
+	interval := s.interval()
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
@@ -182,7 +197,6 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, results cha
 	for {
 		select {
 		case <-ticker.C:
-			// nothing
 		case <-ctx.Done():
 			return
 		}
@@ -196,7 +210,23 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, results cha
 		case <-ctx.Done():
 			return
 		}
+
+		interval = s.retune(interval, ticker)
 	}
+}
+
+// retune follows a change of the Enhanced Monitoring interval AWS reports. Turning Enhanced
+// Monitoring on, or lowering its interval, would otherwise be ignored until the exporter restarts.
+func (s *scraper) retune(interval time.Duration, ticker *time.Ticker) time.Duration {
+	current := s.interval()
+	if current == interval {
+		return interval
+	}
+
+	level.Info(s.logger).Log("msg", "Enhanced metrics update interval changed.", "interval", current)
+	ticker.Reset(current)
+
+	return current
 }
 
 // result packages a scrape for the collector and resets the error counters.
@@ -204,7 +234,7 @@ func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	counts := s.errorCounts
 	s.errorCounts = make(map[string]uint64)
 
-	return scrapeResult{metrics: metrics, errorCounts: counts, region: s.region()}
+	return scrapeResult{metrics: metrics, errorCounts: counts, region: s.region(), interval: s.interval()}
 }
 
 // region returns the region the scraper's session covers.
