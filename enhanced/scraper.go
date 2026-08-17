@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,7 +19,67 @@ type instanceStateResolver interface {
 	InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error)
 }
 
-const resourceIDRefreshInterval = 5 * time.Minute
+const (
+	resourceIDRefreshInterval = 5 * time.Minute
+	logGroupName              = "RDSOSMetrics"
+
+	// LogStreamNames accepts up to 100 items.
+	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
+	maxLogStreamsPerRequest = 100
+)
+
+// eventSink accumulates the metrics parsed out of log events, per instance and event timestamp.
+type eventSink struct {
+	metrics  map[string]map[time.Time][]prometheus.Metric
+	messages map[string]map[time.Time]string
+}
+
+func newEventSink() *eventSink {
+	return &eventSink{
+		metrics:  make(map[string]map[time.Time][]prometheus.Metric),
+		messages: make(map[string]map[time.Time]string),
+	}
+}
+
+func (sink *eventSink) add(resourceID string, timestamp time.Time, metrics []prometheus.Metric, message string) {
+	if sink.metrics[resourceID] == nil {
+		sink.metrics[resourceID] = make(map[time.Time][]prometheus.Metric)
+	}
+
+	sink.metrics[resourceID][timestamp] = metrics
+
+	if sink.messages[resourceID] == nil {
+		sink.messages[resourceID] = make(map[time.Time]string)
+	}
+
+	sink.messages[resourceID][timestamp] = message
+}
+
+// times returns the event timestamps collected for each instance.
+func (sink *eventSink) times() map[string][]time.Time {
+	res := make(map[string][]time.Time, len(sink.metrics))
+	for resourceID, events := range sink.metrics {
+		res[resourceID] = make([]time.Time, 0, len(events))
+		for timestamp := range events {
+			res[resourceID] = append(res[resourceID], timestamp)
+		}
+	}
+
+	return res
+}
+
+// latest returns the metrics and messages of the given timestamp for each instance.
+func (sink *eventSink) latest(times map[string]time.Time) (map[string][]prometheus.Metric, map[string]string) {
+	metrics := make(map[string][]prometheus.Metric, len(times))
+	messages := make(map[string]string, len(times))
+
+	for resourceID, timestamp := range times {
+		metrics[resourceID] = sink.metrics[resourceID][timestamp]
+		messages[resourceID] = sink.messages[resourceID][timestamp]
+	}
+
+	return metrics, messages
+}
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
@@ -81,111 +142,121 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 
 // scrape performs a single scrape.
 func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
-	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
-	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
+	sink := newEventSink()
 
 	err := s.refreshInstanceStates(ctx)
 	if err != nil {
 		level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
 	}
 
-	// LogStreamNames parameter supports up to 100 items.
-	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
-	logStreamNames := s.enhancedStreams()
+	for _, streams := range s.batches() {
+		s.collectPages(ctx, streams, sink)
+	}
 
-	streamCount := len(logStreamNames)
-	for i := 0; i < streamCount; i += 100 {
-		sliceStart := i
-		sliceEnd := i + 100
-		if sliceEnd > streamCount {
-			sliceEnd = streamCount
+	times, nextStartTime := betterTimes(sink.times())
+	s.nextStartTime = nextStartTime
+
+	return sink.latest(times)
+}
+
+// batches groups the log streams to request into requests CloudWatch accepts.
+func (s *scraper) batches() [][]string {
+	streams := s.enhancedStreams()
+
+	batches := make([][]string, 0, len(streams)/maxLogStreamsPerRequest+1)
+	for start := 0; start < len(streams); start += maxLogStreamsPerRequest {
+		end := min(start+maxLogStreamsPerRequest, len(streams))
+		batches = append(batches, streams[start:end])
+	}
+
+	return batches
+}
+
+// collectPages paginates a single FilterLogEvents request, keeping the events of every page
+// fetched before an error.
+func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) {
+	input := &cloudwatchlogs.FilterLogEventsInput{ //nolint:exhaustruct
+		LogGroupName:   aws.String(logGroupName),
+		LogStreamNames: streams,
+		StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
+	}
+
+	level.Debug(log.With(s.logger,
+		"next_start", s.nextStartTime.UTC(),
+		"since_last", time.Since(s.nextStartTime),
+		"batch_size", len(streams),
+	)).Log("msg", "Requesting metrics")
+
+	paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			level.Error(s.logger).Log("msg", "Failed to filter log events.", "error", err, "batch_size", len(streams))
+
+			return
 		}
 
-		input := &cloudwatchlogs.FilterLogEventsInput{
-			LogGroupName:   aws.String("RDSOSMetrics"),
-			LogStreamNames: logStreamNames[sliceStart:sliceEnd],
-			StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
-		}
-
-		level.Debug(log.With(s.logger, "next_start", s.nextStartTime.UTC(), "since_last", time.Since(s.nextStartTime))).Log("msg", "Requesting metrics")
-
-		paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
-		for paginator.HasMorePages() {
-			output, err := paginator.NextPage(ctx)
-			if err != nil {
-				level.Error(s.logger).Log("msg", "Failed to filter log events.", "error", err)
-				break
-			}
-			for _, event := range output.Events {
-				l := log.With(s.logger,
-					"EventId", aws.ToString(event.EventId),
-					"LogStreamName", aws.ToString(event.LogStreamName),
-					"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
-					"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
-
-				var instance *sessions.Instance
-				for _, i := range s.instances {
-					if i.ResourceID == aws.ToString(event.LogStreamName) {
-						instance = &i
-						break
-					}
-				}
-				if instance == nil {
-					level.Error(l).Log("msg", "Failed to find instance.")
-					continue
-				}
-
-				if instance.DisableEnhancedMetrics {
-					level.Debug(l).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
-					continue
-				}
-				l = log.With(l, "region", instance.Region, "instance", instance.Instance)
-
-				osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
-				if err != nil {
-					// only for tests
-					if s.testDisallowUnknownFields {
-						panic(fmt.Sprintf("New metrics should be added: %s", err))
-					}
-
-					level.Error(l).Log("msg", "Failed to parse metrics.", "error", err)
-					continue
-				}
-
-				timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
-				level.Debug(l).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
-
-				if allMetrics[instance.ResourceID] == nil {
-					allMetrics[instance.ResourceID] = make(map[time.Time][]prometheus.Metric)
-				}
-				allMetrics[instance.ResourceID][timestamp] = osMetrics.makePrometheusMetrics(instance.Region, instance.Labels)
-
-				if allMessages[instance.ResourceID] == nil {
-					allMessages[instance.ResourceID] = make(map[time.Time]string)
-				}
-				allMessages[instance.ResourceID][timestamp] = aws.ToString(event.Message)
-			}
+		for _, event := range output.Events {
+			s.handleEvent(event, sink)
 		}
 	}
-	// get better times
-	allTimes := make(map[string][]time.Time)
-	for resourceID, events := range allMetrics {
-		allTimes[resourceID] = make([]time.Time, 0, len(events))
-		for timestamp := range events {
-			allTimes[resourceID] = append(allTimes[resourceID], timestamp)
+}
+
+// handleEvent parses a single log event and stores its metrics under the owning instance.
+func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
+	logger := log.With(s.logger,
+		"EventId", aws.ToString(event.EventId),
+		"LogStreamName", aws.ToString(event.LogStreamName),
+		"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
+		"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
+
+	instance := s.instanceFor(aws.ToString(event.LogStreamName))
+	if instance == nil {
+		level.Error(logger).Log("msg", "Failed to find instance.")
+
+		return
+	}
+
+	if instance.DisableEnhancedMetrics {
+		level.Debug(logger).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
+
+		return
+	}
+
+	logger = log.With(logger, "region", instance.Region, "instance", instance.Instance)
+
+	osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
+	if err != nil {
+		// only for tests
+		if s.testDisallowUnknownFields {
+			panic(fmt.Sprintf("New metrics should be added: %s", err))
+		}
+
+		level.Error(logger).Log("msg", "Failed to parse metrics.", "error", err)
+
+		return
+	}
+
+	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
+	level.Debug(logger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
+
+	sink.add(
+		instance.ResourceID,
+		timestamp,
+		osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
+		aws.ToString(event.Message),
+	)
+}
+
+// instanceFor returns the instance owning the given log stream, or nil when no instance does.
+func (s *scraper) instanceFor(logStreamName string) *sessions.Instance {
+	for _, instance := range s.instances {
+		if instance.ResourceID == logStreamName {
+			return &instance
 		}
 	}
-	var times map[string]time.Time
-	times, s.nextStartTime = betterTimes(allTimes)
 
-	// return only latest metrics/messages
-	resMetrics := make(map[string][]prometheus.Metric) // ResourceID -> metrics
-	resMessages := make(map[string]string)             // ResourceID -> message
-	for resourceID, timestamp := range times {
-		resMetrics[resourceID] = allMetrics[resourceID][timestamp]
-		resMessages[resourceID] = allMessages[resourceID][timestamp]
-	}
-	return resMetrics, resMessages
+	return nil
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {
