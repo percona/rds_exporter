@@ -58,7 +58,7 @@ func TestSession(t *testing.T) {
 	am57iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora3-mysql-instance-1",
-		ResourceID:                 "db-DFQSTXQUYKPPAFNHGTJ27P5PTU",
+		ResourceID:                 "db-XI52OXEYO3ANQECF54M7WS46EA",
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	p13iExpected := Instance{
