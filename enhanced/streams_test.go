@@ -192,6 +192,42 @@ func TestScrapeStopsExcludingSilentStream(t *testing.T) {
 		"a stream that exists must be requested again instead of waiting for another probe")
 }
 
+func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   nil,
+		missing:  map[string]struct{}{oldResourceID: {}, missingResourceID: {}},
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+
+	// One stream configured more often than there are probe slots, so counting per instance would
+	// leave none for the other stream.
+	instances := make([]sessions.Instance, 0, maxProbesPerScrape+2)
+	for i := range maxProbesPerScrape + 1 {
+		instances = append(instances, testInstance(fmt.Sprintf("duplicate-%d", i), oldResourceID))
+	}
+	instances = append(instances, testInstance("other", missingResourceID))
+
+	scraper := newTestScraperWithClient(client, instances)
+	scraper.scrape(t.Context())
+	require.Equal(t, 2, scraper.missing.len())
+
+	client.missing = map[string]struct{}{}
+	for _, stream := range []string{oldResourceID, missingResourceID} {
+		scraper.missing.probeAfter[stream] = time.Now().Add(-time.Minute)
+	}
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, []string{oldResourceID, missingResourceID}, client.calls[0].streams,
+		"duplicate instances must neither repeat their stream nor spend another stream's probe slot")
+}
+
 func TestScrapeClearsMissingStreamWhenMonitoringIsDisabled(t *testing.T) {
 	t.Parallel()
 

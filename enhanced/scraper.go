@@ -142,10 +142,17 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 // when any single requested stream does not exist.
 func (s *scraper) enhancedStreams(now time.Time) []string {
 	streams := make([]string, 0, len(s.instances))
+	requested := make(map[string]struct{}, len(s.instances))
 	probes := 0
 
 	for _, instance := range s.instances {
 		if instance.EnhancedMonitoringInterval <= 0 {
+			continue
+		}
+
+		// Instances configured more than once share one log stream, which therefore belongs in the
+		// request once and may spend one probe slot, not one per instance.
+		if _, listed := requested[instance.ResourceID]; listed {
 			continue
 		}
 
@@ -158,6 +165,7 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 			probes++
 		}
 
+		requested[instance.ResourceID] = struct{}{}
 		streams = append(streams, instance.ResourceID)
 	}
 
