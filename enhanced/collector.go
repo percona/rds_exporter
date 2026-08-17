@@ -248,9 +248,13 @@ func (c *Collector) setMetrics(result scrapeResult) {
 	ttl := metricsTTL(result.interval)
 
 	for key, fresh := range result.metrics {
+		previous := c.metrics[key]
+
 		// The request window starts at the newest event of the slowest instance, so that event is
 		// re-delivered on every scrape. Expiry follows the event timestamp to keep an outage visible.
-		if !fresh.eventTime.After(c.metrics[key].eventTime) {
+		// A released payload has nothing left to protect, and refusing the sample on its timestamp
+		// alone would strand an instance whose replacement publishes older ones.
+		if previous.metrics != nil && !fresh.eventTime.After(previous.eventTime) {
 			continue
 		}
 

@@ -203,6 +203,36 @@ func TestSetMetricsIgnoresRedeliveredEvent(t *testing.T) {
 	assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
 }
 
+func TestSetMetricsRestoresAnInstanceWhosePayloadWasReleased(t *testing.T) {
+	t.Parallel()
+
+	lastEvent := time.Now().Add(-staleRetention - time.Minute)
+	collector := configuredCollector(map[instanceKey]instanceState{
+		testKey("promoted"): {
+			metrics:    nil,
+			eventTime:  lastEvent,
+			expiresAt:  lastEvent.Add(minMetricsTTL),
+			receivedAt: lastEvent,
+		},
+	}, "promoted")
+
+	// A promoted instance whose clock trails the retired one's by more than the retention publishes
+	// events older than the last one stored, which the timestamp guard alone would refuse for good.
+	older := lastEvent.Add(-time.Hour)
+	collector.setMetrics(scrapeResult{
+		metrics: map[instanceKey]instanceMetrics{
+			testKey("promoted"): {metrics: sampleMetrics("promoted"), eventTime: older},
+		},
+		errorCounts: nil,
+		region:      testRegion,
+		interval:    time.Minute,
+	})
+
+	state := collector.metrics[testKey("promoted")]
+	assert.NotNil(t, state.metrics, "an instance with no payload left must be able to start reporting again")
+	assert.Equal(t, older, state.eventTime)
+}
+
 func TestSetMetricsRemovesLongExpiredInstances(t *testing.T) {
 	t.Parallel()
 
