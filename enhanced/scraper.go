@@ -2,6 +2,7 @@ package enhanced
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,6 +27,9 @@ const (
 	// LogStreamNames accepts up to 100 items.
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
 	maxLogStreamsPerRequest = 100
+
+	// maxLookback bounds how far back a request may reach after a failed scrape or an outage.
+	maxLookback = 3 * time.Minute
 )
 
 // eventSink accumulates the metrics parsed out of log events, per instance and event timestamp.
@@ -86,6 +90,8 @@ type scraper struct {
 	instances             []sessions.Instance
 	svc                   cloudwatchlogs.FilterLogEventsAPIClient
 	stateResolver         instanceStateResolver
+	missing               *missingStreams
+	isolationCalls        int
 	nextResourceIDRefresh time.Time
 	nextStartTime         time.Time
 	logger                log.Logger
@@ -98,20 +104,34 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		instances:             instances,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
 		stateResolver:         sessions.NewResourceIDResolver(cfg),
+		missing:               newMissingStreams(),
+		isolationCalls:        0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
-		nextStartTime:         time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
+		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
 	}
 }
 
 // enhancedStreams returns the log streams to request metrics from. Instances whose Enhanced
-// Monitoring is disabled in AWS have no log stream at all, and CloudWatch rejects the whole
-// request when any single requested stream does not exist.
-func (s *scraper) enhancedStreams() []string {
+// Monitoring is disabled in AWS have no log stream at all, and streams CloudWatch already reported
+// as missing are left out until their probe is due, because CloudWatch rejects the whole request
+// when any single requested stream does not exist.
+func (s *scraper) enhancedStreams(now time.Time) []string {
 	streams := make([]string, 0, len(s.instances))
+	probes := 0
+
 	for _, instance := range s.instances {
 		if instance.EnhancedMonitoringInterval <= 0 {
 			continue
+		}
+
+		if s.missing.marked(instance.ResourceID) {
+			// Re-probes are staggered so that a fleet of missing streams cannot fill a whole batch.
+			if probes >= maxProbesPerScrape || !s.missing.due(instance.ResourceID, now) {
+				continue
+			}
+
+			probes++
 		}
 
 		streams = append(streams, instance.ResourceID)
@@ -143,25 +163,53 @@ func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- m
 // scrape performs a single scrape.
 func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
 	sink := newEventSink()
+	s.isolationCalls = 0
 
 	err := s.refreshInstanceStates(ctx)
 	if err != nil {
 		level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
 	}
 
-	for _, streams := range s.batches() {
-		s.collectPages(ctx, streams, sink)
+	var scrapeErr error
+
+	for _, streams := range s.batches(time.Now()) {
+		batchErr := s.collectBatch(ctx, streams, sink)
+		if batchErr == nil {
+			continue
+		}
+
+		scrapeErr = errors.Join(scrapeErr, batchErr)
+
+		level.Error(s.logger).Log("msg", "Failed to collect enhanced metrics.",
+			"error", batchErr, "kind", errorKind(batchErr), "batch_size", len(streams))
+
+		if isContextError(batchErr) {
+			break
+		}
 	}
 
-	times, nextStartTime := betterTimes(sink.times())
-	s.nextStartTime = nextStartTime
+	times, oldestNewest, collected := betterTimes(sink.times())
+	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
 
 	return sink.latest(times)
 }
 
+// advanceStartTime moves the request window forward only when every batch reported. A failed scrape
+// that moved it would permanently skip the events it did not read, and the window is clamped so that
+// recovering from a long outage cannot make the next request paginate through hours of events.
+func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
+	if complete && oldestNewest.After(s.nextStartTime) {
+		s.nextStartTime = oldestNewest
+	}
+
+	if earliest := time.Now().Add(-maxLookback); s.nextStartTime.Before(earliest) {
+		s.nextStartTime = earliest.Round(0) // strip monotonic clock reading
+	}
+}
+
 // batches groups the log streams to request into requests CloudWatch accepts.
-func (s *scraper) batches() [][]string {
-	streams := s.enhancedStreams()
+func (s *scraper) batches(now time.Time) [][]string {
+	streams := s.enhancedStreams(now)
 
 	batches := make([][]string, 0, len(streams)/maxLogStreamsPerRequest+1)
 	for start := 0; start < len(streams); start += maxLogStreamsPerRequest {
@@ -172,9 +220,67 @@ func (s *scraper) batches() [][]string {
 	return batches
 }
 
+// collectBatch collects the events of the given log streams. CloudWatch fails the whole request
+// when any single stream does not exist, so the batch is halved until the missing streams are
+// identified and excluded, which keeps the remaining instances reporting.
+func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *eventSink) error {
+	err := s.collectPages(ctx, streams, sink)
+	if err == nil || !isResourceNotFound(err) {
+		return err
+	}
+
+	return s.isolateMissing(ctx, streams, sink)
+}
+
+// isolateMissing halves a rejected batch until it can attribute the rejection to single log
+// streams, spending at most maxIsolationCalls requests per scrape. What it cannot attribute this
+// time is retried on the next scrape with a fresh budget.
+func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *eventSink) error {
+	if len(streams) == 1 {
+		s.markMissing(streams[0])
+
+		return nil
+	}
+
+	mid := len(streams) / halves
+
+	return errors.Join(
+		s.isolateHalf(ctx, streams[:mid], sink),
+		s.isolateHalf(ctx, streams[mid:], sink),
+	)
+}
+
+func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *eventSink) error {
+	if s.isolationCalls >= maxIsolationCalls {
+		return errIsolationBudget
+	}
+
+	s.isolationCalls++
+
+	err := s.collectPages(ctx, streams, sink)
+	if err == nil || !isResourceNotFound(err) {
+		return err
+	}
+
+	return s.isolateMissing(ctx, streams, sink)
+}
+
+// markMissing excludes a log stream from later requests, logging only the first time.
+func (s *scraper) markMissing(logStreamName string) {
+	if !s.missing.mark(logStreamName, time.Now()) {
+		return
+	}
+
+	level.Warn(s.logger).Log(
+		"msg", "CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests.",
+		"log_stream", logStreamName,
+		"instance", s.instanceNameFor(logStreamName),
+	)
+}
+
 // collectPages paginates a single FilterLogEvents request, keeping the events of every page
 // fetched before an error.
-func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) {
+func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) error {
 	input := &cloudwatchlogs.FilterLogEventsInput{ //nolint:exhaustruct
 		LogGroupName:   aws.String(logGroupName),
 		LogStreamNames: streams,
@@ -191,15 +297,25 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
 		if err != nil {
-			level.Error(s.logger).Log("msg", "Failed to filter log events.", "error", err, "batch_size", len(streams))
-
-			return
+			return fmt.Errorf("failed to filter log events: %w", err)
 		}
 
 		for _, event := range output.Events {
 			s.handleEvent(event, sink)
 		}
 	}
+
+	return nil
+}
+
+// instanceNameFor returns the DB instance identifier owning the given log stream, for logging.
+func (s *scraper) instanceNameFor(logStreamName string) string {
+	instance := s.instanceFor(logStreamName)
+	if instance == nil {
+		return ""
+	}
+
+	return instance.Instance
 }
 
 // handleEvent parses a single log event and stores its metrics under the owning instance.
@@ -215,6 +331,11 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		level.Error(logger).Log("msg", "Failed to find instance.")
 
 		return
+	}
+
+	if s.missing.clear(instance.ResourceID) {
+		level.Info(logger).Log("msg", "CloudWatch log stream is back; resuming Enhanced Monitoring requests.",
+			"region", instance.Region, "instance", instance.Instance)
 	}
 
 	if instance.DisableEnhancedMetrics {
@@ -298,6 +419,9 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 			"instance", instance.Instance,
 			"resource_id", state.ResourceID,
 		)
+
+		// The retired resource ID will never come back, and the new one deserves a fresh attempt.
+		s.missing.clear(instance.ResourceID)
 		s.instances[instanceIndex].ResourceID = state.ResourceID
 	}
 
@@ -321,11 +445,14 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
 }
 
-// betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request
-func betterTimes(allTimes map[string][]time.Time) (times map[string]time.Time, nextStartTime time.Time) {
-	// keep only the most recent metrics for each instance
-	nextStartTime = time.Now()
-	times = make(map[string]time.Time) // ResourceID -> timestamp
+// betterTimes returns the newest event timestamp per instance, the oldest of those timestamps, which
+// is the earliest point the next request must start from, and whether any events were collected at
+// all. When nothing was collected the caller must keep its current start time.
+func betterTimes(allTimes map[string][]time.Time) (map[string]time.Time, time.Time, bool) {
+	times := make(map[string]time.Time, len(allTimes)) // ResourceID -> timestamp
+
+	var oldestNewest time.Time
+
 	for resourceID, events := range allTimes {
 		var newest time.Time
 		for _, timestamp := range events {
@@ -335,10 +462,10 @@ func betterTimes(allTimes map[string][]time.Time) (times map[string]time.Time, n
 			}
 		}
 
-		if nextStartTime.After(newest) {
-			nextStartTime = newest
+		if oldestNewest.IsZero() || oldestNewest.After(newest) {
+			oldestNewest = newest
 		}
 	}
 
-	return
+	return times, oldestNewest, len(times) > 0
 }

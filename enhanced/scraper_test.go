@@ -150,6 +150,8 @@ func newTestScraperWith(
 		instances:                 instances,
 		svc:                       client,
 		stateResolver:             stateResolver,
+		missing:                   newMissingStreams(),
+		isolationCalls:            0,
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
@@ -201,7 +203,7 @@ func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
 		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
 
 		assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
-		assert.Equal(t, []string{oldResourceID}, scraper.enhancedStreams())
+		assert.Equal(t, []string{oldResourceID}, scraper.enhancedStreams(time.Now()))
 	})
 
 	t.Run("disabled later", func(t *testing.T) {
@@ -221,7 +223,7 @@ func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
 		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
 
 		assert.Zero(t, scraper.instances[0].EnhancedMonitoringInterval)
-		assert.Empty(t, scraper.enhancedStreams())
+		assert.Empty(t, scraper.enhancedStreams(time.Now()))
 	})
 }
 
@@ -235,7 +237,7 @@ func TestRefreshKeepsMonitoringIntervalOnResolverError(t *testing.T) {
 
 	assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
@@ -284,7 +286,7 @@ func TestRefreshResourceIDs(t *testing.T) {
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
@@ -298,7 +300,7 @@ func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
 	require.ErrorIs(t, err, errDescribeFailed)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
@@ -320,7 +322,7 @@ func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
@@ -342,7 +344,7 @@ func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
@@ -372,17 +374,58 @@ func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, resolver.calls)
 	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams())
+	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestBetterTimes(t *testing.T) {
+	t.Parallel()
+
 	type testdata struct {
+		name                  string
 		allTimes              map[string][]time.Time
 		expectedTimes         map[string]time.Time
 		expectedNextStartTime time.Time
+		expectedCollected     bool
 	}
 	for _, td := range []testdata{
 		{
+			name: "no events",
+			// Nothing was collected, so the caller must keep its current start time.
+			allTimes:              map[string][]time.Time{},
+			expectedTimes:         map[string]time.Time{},
+			expectedNextStartTime: time.Time{},
+			expectedCollected:     false,
+		},
+		{
+			name: "single instance",
+			allTimes: map[string][]time.Time{
+				"1": {
+					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+					time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
+				},
+			},
+			expectedTimes: map[string]time.Time{
+				"1": time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
+			},
+			expectedNextStartTime: time.Date(2018, 9, 29, 16, 26, 42, 0, time.UTC),
+			expectedCollected:     true,
+		},
+		{
+			name: "duplicate timestamps",
+			allTimes: map[string][]time.Time{
+				"1": {
+					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+				},
+			},
+			expectedTimes: map[string]time.Time{
+				"1": time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+			},
+			expectedNextStartTime: time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
+			expectedCollected:     true,
+		},
+		{
+			name: "oldest newest event across instances",
 			allTimes: map[string][]time.Time{
 				"1": {
 					time.Date(2018, 9, 29, 16, 25, 42, 0, time.UTC),
@@ -412,11 +455,18 @@ func TestBetterTimes(t *testing.T) {
 				"4": time.Date(2018, 9, 29, 16, 28, 3, 0, time.UTC),
 			},
 			expectedNextStartTime: time.Date(2018, 9, 29, 16, 27, 42, 0, time.UTC),
+			expectedCollected:     true,
 		},
 	} {
-		times, nextStartTime := betterTimes(td.allTimes)
-		assert.Equal(t, td.expectedTimes, times)
-		assert.Equal(t, td.expectedNextStartTime, nextStartTime)
+		t.Run(td.name, func(t *testing.T) {
+			t.Parallel()
+
+			times, nextStartTime, collected := betterTimes(td.allTimes)
+
+			assert.Equal(t, td.expectedTimes, times)
+			assert.Equal(t, td.expectedNextStartTime, nextStartTime)
+			assert.Equal(t, td.expectedCollected, collected)
+		})
 	}
 }
 

@@ -115,9 +115,10 @@ func (c *fakeLogsClient) page(events []types.FilteredLogEvent, token *string) (*
 	return out, nil
 }
 
-// testEventTime returns the fixed event timestamp the hermetic tests are built around.
+// testEventTime returns the event timestamp the hermetic tests are built around. It is relative to
+// now because the scraper clamps its request window to maxLookback.
 func testEventTime() time.Time {
-	return time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
+	return time.Now().Add(-30 * time.Second).UTC().Truncate(time.Second)
 }
 
 // testInstance returns an instance with Enhanced Monitoring enabled in AWS.
