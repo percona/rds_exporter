@@ -40,14 +40,12 @@ func (m *missingStreams) clear(name string) bool {
 	return known
 }
 
-// marked reports whether a log stream is currently excluded.
 func (m *missingStreams) marked(name string) bool {
 	_, known := m.probeAfter[name]
 
 	return known
 }
 
-// due reports whether an excluded log stream should be tried again.
 func (m *missingStreams) due(name string, now time.Time) bool {
 	probeAfter, known := m.probeAfter[name]
 

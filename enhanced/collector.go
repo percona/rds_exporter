@@ -13,7 +13,6 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-// Maximal and minimal metrics update interval.
 const (
 	maxInterval = 60 * time.Second
 	minInterval = 2 * time.Second
@@ -41,7 +40,6 @@ const (
 	goroutinesPerSession = 2
 )
 
-// instanceState is the latest sample of a single instance, and how long it stays valid.
 type instanceState struct {
 	metrics   []prometheus.Metric
 	eventTime time.Time
@@ -76,7 +74,6 @@ type Collector struct {
 	errors  map[errorKey]uint64
 }
 
-// metricsTTL returns how long a sample stays valid for the given scrape interval.
 func metricsTTL(interval time.Duration) time.Duration {
 	return max(ttlIntervals*interval, minMetricsTTL)
 }
@@ -196,7 +193,6 @@ func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.collectErrors(out)
 }
 
-// collectSamples emits the metrics of the instances that reported, and the health of all of them.
 // An expired sample contributes no metrics, so an outage renders as a gap rather than a flat line.
 func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) {
 	for key, state := range c.metrics {
@@ -237,7 +233,6 @@ func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 	}
 }
 
-// setMetrics saves the latest scraped metrics and drops instances that stopped reporting long ago.
 func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	c.rw.Lock()
 	defer c.rw.Unlock()

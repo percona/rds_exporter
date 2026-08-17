@@ -81,7 +81,6 @@ func (sink *eventSink) add(key instanceKey, timestamp time.Time, metrics []prome
 	sink.messages[key][timestamp] = message
 }
 
-// times returns the event timestamps collected for each instance.
 func (sink *eventSink) times() map[instanceKey][]time.Time {
 	res := make(map[instanceKey][]time.Time, len(sink.metrics))
 	for key, events := range sink.metrics {
@@ -94,7 +93,6 @@ func (sink *eventSink) times() map[instanceKey][]time.Time {
 	return res
 }
 
-// latest returns the sample of the given timestamp for each instance.
 func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
 	metrics := make(map[instanceKey]instanceMetrics, len(times))
 	messages := make(map[instanceKey]string, len(times))
@@ -164,7 +162,6 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 	return streams
 }
 
-// scrapeResult is what a single scrape hands over to the collector.
 type scrapeResult struct {
 	metrics     map[instanceKey]instanceMetrics
 	errorCounts map[string]uint64 // error kind -> occurrences during the scrape
@@ -237,7 +234,6 @@ func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	return scrapeResult{metrics: metrics, errorCounts: counts, region: s.region(), interval: s.interval()}
 }
 
-// region returns the region the scraper's session covers.
 func (s *scraper) region() string {
 	if len(s.instances) == 0 {
 		return ""
@@ -275,7 +271,7 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 		}
 	}
 
-	times, oldestNewest, collected := betterTimes(sink.times())
+	times, oldestNewest, collected := newestEventTimes(sink.times())
 	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
 
 	return sink.latest(times)
@@ -294,7 +290,6 @@ func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
 	}
 }
 
-// batches groups the log streams to request into requests CloudWatch accepts.
 func (s *scraper) batches(now time.Time) [][]string {
 	streams := s.enhancedStreams(now)
 
@@ -427,7 +422,6 @@ func (s *scraper) instanceNameFor(logStreamName string) string {
 	return strings.Join(names, ",")
 }
 
-// handleEvent parses a single log event and stores its metrics under the owning instance.
 func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 	logger := log.With(s.logger,
 		"EventId", aws.ToString(event.EventId),
@@ -503,7 +497,6 @@ func (s *scraper) usableTimestamp(timestamp time.Time, logger log.Logger) bool {
 	return false
 }
 
-// instancesFor returns every instance using the given log stream.
 func (s *scraper) instancesFor(logStreamName string) []sessions.Instance {
 	res := make([]sessions.Instance, 0, 1)
 
@@ -588,10 +581,10 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
 }
 
-// betterTimes returns the newest event timestamp per instance, the oldest of those timestamps, which
-// is the earliest point the next request must start from, and whether any events were collected at
-// all. When nothing was collected the caller must keep its current start time.
-func betterTimes(allTimes map[instanceKey][]time.Time) (map[instanceKey]time.Time, time.Time, bool) {
+// newestEventTimes returns the newest event timestamp per instance, the oldest of those timestamps,
+// and whether any events were collected at all. The oldest is where the next request has to start,
+// and when nothing was collected the caller keeps its current start time.
+func newestEventTimes(allTimes map[instanceKey][]time.Time) (map[instanceKey]time.Time, time.Time, bool) {
 	times := make(map[instanceKey]time.Time, len(allTimes))
 
 	var oldestNewest time.Time
