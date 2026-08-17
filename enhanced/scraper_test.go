@@ -424,6 +424,51 @@ func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
+// blockingStateResolver never answers, so the scrape deadline expires inside the refresh.
+type blockingStateResolver struct {
+	calls int
+}
+
+func (r *blockingStateResolver) InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error) {
+	r.calls++
+
+	<-ctx.Done()
+
+	return nil, fmt.Errorf("fake RDS client: %w", ctx.Err())
+}
+
+func TestScrapeOnceSurvivesRefreshSpendingTheDeadline(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events:   eventsFor(oldResourceID),
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	resolver := &blockingStateResolver{calls: 0}
+	scraper := newTestScraperWith(client, resolver,
+		[]sessions.Instance{testInstance(oldResourceID, oldResourceID)}, time.Now().Add(-time.Minute))
+	startTime := scraper.nextStartTime
+
+	metrics := scraper.scrapeOnce(t.Context(), 50*time.Millisecond)
+
+	assert.Empty(t, metrics)
+	assert.Zero(t, scraper.missing.len(), "a scrape out of time must not mistake its own deadline for a missing stream")
+	assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+
+	// The refresh is not due again, and the next scrape gets its own deadline, so the cost of one
+	// unresponsive DescribeDBInstances is a single empty scrape rather than a gap.
+	scraper.errorCounts = make(map[string]uint64)
+
+	metrics = scraper.scrapeOnce(t.Context(), time.Minute)
+
+	assert.Equal(t, 1, resolver.calls)
+	assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+}
+
 func TestNewestEventTimes(t *testing.T) { //nolint:funlen
 	t.Parallel()
 

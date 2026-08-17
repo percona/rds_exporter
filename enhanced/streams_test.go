@@ -367,6 +367,120 @@ func TestScrapeKeepsPartialResults(t *testing.T) {
 	})
 }
 
+func TestScrapeKeepsIsolatingWhenAHalfFailsForAnotherReason(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(4)
+	missing := streams[len(streams)-1]
+	healthy := streams[len(streams)-2]
+
+	// The batch is rejected, and the first half it is cut into is throttled instead of answered.
+	client := &fakeLogsClient{
+		events:   eventsFor(healthy),
+		missing:  map[string]struct{}{missing: {}},
+		errs:     []error{nil, throttlingError()},
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+	startTime := scraper.nextStartTime
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.NotEmpty(t, metrics[testKey(healthy)], "a throttled half must not stop the other half from reporting")
+	assert.True(t, scraper.missing.marked(missing))
+	assert.Equal(t, 1, scraper.missing.len(),
+		"only a rejection may exclude a stream, so a throttled half stays in the request")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindThrottling])
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
+	assert.Equal(t, startTime, scraper.nextStartTime, "the half that was throttled must be read again")
+
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, streams[:len(streams)-1], client.calls[0].streams,
+		"the throttled streams must be retried on the next scrape, without the excluded one")
+}
+
+func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
+	t.Parallel()
+
+	const rounds = 4
+
+	streams := resourceIDs(rounds * maxProbesPerScrape)
+
+	missing := make(map[string]struct{}, len(streams))
+	for _, stream := range streams {
+		missing[stream] = struct{}{}
+	}
+
+	client := &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
+	scraper := scraperWithStreams(client, streams...)
+
+	for _, stream := range streams {
+		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL))
+	}
+
+	probed := make([]string, 0, len(streams))
+
+	for range rounds {
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.NotEmpty(t, client.calls)
+		require.Len(t, client.calls[0].streams, maxProbesPerScrape)
+
+		probed = append(probed, client.calls[0].streams...)
+	}
+
+	assert.ElementsMatch(t, streams, probed,
+		"a failed probe waits another TTL, so the first slots cannot keep the streams behind them from being retried")
+}
+
+func TestScrapeReportsIsolationBudgetExhaustion(t *testing.T) {
+	t.Parallel()
+
+	newScraper := func() *scraper {
+		streams := resourceIDs(maxLogStreamsPerRequest)
+
+		missing := make(map[string]struct{}, len(streams))
+		for _, stream := range streams {
+			missing[stream] = struct{}{}
+		}
+
+		client := &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
+
+		return scraperWithStreams(client, streams...)
+	}
+
+	t.Run("says why it gave up", func(t *testing.T) {
+		t.Parallel()
+
+		scraper := newScraper()
+
+		err := scraper.collectBatch(t.Context(), scraper.enhancedStreams(time.Now()), newEventSink())
+
+		require.ErrorIs(t, err, errIsolationBudget)
+		assert.Equal(t, errorKindOther, errorKind(err), "running out of budget is neither a missing stream nor a refusal")
+	})
+
+	t.Run("counts the batch it could not attribute", func(t *testing.T) {
+		t.Parallel()
+
+		scraper := newScraper()
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindOther],
+			"a batch left unattributed must be visible as one error, not as silence")
+		assert.NotZero(t, scraper.errorCounts[errorKindNotFound],
+			"the streams the budget did reach must still be reported")
+	})
+}
+
 func TestScrapeBatchesStreams(t *testing.T) {
 	t.Parallel()
 
