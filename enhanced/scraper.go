@@ -24,7 +24,7 @@ const resourceIDRefreshInterval = 5 * time.Minute
 type scraper struct {
 	instances             []sessions.Instance
 	logStreamNames        []string
-	svc                   *cloudwatchlogs.Client
+	svc                   cloudwatchlogs.FilterLogEventsAPIClient
 	resourceIDResolver    resourceIDResolver
 	nextResourceIDRefresh time.Time
 	nextStartTime         time.Time

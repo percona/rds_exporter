@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/percona/exporter_shared/helpers"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
@@ -25,9 +27,14 @@ const (
 	oldResourceID            = "old-resource-id"
 	sameResourceID           = "same-resource-id"
 	unchangedPrimaryInstance = "unchanged-primary"
+	testRegion               = "us-east-1"
 )
 
-var errDescribeFailed = errors.New("describe failed")
+var (
+	errDescribeFailed = errors.New("describe failed")
+
+	testEventTime = time.Date(2026, 8, 17, 10, 0, 0, 0, time.UTC)
+)
 
 func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 	res := make([]*helpers.Metric, 0, len(metrics))
@@ -149,6 +156,53 @@ func newTestScraper(resourceIDResolver resourceIDResolver) *scraper {
 		logger:                    logger,
 		testDisallowUnknownFields: false,
 	}
+}
+
+// newTestScraperWithClient returns a scraper backed by a fake CloudWatch Logs client, with the
+// resource ID refresh parked in the future so only tests that ask for it exercise the resolver.
+func newTestScraperWithClient(client cloudwatchlogs.FilterLogEventsAPIClient, instances []sessions.Instance) *scraper {
+	logStreamNames := make([]string, 0, len(instances))
+	for _, instance := range instances {
+		logStreamNames = append(logStreamNames, instance.ResourceID)
+	}
+
+	return &scraper{
+		instances:                 instances,
+		logStreamNames:            logStreamNames,
+		svc:                       client,
+		resourceIDResolver:        &fakeResourceIDResolver{resourceIDs: nil, err: nil, calls: 0},
+		nextResourceIDRefresh:     time.Now().Add(time.Hour),
+		nextStartTime:             testEventTime.Add(-time.Minute),
+		logger:                    promlog.New(&promlog.Config{}),
+		testDisallowUnknownFields: false,
+	}
+}
+
+func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeLogsClient{
+		events: map[string][]types.FilteredLogEvent{
+			oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime)},
+			sameResourceID: {osMetricsEvent(sameResourceID, testEventTime)},
+		},
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := newTestScraperWithClient(client, []sessions.Instance{
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+		testInstance(unchangedPrimaryInstance, sameResourceID),
+	})
+
+	metrics, messages := scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
+	assert.NotEmpty(t, metrics[oldResourceID])
+	assert.NotEmpty(t, metrics[sameResourceID])
+	assert.Contains(t, messages[oldResourceID], oldResourceID)
 }
 
 func TestRefreshResourceIDs(t *testing.T) {
