@@ -7,7 +7,7 @@ import (
 const (
 	missingStreamTTL   = 5 * time.Minute
 	maxProbesPerScrape = 8
-	halves             = 2
+	bisectDivisor      = 2
 
 	// maxIsolationCalls bounds the extra requests one batch may spend on finding its missing streams,
 	// so a region where every stream is missing converges over a few scrapes instead of flooding AWS.
@@ -46,10 +46,12 @@ func (m *missingStreams) marked(name string) bool {
 	return known
 }
 
+// due reports whether an excluded log stream may be probed again. A stream that is not excluded is
+// never due, because nothing is holding it back.
 func (m *missingStreams) due(name string, now time.Time) bool {
 	probeAfter, known := m.probeAfter[name]
 
-	return !known || now.After(probeAfter)
+	return known && now.After(probeAfter)
 }
 
 func (m *missingStreams) len() int {

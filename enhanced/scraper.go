@@ -347,7 +347,7 @@ func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *ev
 		return nil
 	}
 
-	mid := len(streams) / halves
+	mid := len(streams) / bisectDivisor
 
 	return errors.Join(
 		s.isolateHalf(ctx, streams[:mid], sink),
