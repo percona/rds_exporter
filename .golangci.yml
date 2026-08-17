@@ -11,9 +11,17 @@ output:
 linters:
   default: all
   disable:
+    # Configured with no allow list, depguard rejects every import outside the standard library,
+    # including the AWS SDK this exporter is built on. gomodguard, which polices the same thing at
+    # module level, is off for the same reason.
+    - depguard
     - gomodguard
     - wsl
   settings:
+    exhaustruct:
+      exclude:
+        # Its zero value is the documented way to ask for the default logger, used as such everywhere.
+        - '^github\.com/prometheus/common/promlog\.Config$'
     lll:
       line-length: 140
       tab-width: 4
@@ -25,6 +33,14 @@ linters:
       - text: 'G104'
         linters:
           - gosec
+      # The tests cover unexported identifiers, so they belong to the package they test.
+      - path: '_test\.go'
+        linters:
+          - testpackage
+      # No package in this repository carries a package comment, so the rule only fires on new files.
+      - text: 'package-comments'
+        linters:
+          - revive
 
 formatters:
   enable:

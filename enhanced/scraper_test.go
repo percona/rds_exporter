@@ -424,7 +424,7 @@ func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
 	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
-func TestNewestEventTimes(t *testing.T) {
+func TestNewestEventTimes(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
 	type testdata struct {
