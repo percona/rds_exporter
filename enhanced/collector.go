@@ -35,9 +35,6 @@ const (
 	regionLabel   = "region"
 	instanceLabel = "instance"
 	kindLabel     = "kind"
-
-	// goroutinesPerSession is the scraper plus the goroutine draining its results.
-	goroutinesPerSession = 2
 )
 
 type instanceState struct {
@@ -118,21 +115,15 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 		results := make(chan scrapeResult)
 
-		collector.wg.Add(goroutinesPerSession)
-
-		go func() {
-			defer collector.wg.Done()
-
+		collector.wg.Go(func() {
 			for result := range results {
 				collector.setMetrics(result, time.Now())
 			}
-		}()
+		})
 
-		go func() {
-			defer collector.wg.Done()
-
+		collector.wg.Go(func() {
 			s.start(ctx, results)
-		}()
+		})
 	}
 
 	return collector
