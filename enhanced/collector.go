@@ -91,7 +91,7 @@ func newCollector(logger log.Logger) *Collector {
 			"Timestamp of the most recent Enhanced Monitoring event received for this instance.",
 			[]string{regionLabel, instanceLabel}, nil),
 		errorsDesc: prometheus.NewDesc(scrapeErrorsMetricName,
-			"Number of failed Enhanced Monitoring scrapes, by error kind.",
+			"Enhanced Monitoring collection errors by kind; not_found counts log streams newly excluded.",
 			[]string{regionLabel, kindLabel}, nil),
 		cancel:     nil,
 		wg:         sync.WaitGroup{},
