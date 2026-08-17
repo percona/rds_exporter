@@ -138,22 +138,6 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 	return collector
 }
 
-// configure records every instance the collector monitors and returns them grouped by session. The
-// set has to be complete before the first scraper starts, because prune reads it from every drain
-// goroutine and nothing writes it afterwards.
-func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]sessions.Instance {
-	enabled := make(map[string][]sessions.Instance, len(all))
-
-	for session, instances := range all {
-		enabled[session] = getEnabledInstances(instances)
-		for _, instance := range enabled[session] {
-			c.configured[keyOf(instance)] = struct{}{}
-		}
-	}
-
-	return enabled
-}
-
 // Stop stops the scrapers and waits for them to finish.
 func (c *Collector) Stop() {
 	if c.cancel == nil {
@@ -191,6 +175,22 @@ func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.collectSamples(out, time.Now())
 	c.collectSilentInstances(out)
 	c.collectErrors(out)
+}
+
+// configure records every instance the collector monitors and returns them grouped by session. The
+// set has to be complete before the first scraper starts, because prune reads it from every drain
+// goroutine and nothing writes it afterwards.
+func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]sessions.Instance {
+	enabled := make(map[string][]sessions.Instance, len(all))
+
+	for session, instances := range all {
+		enabled[session] = getEnabledInstances(instances)
+		for _, instance := range enabled[session] {
+			c.configured[keyOf(instance)] = struct{}{}
+		}
+	}
+
+	return enabled
 }
 
 // An expired sample contributes no metrics, so an outage renders as a gap rather than a flat line.
