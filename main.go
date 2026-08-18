@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -28,6 +29,7 @@ var (
 	enhancedMetricsPathF = kingpin.Flag("web.enhanced-telemetry-path", "Path under which to expose exporter's enhanced metrics.").Default("/enhanced").String()
 	configFileF          = kingpin.Flag("config.file", "Path to configuration file.").Default("config.yml").String()
 	logTraceF            = kingpin.Flag("log.trace", "Enable verbose tracing of AWS requests (will log credentials).").Default("false").Bool()
+	cloudwatchDelayF     = kingpin.Flag("cloudwatch-delay", "Delay (in seconds) for CloudWatch metrics scraping. Default is 600.").Default("600").Int()
 	logger               = log.NewNopLogger()
 )
 
@@ -54,9 +56,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	cloudwatchDelay := time.Duration(*cloudwatchDelayF) * time.Second
+
 	// basic metrics + client metrics + exporter own metrics (ProcessCollector and GoCollector)
 	{
-		prometheus.MustRegister(basic.New(cfg, sess, logger))
+		prometheus.MustRegister(basic.New(cfg, sess, logger, cloudwatchDelay))
 		prometheus.MustRegister(client)
 		http.Handle(*basicMetricsPathF, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			//ErrorLog:      log.NewErrorLogger(), TODO TS
