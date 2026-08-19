@@ -418,17 +418,19 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 			return fmt.Errorf("failed to filter log events: %w", err)
 		}
 
+		// A later page failing must not hold a stream out of the next request for another TTL: the
+		// request was already answered once, which is all the evidence its streams exist.
+		s.clearAccepted(streams)
+
 		for _, event := range output.Events {
 			s.handleEvent(event, sink)
 		}
 	}
 
-	s.clearAccepted(streams)
-
 	return nil
 }
 
-// clearAccepted stops excluding the log streams of a request CloudWatch answered. A rejection names
+// clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names
 // no stream, so answering the request is the only positive evidence that every stream listed in it
 // exists. Waiting for an event instead would keep a stream that exists but published nothing inside
 // the request window excluded for another TTL, and since the window is only as wide as the fastest

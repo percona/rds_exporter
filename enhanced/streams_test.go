@@ -192,6 +192,59 @@ func TestScrapeStopsExcludingSilentStream(t *testing.T) {
 		"a stream that exists must be requested again instead of waiting for another probe")
 }
 
+func TestScrapeStopsExcludingStreamAnsweredBeforeAPageFailed(t *testing.T) {
+	t.Parallel()
+
+	// A scraper that has already excluded a stream which exists again and is due to be probed.
+	newScraper := func(t *testing.T) (*fakeLogsClient, *scraper) {
+		t.Helper()
+
+		client := &fakeLogsClient{
+			events:   eventsFor(oldResourceID, missingResourceID),
+			missing:  map[string]struct{}{missingResourceID: {}},
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		}
+		scraper := scraperWithStreams(client, oldResourceID, missingResourceID)
+		scraper.scrape(t.Context())
+		require.Equal(t, 1, scraper.missing.len())
+
+		delete(client.missing, missingResourceID)
+		scraper.missing.probeAfter[missingResourceID] = time.Now().Add(-time.Minute)
+
+		return client, scraper
+	}
+
+	t.Run("clears the streams the answered page listed", func(t *testing.T) {
+		t.Parallel()
+
+		client, scraper := newScraper(t)
+		client.pageSize = 1
+		client.errs = []error{nil, throttlingError()}
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		assert.Zero(t, scraper.missing.len(),
+			"a page CloudWatch answered proves the streams it listed exist, whatever a later page does")
+		assert.NotEmpty(t, metrics, "events already read must survive a later page error")
+	})
+
+	t.Run("keeps excluding when the request is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		client, scraper := newScraper(t)
+		probeAfter := scraper.missing.probeAfter[missingResourceID]
+		client.errs = []error{throttlingError()}
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, 1, scraper.missing.len(), "a request CloudWatch rejected proves nothing")
+		assert.Equal(t, probeAfter, scraper.missing.probeAfter[missingResourceID],
+			"only a rejection may re-arm the probe, so the stream stays due on the next scrape")
+	})
+}
+
 func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 	t.Parallel()
 
