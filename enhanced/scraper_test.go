@@ -517,6 +517,10 @@ func TestScrapeOnceSurvivesRefreshSpendingTheDeadline(t *testing.T) {
 func TestNewestEventTimes(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
+	now := time.Now().UTC().Truncate(time.Second)
+	happened := now.Add(-time.Minute)
+	future := now.Add(90 * time.Minute)
+
 	type testdata struct {
 		name                  string
 		allTimes              map[instanceKey][]time.Time
@@ -525,6 +529,46 @@ func TestNewestEventTimes(t *testing.T) { //nolint:funlen
 		expectedCollected     bool
 	}
 	for _, td := range []testdata{
+		{
+			// The sink only holds instances an event arrived for, but an instance with nothing to judge
+			// it by must not be given the zero time and must not decide where the next request starts.
+			name: "an instance without events",
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {},
+				testKey("2"): {happened},
+			},
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("2"): happened,
+			},
+			expectedNextStartTime: happened,
+			expectedCollected:     true,
+		},
+		{
+			// The raw timestamp decides which sample is newer, so one glitched event dated ahead of
+			// the real ones would otherwise hold the instance's samples back until now caught up.
+			name: "an event dated in the future alongside events that happened",
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {happened.Add(-time.Minute), future, happened},
+			},
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("1"): happened,
+			},
+			expectedNextStartTime: happened,
+			expectedCollected:     true,
+		},
+		{
+			// A host behind AWS dates every event ahead of itself. There is nothing else to judge the
+			// instance by, so the newest still wins and the sample is still exported.
+			name: "every event dated in the future",
+			allTimes: map[instanceKey][]time.Time{
+				testKey("1"): {future, future.Add(time.Second)},
+			},
+			expectedTimes: map[instanceKey]time.Time{
+				testKey("1"): future.Add(time.Second),
+			},
+			expectedNextStartTime: future.Add(time.Second),
+			expectedCollected:     true,
+		},
 		{
 			name: "no events",
 			// Nothing was collected, so the caller must keep its current start time.
@@ -598,7 +642,7 @@ func TestNewestEventTimes(t *testing.T) { //nolint:funlen
 		t.Run(td.name, func(t *testing.T) {
 			t.Parallel()
 
-			times, nextStartTime, collected := newestEventTimes(td.allTimes)
+			times, nextStartTime, collected := newestEventTimes(td.allTimes, now)
 
 			assert.Equal(t, td.expectedTimes, times)
 			assert.Equal(t, td.expectedNextStartTime, nextStartTime)

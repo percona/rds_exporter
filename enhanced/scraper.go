@@ -332,7 +332,7 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 			"check the clock of this host against AWS.", "events", skewed)
 	}
 
-	times, oldestNewest, collected := newestEventTimes(sink.times())
+	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
 	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
 
 	return sink.latest(times)
@@ -673,22 +673,21 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
 }
 
-// newestEventTimes returns the newest event timestamp per instance, the oldest of those timestamps,
-// and whether any events were collected at all. The oldest is where the next request has to start,
-// and when nothing was collected the caller keeps its current start time.
-func newestEventTimes(allTimes map[instanceKey][]time.Time) (map[instanceKey]time.Time, time.Time, bool) {
+// newestEventTimes returns the event timestamp to judge each instance by, the oldest of those
+// timestamps, and whether any events were collected at all. The oldest is where the next request has
+// to start, and when nothing was collected the caller keeps its current start time.
+func newestEventTimes(allTimes map[instanceKey][]time.Time, now time.Time) (map[instanceKey]time.Time, time.Time, bool) {
 	times := make(map[instanceKey]time.Time, len(allTimes))
 
 	var oldestNewest time.Time
 
 	for key, events := range allTimes {
-		var newest time.Time
-		for _, timestamp := range events {
-			if newest.Before(timestamp) {
-				newest = timestamp
-				times[key] = timestamp
-			}
+		newest, collected := newestEventTime(events, now)
+		if !collected {
+			continue
 		}
+
+		times[key] = newest
 
 		if oldestNewest.IsZero() || oldestNewest.After(newest) {
 			oldestNewest = newest
@@ -696,4 +695,30 @@ func newestEventTimes(allTimes map[instanceKey][]time.Time) (map[instanceKey]tim
 	}
 
 	return times, oldestNewest, len(times) > 0
+}
+
+// newestEventTime returns the newest event that has already happened, falling back to the newest of
+// all of them when none has. The collector compares raw timestamps to tell one sample from the next,
+// so an event dated ahead of the real ones would sit in front of them until now caught up, and the
+// instance would publish nothing meanwhile. The fallback is what a host behind AWS relies on: when
+// every event is dated ahead there is nothing else to judge the instance by, and no skew may cost it
+// its sample.
+func newestEventTime(events []time.Time, now time.Time) (time.Time, bool) {
+	var newest, newestPast time.Time
+
+	for _, timestamp := range events {
+		if newest.Before(timestamp) {
+			newest = timestamp
+		}
+
+		if !timestamp.After(now) && newestPast.Before(timestamp) {
+			newestPast = timestamp
+		}
+	}
+
+	if !newestPast.IsZero() {
+		return newestPast, true
+	}
+
+	return newest, !newest.IsZero()
 }

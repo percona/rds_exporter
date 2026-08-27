@@ -123,6 +123,34 @@ func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 	}
 }
 
+func TestScrapeKeepsReportingThroughOneFutureDatedEvent(t *testing.T) {
+	t.Parallel()
+
+	happened := testEventTime()
+	glitched := time.Now().Add(90 * time.Minute).UTC().Truncate(time.Second)
+	client := &fakeLogsClient{
+		events: map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEvent(oldResourceID, happened), osMetricsEvent(oldResourceID, glitched)},
+		},
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID)
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	// The collector judges an instance by the raw timestamp, so a glitched event that wins here sits
+	// ahead of every real one until now catches up, and the instance goes dark meanwhile.
+	assert.Equal(t, happened, metrics[testKey(oldResourceID)].eventTime,
+		"an instance is judged by its newest event that has actually happened")
+	assert.Equal(t, happened, scraper.nextStartTime,
+		"the window must keep following the events the instance really published")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindFutureEvent],
+		"the glitch is still worth reporting, it just decides nothing")
+}
+
 func TestAdvanceStartTimeNeverLeavesTheWindow(t *testing.T) {
 	t.Parallel()
 
