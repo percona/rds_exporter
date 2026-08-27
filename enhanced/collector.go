@@ -338,6 +338,15 @@ func notAfter(t, limit time.Time) time.Time {
 	return t
 }
 
+// notBefore floors a time at a limit, the mirror of notAfter.
+func notBefore(t, limit time.Time) time.Time {
+	if t.Before(limit) {
+		return limit
+	}
+
+	return t
+}
+
 func boolToFloat(b bool) float64 {
 	if b {
 		return 1

@@ -361,13 +361,8 @@ func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
 
 	now := time.Now()
 
-	if s.nextStartTime.After(now) {
-		s.nextStartTime = now.Round(0) // strip monotonic clock reading
-	}
-
-	if earliest := now.Add(-maxLookback); s.nextStartTime.Before(earliest) {
-		s.nextStartTime = earliest.Round(0) // strip monotonic clock reading
-	}
+	// Round(0) strips the monotonic clock reading whichever bound the window lands on.
+	s.nextStartTime = notBefore(notAfter(s.nextStartTime, now), now.Add(-maxLookback)).Round(0)
 }
 
 func (s *scraper) batches(now time.Time) [][]string {
@@ -660,17 +655,17 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 	return nil
 }
 
-// logMissingResourceID reports an instance AWS returned no resource ID for. On a partial refresh
+// logMissingResourceID reports an instance AWS returned no resource ID for. When the refresh failed,
 // every instance the paginator never reached looks the same as one that is genuinely gone, so the
 // report is demoted rather than filling the log with a line per instance on every throttle.
-func (s *scraper) logMissingResourceID(instance sessions.Instance, partial bool) {
+func (s *scraper) logMissingResourceID(instance sessions.Instance, refreshFailed bool) {
 	keyvals := []any{
 		"msg", "RDS resource ID not found.",
 		"region", instance.Region,
 		"instance", instance.Instance,
 	}
 
-	if partial {
+	if refreshFailed {
 		level.Debug(s.logger).Log(keyvals...)
 
 		return
