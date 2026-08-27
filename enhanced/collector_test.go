@@ -64,6 +64,23 @@ func collect(t *testing.T, collector *Collector) []*helpers.Metric {
 	return helpers.ReadMetrics(collected)
 }
 
+// collectSamplesAt collects the stored samples as of a chosen moment, so a test can reach an expiry
+// without waiting for it.
+func collectSamplesAt(t *testing.T, collector *Collector, now time.Time) []*helpers.Metric {
+	t.Helper()
+
+	ch := make(chan prometheus.Metric, 100)
+	collector.collectSamples(ch, now)
+	close(ch)
+
+	collected := make([]prometheus.Metric, 0, len(ch))
+	for metric := range ch {
+		collected = append(collected, metric)
+	}
+
+	return helpers.ReadMetrics(collected)
+}
+
 func findMetric(metrics []*helpers.Metric, name, instance string) *helpers.Metric {
 	for _, metric := range metrics {
 		if metric.Name == name && metric.Labels[instanceLabel] == instance {
@@ -363,6 +380,39 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		}
 
 		assert.Equal(t, 1, ups)
+	})
+
+	t.Run("expires a future dated event from its receipt", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		eventTime := now.Add(90 * time.Minute)
+		collector := configuredCollector(map[instanceKey]instanceState{}, "skewed")
+		result := scrapeResult{
+			metrics: map[instanceKey]instanceMetrics{
+				testKey("skewed"): {metrics: sampleMetrics("skewed"), eventTime: eventTime},
+			},
+			errorCounts: nil,
+			region:      testRegion,
+			interval:    time.Minute,
+		}
+
+		collector.setMetrics(result, now)
+
+		// CloudWatch lets the monitored account date its own events, so expiry may not run from a
+		// timestamp that has not happened yet: the entry would outlive the instance by that much.
+		assert.Equal(t, now.Add(minMetricsTTL), collector.metrics[testKey("skewed")].expiresAt)
+
+		collector.setMetrics(result, now.Add(time.Minute))
+
+		assert.Equal(t, now.Add(minMetricsTTL), collector.metrics[testKey("skewed")].expiresAt,
+			"the guard compares raw timestamps, so the re-delivered event must not renew the sample")
+
+		metrics := collectSamplesAt(t, collector, now.Add(minMetricsTTL+time.Second))
+
+		up := findMetric(metrics, upMetricName, "skewed")
+		require.NotNil(t, up)
+		assert.InDelta(t, 0.0, up.Value, 0)
 	})
 
 	t.Run("expires a sample whose event is already older than the TTL", func(t *testing.T) {

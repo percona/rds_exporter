@@ -235,7 +235,9 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 		previous := c.metrics[key]
 
 		// The request window starts at the newest event of the slowest instance, so that event is
-		// re-delivered on every scrape. Expiry follows the event timestamp to keep an outage visible.
+		// re-delivered on every scrape. Expiry follows the event timestamp to keep an outage visible,
+		// and the comparison is against the raw one: an event dated in the future would otherwise look
+		// new on every scrape and hold a stale sample current for as long as the clock stayed wrong.
 		// A released payload has nothing left to protect, and refusing the sample on its timestamp
 		// alone would strand an instance whose replacement publishes older ones.
 		if previous.metrics != nil && !fresh.eventTime.After(previous.eventTime) {
@@ -245,7 +247,7 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 		c.metrics[key] = instanceState{
 			metrics:    fresh.metrics,
 			eventTime:  fresh.eventTime,
-			expiresAt:  fresh.eventTime.Add(ttl),
+			expiresAt:  notAfter(fresh.eventTime, now).Add(ttl),
 			receivedAt: now,
 		}
 	}
@@ -276,6 +278,17 @@ func (c *Collector) prune(now time.Time) {
 		state.metrics = nil
 		c.metrics[key] = state
 	}
+}
+
+// notAfter caps a time at a limit. Expiry runs from whichever came first, the event or its receipt,
+// so a timestamp CloudWatch let the monitored account choose cannot keep a sample current for hours
+// after the instance stopped reporting.
+func notAfter(t, limit time.Time) time.Time {
+	if t.After(limit) {
+		return limit
+	}
+
+	return t
 }
 
 func boolToFloat(b bool) float64 {

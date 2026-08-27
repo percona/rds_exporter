@@ -34,9 +34,12 @@ const (
 	// instance whose clock lags that much reports a gap rather than samples.
 	maxLookback = 3 * time.Minute
 
-	// maxFutureSkew is how far ahead of the exporter's own clock an event may be timestamped. It
-	// tolerates clock drift between the exporter host and AWS, and nothing more.
-	maxFutureSkew = time.Minute
+	// clockSkewReportThreshold is how far ahead of the exporter's own clock an event may be
+	// timestamped before the skew is worth reporting. It decides nothing about the data: a future
+	// timestamp is kept out of the request window and out of the sample's expiry by clamping both to
+	// now, so no value of this constant can cost a sample. Anything short enough to catch ordinary
+	// drift would otherwise have blanked every instance at once.
+	clockSkewReportThreshold = time.Minute
 )
 
 // instanceKey identifies an instance independently of its RDS resource ID, which changes on a
@@ -282,6 +285,8 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 
 	var scrapeErr error
 
+	skewedBefore := s.errorCounts[errorKindFutureEvent]
+
 	for _, streams := range s.batches(time.Now()) {
 		batchErr := s.collectBatch(ctx, streams, sink)
 		if batchErr == nil {
@@ -300,6 +305,11 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 		}
 	}
 
+	if skewed := s.errorCounts[errorKindFutureEvent] - skewedBefore; skewed > 0 {
+		level.Warn(s.logger).Log("msg", "Enhanced Monitoring events are timestamped in the future; "+
+			"check the clock of this host against AWS.", "events", skewed)
+	}
+
 	times, oldestNewest, collected := newestEventTimes(sink.times())
 	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
 
@@ -307,14 +317,22 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 }
 
 // advanceStartTime moves the request window forward only when every batch reported. A failed scrape
-// that moved it would permanently skip the events it did not read, and the window is clamped so that
-// recovering from a long outage cannot make the next request paginate through hours of events.
+// that moved it would permanently skip the events it did not read, and the window is clamped at both
+// ends: recovering from a long outage cannot make the next request paginate through hours of events,
+// and an event timestamped in the future cannot push the window past events that have yet to arrive.
+// Clamping down only ever widens the window, because FilterLogEvents StartTime is inclusive.
 func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
 	if complete && oldestNewest.After(s.nextStartTime) {
 		s.nextStartTime = oldestNewest
 	}
 
-	if earliest := time.Now().Add(-maxLookback); s.nextStartTime.Before(earliest) {
+	now := time.Now()
+
+	if s.nextStartTime.After(now) {
+		s.nextStartTime = now.Round(0) // strip monotonic clock reading
+	}
+
+	if earliest := now.Add(-maxLookback); s.nextStartTime.Before(earliest) {
 		s.nextStartTime = earliest.Round(0) // strip monotonic clock reading
 	}
 }
@@ -476,9 +494,7 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 	}
 
 	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
-	if !s.usableTimestamp(timestamp, logger) {
-		return
-	}
+	s.reportClockSkew(timestamp, logger)
 
 	osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
 	if err != nil {
@@ -513,20 +529,20 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 	}
 }
 
-// usableTimestamp reports whether an event timestamp can be trusted. CloudWatch accepts log events
-// dated up to two hours ahead, and the timestamp drives both the next request window and the cache
-// entry's expiry, so one future-dated event would otherwise stall the whole session's requests and
-// suppress every later sample of the instance it belongs to.
-func (s *scraper) usableTimestamp(timestamp time.Time, logger log.Logger) bool {
-	if !timestamp.After(time.Now().Add(maxFutureSkew)) {
-		return true
+// reportClockSkew counts an event timestamped further ahead than the exporter's clock explains.
+// CloudWatch accepts log events dated up to two hours ahead, so the timestamp says as much about the
+// two clocks as about the event. The sample is exported either way; the request window and the
+// expiry are the parts a future timestamp could stall, and both clamp it to now themselves. One
+// event is logged at debug because a host whose clock drifts produces one per instance per scrape;
+// scrape reports the total once.
+func (s *scraper) reportClockSkew(timestamp time.Time, logger log.Logger) {
+	if !timestamp.After(time.Now().Add(clockSkewReportThreshold)) {
+		return
 	}
 
 	s.errorCounts[errorKindFutureEvent]++
 
-	level.Warn(logger).Log("msg", "Ignoring Enhanced Monitoring event timestamped in the future.")
-
-	return false
+	level.Debug(logger).Log("msg", "Enhanced Monitoring event is timestamped in the future.")
 }
 
 func (s *scraper) instancesFor(logStreamName string) []sessions.Instance {

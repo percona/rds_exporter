@@ -68,17 +68,19 @@ func TestScrapeKeepsStartTimeWhenBatchFails(t *testing.T) {
 	assert.Equal(t, startTime, scraper.nextStartTime, "a partially failed scrape must not drop the events it missed")
 }
 
-func TestScrapeIgnoresEventsTimestampedInTheFuture(t *testing.T) {
+func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range []struct {
-		name     string
-		skew     time.Duration
-		accepted bool
+		name    string
+		skew    time.Duration
+		skewed  bool
+		follows bool
 	}{
-		{name: "within the tolerated clock drift", skew: maxFutureSkew / 2, accepted: true},
-		{name: "at the tolerated clock drift", skew: maxFutureSkew, accepted: true},
-		{name: "beyond the tolerated clock drift", skew: 90 * time.Minute, accepted: false},
+		{name: "behind the exporter's clock", skew: -30 * time.Second, skewed: false, follows: true},
+		{name: "within the reported clock skew", skew: clockSkewReportThreshold / 2, skewed: false, follows: false},
+		{name: "at the reported clock skew", skew: clockSkewReportThreshold, skewed: false, follows: false},
+		{name: "far beyond the reported clock skew", skew: 90 * time.Minute, skewed: true, follows: false},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
@@ -94,23 +96,56 @@ func TestScrapeIgnoresEventsTimestampedInTheFuture(t *testing.T) {
 				calls:    nil,
 			}
 			scraper := scraperWithStreams(client, oldResourceID)
-			startTime := scraper.nextStartTime
 
 			metrics, _ := scraper.scrape(t.Context())
 
-			if testCase.accepted {
-				assert.NotEmpty(t, metrics[testKey(oldResourceID)])
-				assert.Equal(t, eventTime, scraper.nextStartTime)
-				assert.Zero(t, scraper.errorCounts[errorKindFutureEvent])
+			// However wrong the two clocks are about each other, the sample is what the instance is
+			// judged by, so no skew may cost it.
+			assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+
+			skewed := uint64(0)
+			if testCase.skewed {
+				skewed = 1
+			}
+
+			assert.Equal(t, skewed, scraper.errorCounts[errorKindFutureEvent])
+
+			if testCase.follows {
+				assert.Equal(t, eventTime, scraper.nextStartTime,
+					"an event the exporter's own clock explains decides the next window unchanged")
 
 				return
 			}
 
-			assert.Empty(t, metrics,
-				"a future timestamp would freeze the cache entry it lands in and never expire")
-			assert.Equal(t, startTime, scraper.nextStartTime,
-				"a future timestamp must not push the request window past legitimate events")
-			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindFutureEvent])
+			assert.False(t, scraper.nextStartTime.After(time.Now()),
+				"a future timestamp must not push the request window past events still to arrive")
+		})
+	}
+}
+
+func TestAdvanceStartTimeNeverLeavesTheWindow(t *testing.T) {
+	t.Parallel()
+
+	// The clamps hold for any skew, which is what keeps a wrong clock from costing visibility rather
+	// than accuracy. Neither bound is a tolerance to be tuned.
+	for _, testCase := range []struct {
+		name         string
+		oldestNewest time.Time
+	}{
+		{name: "an event dated far in the future", oldestNewest: time.Now().Add(90 * time.Minute)},
+		{name: "an event dated before the lookback", oldestNewest: time.Now().Add(-2 * time.Hour)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			scraper := scraperWithStreams(nil, oldResourceID)
+
+			scraper.advanceStartTime(testCase.oldestNewest, true)
+
+			now := time.Now()
+
+			assert.False(t, scraper.nextStartTime.After(now))
+			assert.False(t, scraper.nextStartTime.Before(now.Add(-maxLookback-time.Second)))
 		})
 	}
 }
