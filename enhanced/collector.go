@@ -31,6 +31,7 @@ const (
 	upMetricName           = "rds_exporter_enhanced_up"
 	lastEventMetricName    = "rds_exporter_enhanced_last_event_timestamp_seconds"
 	scrapeErrorsMetricName = "rds_exporter_enhanced_scrape_errors_total"
+	clockSkewMetricName    = "rds_exporter_enhanced_clock_skew_events_total"
 
 	regionLabel   = "region"
 	instanceLabel = "instance"
@@ -58,6 +59,7 @@ type Collector struct {
 	upDesc        *prometheus.Desc
 	lastEventDesc *prometheus.Desc
 	errorsDesc    *prometheus.Desc
+	skewDesc      *prometheus.Desc
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -73,6 +75,8 @@ type Collector struct {
 	monitored map[instanceKey]bool
 	metrics   map[instanceKey]instanceState
 	errors    map[errorKey]uint64
+	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock.
+	skewed map[string]uint64
 }
 
 func metricsTTL(interval time.Duration) time.Duration {
@@ -91,6 +95,9 @@ func newCollector(logger log.Logger) *Collector {
 		errorsDesc: prometheus.NewDesc(scrapeErrorsMetricName,
 			"Enhanced Monitoring collection errors by kind; not_found counts log streams newly excluded.",
 			[]string{regionLabel, kindLabel}, nil),
+		skewDesc: prometheus.NewDesc(clockSkewMetricName,
+			"Enhanced Monitoring events timestamped ahead of the exporter's clock; their samples are exported regardless.",
+			[]string{regionLabel}, nil),
 		cancel:     nil,
 		wg:         sync.WaitGroup{},
 		configured: make(map[instanceKey]struct{}),
@@ -98,6 +105,7 @@ func newCollector(logger log.Logger) *Collector {
 		monitored:  make(map[instanceKey]bool),
 		metrics:    make(map[instanceKey]instanceState),
 		errors:     make(map[errorKey]uint64),
+		skewed:     make(map[string]uint64),
 	}
 }
 
@@ -171,6 +179,7 @@ func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.collectSamples(out, time.Now())
 	c.collectSilentInstances(out)
 	c.collectErrors(out)
+	c.collectClockSkew(out)
 }
 
 // configure records every instance the collector monitors and returns them grouped by session. The
@@ -239,6 +248,15 @@ func (c *Collector) silenced(key instanceKey) bool {
 	return known && !monitored
 }
 
+// collectClockSkew reports how many events a region delivered dated ahead of the exporter's clock.
+// It is deliberately not one of the error kinds: the samples are exported either way, so counting it
+// there would make a host whose clock drifts look like collection failing.
+func (c *Collector) collectClockSkew(out chan<- prometheus.Metric) {
+	for region, count := range c.skewed {
+		out <- prometheus.MustNewConstMetric(c.skewDesc, prometheus.CounterValue, float64(count), region)
+	}
+}
+
 func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 	for key, count := range c.errors {
 		out <- prometheus.MustNewConstMetric(c.errorsDesc, prometheus.CounterValue, float64(count),
@@ -280,6 +298,10 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	for kind, count := range result.errorCounts {
 		c.errors[errorKey{region: result.region, kind: kind}] += count
 	}
+
+	// Assigned even when nothing was skewed, so the counter starts from a zero the region publishes
+	// rather than appearing only once a clock has already drifted.
+	c.skewed[result.region] += result.skewedEvents
 
 	c.prune(now)
 }

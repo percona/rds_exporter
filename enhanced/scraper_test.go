@@ -152,6 +152,7 @@ func newTestScraperWith(
 		missing:                   newMissingStreams(),
 		isolationCalls:            0,
 		errorCounts:               make(map[string]uint64),
+		skewedEvents:              0,
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),

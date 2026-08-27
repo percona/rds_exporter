@@ -108,7 +108,7 @@ func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 				skewed = 1
 			}
 
-			assert.Equal(t, skewed, scraper.errorCounts[errorKindFutureEvent])
+			assert.Equal(t, skewed, scraper.skewedEvents)
 
 			if testCase.follows {
 				assert.Equal(t, eventTime, scraper.nextStartTime,
@@ -147,7 +147,7 @@ func TestScrapeKeepsReportingThroughOneFutureDatedEvent(t *testing.T) {
 		"an instance is judged by its newest event that has actually happened")
 	assert.Equal(t, happened, scraper.nextStartTime,
 		"the window must keep following the events the instance really published")
-	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindFutureEvent],
+	assert.Equal(t, uint64(1), scraper.skewedEvents,
 		"the glitch is still worth reporting, it just decides nothing")
 }
 

@@ -118,6 +118,7 @@ type scraper struct {
 	missing               *missingStreams
 	isolationCalls        int
 	errorCounts           map[string]uint64
+	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
 	nextStartTime         time.Time
 	logger                log.Logger
@@ -133,6 +134,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		missing:               newMissingStreams(),
 		isolationCalls:        0,
 		errorCounts:           make(map[string]uint64),
+		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
@@ -176,11 +178,12 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 }
 
 type scrapeResult struct {
-	metrics     map[instanceKey]instanceMetrics
-	errorCounts map[string]uint64 // error kind -> occurrences during the scrape
-	monitored   map[instanceKey]bool
-	region      string
-	interval    time.Duration
+	metrics      map[instanceKey]instanceMetrics
+	errorCounts  map[string]uint64 // error kind -> occurrences during the scrape
+	skewedEvents uint64            // events timestamped ahead of the exporter's clock during the scrape
+	monitored    map[instanceKey]bool
+	region       string
+	interval     time.Duration
 }
 
 // interval returns how often to scrape, following the shortest Enhanced Monitoring interval AWS
@@ -263,13 +266,16 @@ func (s *scraper) retune(interval time.Duration, ticker *time.Ticker) time.Durat
 func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	counts := s.errorCounts
 	s.errorCounts = make(map[string]uint64)
+	skewed := s.skewedEvents
+	s.skewedEvents = 0
 
 	return scrapeResult{
-		metrics:     metrics,
-		errorCounts: counts,
-		monitored:   s.monitoredInstances(),
-		region:      s.region(),
-		interval:    s.interval(),
+		metrics:      metrics,
+		errorCounts:  counts,
+		skewedEvents: skewed,
+		monitored:    s.monitoredInstances(),
+		region:       s.region(),
+		interval:     s.interval(),
 	}
 }
 
@@ -307,8 +313,6 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 
 	var scrapeErr error
 
-	skewedBefore := s.errorCounts[errorKindFutureEvent]
-
 	for _, streams := range s.batches(time.Now()) {
 		batchErr := s.collectBatch(ctx, streams, sink)
 		if batchErr == nil {
@@ -327,9 +331,10 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 		}
 	}
 
-	if skewed := s.errorCounts[errorKindFutureEvent] - skewedBefore; skewed > 0 {
+	// result resets the count as it hands the scrape over, so this is what this scrape saw.
+	if s.skewedEvents > 0 {
 		level.Warn(s.logger).Log("msg", "Enhanced Monitoring events are timestamped in the future; "+
-			"check the clock of this host against AWS.", "events", skewed)
+			"check the clock of this host against AWS.", "events", s.skewedEvents)
 	}
 
 	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
@@ -553,16 +558,16 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 
 // reportClockSkew counts an event timestamped further ahead than the exporter's clock explains.
 // CloudWatch accepts log events dated up to two hours ahead, so the timestamp says as much about the
-// two clocks as about the event. The sample is exported either way; the request window and the
-// expiry are the parts a future timestamp could stall, and both clamp it to now themselves. One
-// event is logged at debug because a host whose clock drifts produces one per instance per scrape;
-// scrape reports the total once.
+// two clocks as about the event. The sample is exported either way, which is why the count is not an
+// error count: the request window and the expiry are the parts a future timestamp could stall, and
+// both clamp it to now themselves. One event is logged at debug because a host whose clock drifts
+// produces one per instance per scrape; scrape reports the total once.
 func (s *scraper) reportClockSkew(timestamp time.Time, logger log.Logger) {
 	if !timestamp.After(time.Now().Add(clockSkewReportThreshold)) {
 		return
 	}
 
-	s.errorCounts[errorKindFutureEvent]++
+	s.skewedEvents++
 
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event is timestamped in the future.")
 }

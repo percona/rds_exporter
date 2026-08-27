@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	errorKindContext     = "context"
-	errorKindThrottling  = "throttling"
-	errorKindAuth        = "auth"
-	errorKindNotFound    = "not_found"
-	errorKindFutureEvent = "future_event"
-	errorKindOther       = "other"
+	errorKindContext    = "context"
+	errorKindThrottling = "throttling"
+	errorKindAuth       = "auth"
+	errorKindNotFound   = "not_found"
+	errorKindOther      = "other"
 )
 
 var errIsolationBudget = errors.New("log stream isolation budget exhausted")
