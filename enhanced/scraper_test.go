@@ -167,6 +167,26 @@ func TestRegion(t *testing.T) {
 	assert.Empty(t, scraperWithStreams(nil).region(), "a session without instances has no region to report under")
 }
 
+func TestMonitoredInstances(t *testing.T) {
+	t.Parallel()
+
+	unmonitored := testInstance("unmonitored", newResourceID)
+	unmonitored.EnhancedMonitoringInterval = 0
+
+	scraper := newTestScraperWithClient(nil, []sessions.Instance{
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+		// The same instance configured twice needs one entry, and one of the two having a stream is
+		// enough for the collector to expect a sample.
+		testInstance(blueGreenPrimaryInstance, oldResourceID),
+		unmonitored,
+	})
+
+	assert.Equal(t, map[instanceKey]bool{
+		testKey(blueGreenPrimaryInstance): true,
+		testKey("unmonitored"):            false,
+	}, scraper.result(nil).monitored)
+}
+
 func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
 	t.Parallel()
 

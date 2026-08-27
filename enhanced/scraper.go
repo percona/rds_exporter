@@ -178,6 +178,7 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 type scrapeResult struct {
 	metrics     map[instanceKey]instanceMetrics
 	errorCounts map[string]uint64 // error kind -> occurrences during the scrape
+	monitored   map[instanceKey]bool
 	region      string
 	interval    time.Duration
 }
@@ -263,7 +264,28 @@ func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	counts := s.errorCounts
 	s.errorCounts = make(map[string]uint64)
 
-	return scrapeResult{metrics: metrics, errorCounts: counts, region: s.region(), interval: s.interval()}
+	return scrapeResult{
+		metrics:     metrics,
+		errorCounts: counts,
+		monitored:   s.monitoredInstances(),
+		region:      s.region(),
+		interval:    s.interval(),
+	}
+}
+
+// monitoredInstances reports which instances AWS currently has Enhanced Monitoring on for. The
+// collector cannot assert an instance is down when enhancedStreams has no log stream to request for
+// it, and only the scrape goroutine may read the instances, so the state travels with the result.
+func (s *scraper) monitoredInstances() map[instanceKey]bool {
+	monitored := make(map[instanceKey]bool, len(s.instances))
+
+	for _, instance := range s.instances {
+		key := keyOf(instance)
+		// Duplicate configurations share a key, and one of them having a stream is enough.
+		monitored[key] = monitored[key] || instance.EnhancedMonitoringInterval > 0
+	}
+
+	return monitored
 }
 
 func (s *scraper) region() string {

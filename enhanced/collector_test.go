@@ -39,6 +39,22 @@ func configuredCollector(states map[instanceKey]instanceState, instances ...stri
 	return collector
 }
 
+// monitoredCollector returns a collector whose last scrape reported the given Enhanced Monitoring
+// state per instance, as AWS has it rather than as the config asks for it.
+func monitoredCollector(states map[instanceKey]instanceState, monitored map[string]bool) *Collector {
+	instances := make([]string, 0, len(monitored))
+	for instance := range monitored {
+		instances = append(instances, instance)
+	}
+
+	collector := configuredCollector(states, instances...)
+	for instance, on := range monitored {
+		collector.monitored[testKey(instance)] = on
+	}
+
+	return collector
+}
+
 // sampleMetrics returns one OS metric carrying the labels the collector must not alter.
 func sampleMetrics(instance string) []prometheus.Metric {
 	desc := prometheus.NewDesc(osMetricName, "The percentage of CPU in use.", nil, prometheus.Labels{
@@ -253,6 +269,52 @@ func TestCollect(t *testing.T) { //nolint:funlen
 	})
 }
 
+func TestCollectSilentInstances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reports a configured instance that never delivered a sample", func(t *testing.T) {
+		t.Parallel()
+
+		collector := monitoredCollector(map[instanceKey]instanceState{}, map[string]bool{"silent": true})
+
+		up := findMetric(collect(t, collector), upMetricName, "silent")
+
+		require.NotNil(t, up, "a missing log stream must be alertable without absent()")
+		assert.InDelta(t, 0.0, up.Value, 0)
+	})
+
+	t.Run("says nothing about an instance AWS has Enhanced Monitoring off for", func(t *testing.T) {
+		t.Parallel()
+
+		collector := monitoredCollector(map[instanceKey]instanceState{}, map[string]bool{"unmonitored": false})
+
+		// enhancedStreams requests no stream for it, so a sample was never due. Asserting down would be
+		// a standing false alarm that no change to the exporter's own config could clear.
+		assert.Nil(t, findMetric(collect(t, collector), upMetricName, "unmonitored"))
+	})
+
+	t.Run("stops reporting an instance whose Enhanced Monitoring is turned off", func(t *testing.T) {
+		t.Parallel()
+
+		lastEvent := time.Now().Add(-2 * minMetricsTTL)
+		collector := monitoredCollector(map[instanceKey]instanceState{
+			testKey("retired"): {
+				metrics:    nil,
+				eventTime:  lastEvent,
+				expiresAt:  lastEvent.Add(minMetricsTTL),
+				receivedAt: lastEvent,
+			},
+		}, map[string]bool{"retired": false})
+
+		metrics := collect(t, collector)
+
+		// The same unclearable zero reached through the stale entry rather than the silent set.
+		assert.Nil(t, findMetric(metrics, upMetricName, "retired"))
+		assert.NotNil(t, findMetric(metrics, lastEventMetricName, "retired"),
+			"when the instance last reported is still worth knowing")
+	})
+}
+
 func TestSetMetrics(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
@@ -267,6 +329,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    10 * time.Minute,
 		}, time.Now())
@@ -285,6 +348,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}
@@ -320,6 +384,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				testKey("promoted"): {metrics: sampleMetrics("promoted"), eventTime: older},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}, time.Now())
@@ -341,7 +406,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 			},
 		})
 
-		collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute}, time.Now())
+		collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, monitored: nil, region: testRegion, interval: time.Minute}, time.Now())
 
 		assert.Empty(t, collector.metrics, "an instance no longer configured must eventually disappear")
 	})
@@ -357,12 +422,14 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				key: {metrics: sampleMetrics("promoted"), eventTime: time.Now().Add(-time.Minute)},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}, time.Now())
 		collector.setMetrics(scrapeResult{
 			metrics:     map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}, time.Now())
@@ -382,6 +449,32 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		assert.Equal(t, 1, ups)
 	})
 
+	t.Run("follows Enhanced Monitoring being turned off in AWS", func(t *testing.T) {
+		t.Parallel()
+
+		key := testKey("primary")
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+
+		collector.setMetrics(scrapeResult{
+			metrics:     nil,
+			errorCounts: nil,
+			monitored:   map[instanceKey]bool{key: true},
+			region:      testRegion,
+			interval:    time.Minute,
+		}, time.Now())
+		require.False(t, collector.silenced(key))
+
+		collector.setMetrics(scrapeResult{
+			metrics:     nil,
+			errorCounts: nil,
+			monitored:   map[instanceKey]bool{key: false},
+			region:      testRegion,
+			interval:    time.Minute,
+		}, time.Now())
+
+		assert.True(t, collector.silenced(key), "the scrapers report the state AWS has now, not at startup")
+	})
+
 	t.Run("expires a future dated event from its receipt", func(t *testing.T) {
 		t.Parallel()
 
@@ -393,6 +486,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				testKey("skewed"): {metrics: sampleMetrics("skewed"), eventTime: eventTime},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}
@@ -426,6 +520,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 				testKey("lagging"): {metrics: sampleMetrics("lagging"), eventTime: now.Add(-2 * minMetricsTTL)},
 			},
 			errorCounts: nil,
+			monitored:   nil,
 			region:      testRegion,
 			interval:    time.Minute,
 		}, now)
@@ -491,7 +586,7 @@ func TestPrune(t *testing.T) {
 			},
 		}, "down")
 
-		collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, region: testRegion, interval: time.Minute}, time.Now())
+		collector.setMetrics(scrapeResult{metrics: nil, errorCounts: nil, monitored: nil, region: testRegion, interval: time.Minute}, time.Now())
 
 		metrics := collect(t, collector)
 

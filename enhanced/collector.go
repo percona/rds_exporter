@@ -66,9 +66,13 @@ type Collector struct {
 	// that have never delivered a sample.
 	configured map[instanceKey]struct{}
 
-	rw      sync.RWMutex
-	metrics map[instanceKey]instanceState
-	errors  map[errorKey]uint64
+	rw sync.RWMutex
+	// monitored is whether AWS has Enhanced Monitoring on for a configured instance, as of its
+	// session's last scrape. It is guarded because Enhanced Monitoring can be turned on or off while
+	// the exporter runs, unlike the configured set.
+	monitored map[instanceKey]bool
+	metrics   map[instanceKey]instanceState
+	errors    map[errorKey]uint64
 }
 
 func metricsTTL(interval time.Duration) time.Duration {
@@ -91,6 +95,7 @@ func newCollector(logger log.Logger) *Collector {
 		wg:         sync.WaitGroup{},
 		configured: make(map[instanceKey]struct{}),
 		rw:         sync.RWMutex{},
+		monitored:  make(map[instanceKey]bool),
 		metrics:    make(map[instanceKey]instanceState),
 		errors:     make(map[errorKey]uint64),
 	}
@@ -195,8 +200,10 @@ func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) 
 			}
 		}
 
-		out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, boolToFloat(current),
-			key.region, key.instance)
+		if current || !c.silenced(key) {
+			out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, boolToFloat(current),
+				key.region, key.instance)
+		}
 
 		if !state.eventTime.IsZero() {
 			out <- prometheus.MustNewConstMetric(c.lastEventDesc, prometheus.GaugeValue,
@@ -205,17 +212,31 @@ func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) 
 	}
 }
 
-// collectSilentInstances reports the instances that have never delivered a sample as down. Enhanced
-// Monitoring disabled in AWS, or a log stream that does not exist, otherwise leaves an instance with
-// no series at all, which can only be alerted on with absent().
+// collectSilentInstances reports the instances that have never delivered a sample as down. A log
+// stream that does not exist otherwise leaves an instance with no series at all, which can only be
+// alerted on with absent().
 func (c *Collector) collectSilentInstances(out chan<- prometheus.Metric) {
 	for key := range c.configured {
 		if _, reported := c.metrics[key]; reported {
 			continue
 		}
 
+		if c.silenced(key) {
+			continue
+		}
+
 		out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, 0, key.region, key.instance)
 	}
+}
+
+// silenced reports whether AWS has Enhanced Monitoring off for the instance, which leaves it nothing
+// to publish and no log stream for the scraper to request. Calling that down would be a zero no
+// operator could clear, and prune keeps the entry alive so it cannot even age out. An instance no
+// scrape has reported on yet is not silenced, so a key nothing accounts for is still reported down.
+func (c *Collector) silenced(key instanceKey) bool {
+	monitored, known := c.monitored[key]
+
+	return known && !monitored
 }
 
 func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
@@ -230,6 +251,10 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	defer c.rw.Unlock()
 
 	ttl := metricsTTL(result.interval)
+
+	for key, monitored := range result.monitored {
+		c.monitored[key] = monitored
+	}
 
 	for key, fresh := range result.metrics {
 		previous := c.metrics[key]
