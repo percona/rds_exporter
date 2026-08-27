@@ -34,6 +34,10 @@ const (
 	// instance whose clock lags that much reports a gap rather than samples.
 	maxLookback = 3 * time.Minute
 
+	// refreshBackoffFactor is how much longer each consecutive failed state refresh waits, growing
+	// from one scrape interval up to resourceIDRefreshInterval and back to zero on the first success.
+	refreshBackoffFactor = 2
+
 	// clockSkewReportThreshold is how far ahead of the exporter's own clock an event may be
 	// timestamped before the skew is worth reporting. It decides nothing about the data: a future
 	// timestamp is kept out of the request window and out of the sample's expiry by clamping both to
@@ -120,6 +124,7 @@ type scraper struct {
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
+	refreshBackoff        time.Duration
 	nextStartTime         time.Time
 	logger                log.Logger
 
@@ -136,6 +141,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
+		refreshBackoff:        0,
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
 	}
@@ -589,9 +595,28 @@ func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 		return nil
 	}
 
-	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
+	err := s.updateInstanceStates(ctx)
+	s.scheduleNextRefresh(err != nil)
 
-	return s.updateInstanceStates(ctx)
+	return err
+}
+
+// scheduleNextRefresh decides when the instance states are worth asking AWS for again. A failed
+// refresh leaves every instance its paginator never reached with the resource ID it already had, so
+// waiting the full interval keeps a switchover this scraper cannot see from a retired log stream that
+// the isolation is meanwhile about to exclude as missing. The retry therefore backs off between the
+// scrape interval and the refresh interval: soon enough that one throttled page costs a scrape or
+// two, bounded so that a DescribeDBInstances that keeps failing is not asked once per scrape.
+func (s *scraper) scheduleNextRefresh(failed bool) {
+	if !failed {
+		s.refreshBackoff = 0
+		s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
+
+		return
+	}
+
+	s.refreshBackoff = min(max(refreshBackoffFactor*s.refreshBackoff, s.interval()), resourceIDRefreshInterval)
+	s.nextResourceIDRefresh = time.Now().Add(s.refreshBackoff).Round(0)
 }
 
 // updateInstanceStates follows the resource ID and the Enhanced Monitoring interval AWS reports.

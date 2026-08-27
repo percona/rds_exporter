@@ -154,6 +154,7 @@ func newTestScraperWith(
 		errorCounts:               make(map[string]uint64),
 		skewedEvents:              0,
 		nextResourceIDRefresh:     nextResourceIDRefresh,
+		refreshBackoff:            0,
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
 		testDisallowUnknownFields: false,
@@ -394,6 +395,41 @@ func TestRefreshAppliesPartialInstanceStates(t *testing.T) {
 	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID,
 		"an instance the failed page never reached keeps what it had")
 	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+}
+
+func TestRefreshRetriesSoonerAfterAFailedRefresh(t *testing.T) {
+	t.Parallel()
+
+	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
+	scraper := newTestScraper(resolver)
+
+	require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+	// The instances the failed paginator never reached still hold whatever they had, so waiting the
+	// whole interval leaves a retired log stream to be written off as missing meanwhile.
+	assert.Equal(t, scraper.interval(), scraper.refreshBackoff,
+		"the first retry is due on the next scrape that asks for one")
+
+	scraper.nextResourceIDRefresh = time.Time{}
+	require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+	assert.Equal(t, 2*scraper.interval(), scraper.refreshBackoff,
+		"a DescribeDBInstances that keeps failing must not be asked once per scrape")
+
+	scraper.refreshBackoff = resourceIDRefreshInterval
+	scraper.nextResourceIDRefresh = time.Time{}
+	require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+	assert.Equal(t, resourceIDRefreshInterval, scraper.refreshBackoff, "the backoff stops at the refresh interval")
+
+	resolver.err = nil
+	resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
+	scraper.nextResourceIDRefresh = time.Time{}
+	require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+	assert.Zero(t, scraper.refreshBackoff)
+	assert.InDelta(t, float64(resourceIDRefreshInterval), float64(time.Until(scraper.nextResourceIDRefresh)),
+		float64(time.Second), "a refresh that read everything is not due again until the interval is up")
 }
 
 func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
