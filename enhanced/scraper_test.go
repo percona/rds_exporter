@@ -112,13 +112,12 @@ type fakeStateResolver struct {
 	calls  int
 }
 
+// InstanceStates returns the states and the error together, as the real resolver does when a page
+// fails after earlier ones were read.
 func (r *fakeStateResolver) InstanceStates(_ context.Context) (map[string]sessions.InstanceState, error) {
 	r.calls++
-	if r.err != nil {
-		return nil, r.err
-	}
 
-	return r.states, nil
+	return r.states, r.err
 }
 
 func monitoredState(resourceID string) sessions.InstanceState {
@@ -368,6 +367,32 @@ func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
 	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 	assert.Zero(t, scraper.missing.len(), "a resolver failure says nothing about which streams exist")
+}
+
+func TestRefreshAppliesPartialInstanceStates(t *testing.T) {
+	t.Parallel()
+
+	// One page read, the next one throttled.
+	resolver := &fakeStateResolver{
+		states: map[string]sessions.InstanceState{
+			blueGreenPrimaryInstance: monitoredState(newResourceID),
+		},
+		err:   errDescribeFailed,
+		calls: 0,
+	}
+	scraper := newTestScraper(resolver)
+	scraper.missing.mark(oldResourceID, time.Now())
+
+	err := scraper.refreshInstanceStates(t.Context())
+
+	require.ErrorIs(t, err, errDescribeFailed, "the caller still has to hear that the refresh was partial")
+	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
+		"a resource ID the resolver did read must not wait for the next refresh")
+	assert.False(t, scraper.missing.marked(oldResourceID),
+		"the retired stream must stop being excluded, or the switchover is written off as missing")
+	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID,
+		"an instance the failed page never reached keeps what it had")
+	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
 }
 
 func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {

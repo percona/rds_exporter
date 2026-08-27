@@ -589,20 +589,19 @@ func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 	return s.updateInstanceStates(ctx)
 }
 
+// updateInstanceStates follows the resource ID and the Enhanced Monitoring interval AWS reports.
+// InstanceStates returns the pages it did read alongside its error, and a partial result is still
+// authoritative for the instances it does contain: waiting a whole refresh interval for a resource ID
+// this scraper could already see would leave a retired log stream to be excluded as missing, which is
+// the outcome the isolation exists to prevent.
 func (s *scraper) updateInstanceStates(ctx context.Context) error {
 	states, err := s.stateResolver.InstanceStates(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to refresh instance states: %w", err)
-	}
 
 	for instanceIndex, instance := range s.instances {
 		state, ok := states[instance.Instance]
 		if !ok || state.ResourceID == "" {
-			level.Warn(s.logger).Log(
-				"msg", "RDS resource ID not found.",
-				"region", instance.Region,
-				"instance", instance.Instance,
-			)
+			s.logMissingResourceID(instance, err != nil)
+
 			continue
 		}
 
@@ -624,7 +623,30 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		s.instances[instanceIndex].ResourceID = state.ResourceID
 	}
 
+	if err != nil {
+		return fmt.Errorf("failed to refresh instance states: %w", err)
+	}
+
 	return nil
+}
+
+// logMissingResourceID reports an instance AWS returned no resource ID for. On a partial refresh
+// every instance the paginator never reached looks the same as one that is genuinely gone, so the
+// report is demoted rather than filling the log with a line per instance on every throttle.
+func (s *scraper) logMissingResourceID(instance sessions.Instance, partial bool) {
+	keyvals := []any{
+		"msg", "RDS resource ID not found.",
+		"region", instance.Region,
+		"instance", instance.Instance,
+	}
+
+	if partial {
+		level.Debug(s.logger).Log(keyvals...)
+
+		return
+	}
+
+	level.Warn(s.logger).Log(keyvals...)
 }
 
 // updateMonitoringInterval records a change of the instance's Enhanced Monitoring state, which
