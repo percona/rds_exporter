@@ -3,6 +3,7 @@ package enhanced
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -270,9 +271,7 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 
 	ttl := metricsTTL(result.interval)
 
-	for key, monitored := range result.monitored {
-		c.monitored[key] = monitored
-	}
+	maps.Copy(c.monitored, result.monitored)
 
 	for key, fresh := range result.metrics {
 		previous := c.metrics[key]
