@@ -94,7 +94,8 @@ func newCollector(logger log.Logger) *Collector {
 			"Timestamp of the most recent Enhanced Monitoring event received for this instance.",
 			[]string{regionLabel, instanceLabel}, nil),
 		errorsDesc: prometheus.NewDesc(scrapeErrorsMetricName,
-			"Enhanced Monitoring collection errors by kind; not_found counts log streams newly excluded.",
+			"Enhanced Monitoring collection errors by kind; not_found counts log streams newly excluded, "+
+				"group_not_found the log group of a whole session.",
 			[]string{regionLabel, kindLabel}, nil),
 		skewDesc: prometheus.NewDesc(clockSkewMetricName,
 			"Enhanced Monitoring events timestamped ahead of the exporter's clock; their samples are exported regardless.",

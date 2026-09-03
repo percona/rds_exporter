@@ -549,7 +549,7 @@ func scraperWithMissingStreams(count int) (*fakeLogsClient, *scraper, []string) 
 	streams := resourceIDs(maxLogStreamsPerRequest)
 
 	missing := make(map[string]struct{}, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		missing[streams[i*(len(streams)/count)]] = struct{}{}
 	}
 
