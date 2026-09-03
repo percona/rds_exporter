@@ -543,6 +543,88 @@ func TestScrapeReportsIsolationBudgetExhaustion(t *testing.T) {
 	})
 }
 
+// scraperWithMissingStreams returns a scraper for a full batch in which every countth stream does
+// not exist, spread out so that the bisect pays for them separately.
+func scraperWithMissingStreams(count int) (*fakeLogsClient, *scraper, []string) {
+	streams := resourceIDs(maxLogStreamsPerRequest)
+
+	missing := make(map[string]struct{}, count)
+	for i := 0; i < count; i++ {
+		missing[streams[i*(len(streams)/count)]] = struct{}{}
+	}
+
+	healthy := make([]string, 0, len(streams)-count)
+	for _, stream := range streams {
+		if _, absent := missing[stream]; !absent {
+			healthy = append(healthy, stream)
+		}
+	}
+
+	client := &fakeLogsClient{events: eventsFor(healthy...), missing: missing, errs: nil, pageSize: 0, calls: nil}
+
+	return client, scraperWithStreams(client, streams...), healthy
+}
+
+func TestMaxIsolationCallsCoversTheProbeRate(t *testing.T) {
+	t.Parallel()
+
+	// Whatever the probe policy re-admits into one batch has to be attributable in the scrape that
+	// re-admitted it, or the healthy streams sharing a half with it lose their sample.
+	for missing := 1; missing <= maxProbesPerScrape; missing++ {
+		t.Run(fmt.Sprintf("%d missing", missing), func(t *testing.T) {
+			t.Parallel()
+
+			client, scraper, healthy := scraperWithMissingStreams(missing)
+
+			metrics, _ := scraper.scrape(t.Context())
+
+			assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
+			assert.Zero(t, scraper.errorCounts[errorKindOther], "the budget must cover the whole probe rate")
+			assert.Equal(t, missing, scraper.missing.len())
+
+			for _, stream := range healthy {
+				assert.NotEmpty(t, metrics[testKey(stream)], "isolating must not cost a healthy instance its sample")
+			}
+		})
+	}
+}
+
+func TestScrapeConvergesWithMoreMissingStreamsThanProbeSlots(t *testing.T) {
+	t.Parallel()
+
+	const missing = 10
+
+	client, scraper, healthy := scraperWithMissingStreams(missing)
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.Equal(t, missing, scraper.missing.len(), "one scrape must attribute more than a probe cycle's worth")
+	assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
+
+	for _, stream := range healthy {
+		assert.NotEmpty(t, metrics[testKey(stream)])
+	}
+}
+
+func TestScrapeKeepsHealthyInstancesReportingAcrossProbeCycles(t *testing.T) {
+	t.Parallel()
+
+	client, scraper, healthy := scraperWithMissingStreams(maxProbesPerScrape)
+
+	for range 3 {
+		for stream := range client.missing {
+			scraper.missing.probeAfter[stream] = time.Now().Add(-time.Minute)
+		}
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		for _, stream := range healthy {
+			require.NotEmpty(t, metrics[testKey(stream)],
+				"re-probing a missing stream must not gap the instances batched with it")
+		}
+	}
+}
+
 func TestScrapeBatchesStreams(t *testing.T) {
 	t.Parallel()
 
