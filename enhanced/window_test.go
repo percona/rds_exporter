@@ -141,14 +141,65 @@ func TestScrapeKeepsReportingThroughOneFutureDatedEvent(t *testing.T) {
 
 	metrics, _ := scraper.scrape(t.Context())
 
-	// The collector judges an instance by the raw timestamp, so a glitched event that wins here sits
-	// ahead of every real one until now catches up, and the instance goes dark meanwhile.
+	// A glitched event that wins here becomes both the sample and the window, so the instance would
+	// be judged by a document it published before the events that actually describe it.
 	assert.Equal(t, happened, metrics[testKey(oldResourceID)].eventTime,
 		"an instance is judged by its newest event that has actually happened")
 	assert.Equal(t, happened, scraper.nextStartTime,
 		"the window must keep following the events the instance really published")
 	assert.Equal(t, uint64(1), scraper.skewedEvents,
 		"the glitch is still worth reporting, it just decides nothing")
+}
+
+func TestScrapeKeepsReportingAfterAFutureDatedEvent(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	glitched := now.Add(90 * time.Minute).UTC().Truncate(time.Second)
+	client := &fakeLogsClient{
+		events: map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEvent(oldResourceID, glitched)},
+		},
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID)
+	collector := configuredCollector(map[instanceKey]instanceState{}, oldResourceID)
+
+	// A scrape with nothing but a future dated event to go by, which is what an exporter whose clock
+	// is behind AWS collects.
+	metrics, _ := scraper.scrape(t.Context())
+	collector.setMetrics(futureDatedResult(metrics), now)
+
+	// The instance then publishes an event the exporter's own clock agrees with.
+	happened := time.Now().UTC()
+	client.events[oldResourceID] = append(client.events[oldResourceID], osMetricsEvent(oldResourceID, happened))
+
+	metrics, _ = scraper.scrape(t.Context())
+	collector.setMetrics(futureDatedResult(metrics), happened)
+
+	samples := collectSamplesAt(t, collector, happened.Add(2*time.Minute))
+
+	require.NotNil(t, findMetric(samples, lastEventMetricName, oldResourceID))
+	assert.InDelta(t, float64(happened.Unix()), findMetric(samples, lastEventMetricName, oldResourceID).Value, 0,
+		"one future dated event must not suppress the events behind it")
+	assert.NotNil(t, findMetric(samples, osMetricName, oldResourceID))
+	require.NotNil(t, findMetric(samples, upMetricName, oldResourceID))
+	assert.InDelta(t, 1.0, findMetric(samples, upMetricName, oldResourceID).Value, 0)
+}
+
+// futureDatedResult packages a scrape of oldResourceID for the collector.
+func futureDatedResult(metrics map[instanceKey]instanceMetrics) scrapeResult {
+	return scrapeResult{
+		metrics:      metrics,
+		errorCounts:  nil,
+		skewedEvents: 0,
+		monitored:    map[instanceKey]bool{testKey(oldResourceID): true},
+		region:       testRegion,
+		interval:     time.Minute,
+	}
 }
 
 func TestAdvanceStartTimeNeverLeavesTheWindow(t *testing.T) {
