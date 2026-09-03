@@ -249,7 +249,7 @@ func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeLogsClient{
-		events:   nil,
+		events:   eventsFor(sameResourceID),
 		missing:  map[string]struct{}{oldResourceID: {}, missingResourceID: {}},
 		errs:     nil,
 		pageSize: 0,
@@ -258,11 +258,13 @@ func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 
 	// One stream configured more often than there are probe slots, so counting per instance would
 	// leave none for the other stream.
-	instances := make([]sessions.Instance, 0, maxProbesPerScrape+2)
+	instances := make([]sessions.Instance, 0, maxProbesPerScrape+3)
 	for i := range maxProbesPerScrape + 1 {
 		instances = append(instances, testInstance(fmt.Sprintf("duplicate-%d", i), oldResourceID))
 	}
 	instances = append(instances, testInstance("other", missingResourceID))
+	// A stream that answers, so the rejection is attributed to the streams rather than to the group.
+	instances = append(instances, testInstance("healthy", sameResourceID))
 
 	scraper := newTestScraperWithClient(client, instances)
 	scraper.scrape(t.Context())
@@ -277,7 +279,7 @@ func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1)
-	assert.Equal(t, []string{oldResourceID, missingResourceID}, client.calls[0].streams,
+	assert.Equal(t, []string{oldResourceID, missingResourceID, sameResourceID}, client.calls[0].streams,
 		"duplicate instances must neither repeat their stream nor spend another stream's probe slot")
 }
 
@@ -469,8 +471,15 @@ func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
 		missing[stream] = struct{}{}
 	}
 
-	client := &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
-	scraper := scraperWithStreams(client, streams...)
+	// A stream that answers, so the rejection is attributed to the streams rather than to the group.
+	client := &fakeLogsClient{
+		events:   eventsFor(sameResourceID),
+		missing:  missing,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, append(streams, sameResourceID)...)
 
 	for _, stream := range streams {
 		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL))
@@ -484,9 +493,9 @@ func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
 		scraper.scrape(t.Context())
 
 		require.NotEmpty(t, client.calls)
-		require.Len(t, client.calls[0].streams, maxProbesPerScrape)
+		require.Len(t, client.calls[0].streams, maxProbesPerScrape+1)
 
-		probed = append(probed, client.calls[0].streams...)
+		probed = append(probed, client.calls[0].streams[:maxProbesPerScrape]...)
 	}
 
 	assert.ElementsMatch(t, streams, probed,
@@ -670,19 +679,23 @@ func TestScrapeBoundsIsolationCalls(t *testing.T) {
 
 	streams := resourceIDs(maxLogStreamsPerRequest)
 
+	// The last stream answers, so the rejection is attributed to the streams rather than to the group.
+	healthy := streams[len(streams)-1]
+
 	missing := make(map[string]struct{}, len(streams))
-	for _, stream := range streams {
+	for _, stream := range streams[:len(streams)-1] {
 		missing[stream] = struct{}{}
 	}
 
-	client := &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
+	client := &fakeLogsClient{events: eventsFor(healthy), missing: missing, errs: nil, pageSize: 0, calls: nil}
 	scraper := scraperWithStreams(client, streams...)
 
 	scraper.scrape(t.Context())
 
 	assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1, "isolation must stay bounded within one scrape")
 
-	// Repeated scrapes must converge: every stream ends up excluded, so no request is left to make.
+	// Repeated scrapes must converge: every missing stream ends up excluded, so only the stream that
+	// answers is left to request.
 
 	for range 50 {
 		scraper.scrape(t.Context())
@@ -692,6 +705,7 @@ func TestScrapeBoundsIsolationCalls(t *testing.T) {
 
 	scraper.scrape(t.Context())
 
-	assert.Empty(t, client.calls)
-	assert.Equal(t, len(streams), scraper.missing.len())
+	require.Len(t, client.calls, 1)
+	assert.Equal(t, []string{healthy}, client.calls[0].streams)
+	assert.Equal(t, len(missing), scraper.missing.len())
 }

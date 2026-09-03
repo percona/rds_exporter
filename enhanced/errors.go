@@ -16,13 +16,17 @@ const (
 	errorKindThrottling = "throttling"
 	errorKindAuth       = "auth"
 	errorKindNotFound   = "not_found"
-	errorKindOther      = "other"
+	// errorKindGroupNotFound is reported for the log group rather than for a stream, and only when a
+	// whole batch was rejected without a single request in it being answered.
+	errorKindGroupNotFound = "group_not_found"
+	errorKindOther         = "other"
 )
 
 var errIsolationBudget = errors.New("log stream isolation budget exhausted")
 
 // isResourceNotFound reports whether CloudWatch rejected the request because a log stream or the
-// log group does not exist.
+// log group does not exist. Which of the two it was is not in the error, so it is decided from what
+// the requests of a batch answered, in attributeRejection.
 func isResourceNotFound(err error) bool {
 	var notFound *types.ResourceNotFoundException
 

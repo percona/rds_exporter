@@ -29,6 +29,11 @@ const (
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
 	maxLogStreamsPerRequest = 100
 
+	// minStreamsToBlameTheGroup is how many log streams a rejected batch needs before its rejection
+	// can be read as evidence about the log group. A request for one stream is rejected the same way
+	// whether the stream or the group is what does not exist, so one stream can only blame itself.
+	minStreamsToBlameTheGroup = 2
+
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
 	// timestamped further behind the exporter's clock than this are never requested at all, so an
 	// instance whose clock lags that much reports a gap rather than samples.
@@ -121,6 +126,9 @@ type scraper struct {
 	stateResolver         instanceStateResolver
 	missing               *missingStreams
 	isolationCalls        int
+	isolated              []string // log streams the current batch's bisect singled out
+	batchAnswered         bool     // whether any request of the current batch was answered
+	groupProbeAfter       time.Time
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -138,6 +146,9 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		stateResolver:         sessions.NewResourceIDResolver(cfg),
 		missing:               newMissingStreams(),
 		isolationCalls:        0,
+		isolated:              nil,
+		batchAnswered:         false,
+		groupProbeAfter:       time.Time{},
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -368,6 +379,10 @@ func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
 func (s *scraper) batches(now time.Time) [][]string {
 	streams := s.enhancedStreams(now)
 
+	if probe, presumedMissing := s.groupProbe(streams, now); presumedMissing {
+		return probe
+	}
+
 	batches := make([][]string, 0, len(streams)/maxLogStreamsPerRequest+1)
 	for start := 0; start < len(streams); start += maxLogStreamsPerRequest {
 		end := min(start+maxLogStreamsPerRequest, len(streams))
@@ -375,6 +390,21 @@ func (s *scraper) batches(now time.Time) [][]string {
 	}
 
 	return batches
+}
+
+// groupProbe answers what to request while the log group itself is presumed missing: nothing until
+// the probe is due, and then a single stream. A missing group rejects every request it is asked for,
+// so requesting the whole fleet would pay a full bisect to learn what one stream already says.
+func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
+	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
+		return nil, false
+	}
+
+	if now.Before(s.groupProbeAfter) {
+		return nil, true
+	}
+
+	return [][]string{streams[:1]}, true
 }
 
 // collectBatch collects the events of the given log streams. CloudWatch fails the whole request
@@ -386,11 +416,42 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 		return err
 	}
 
+	// A probe of a group that is still missing is rejected for the group's sake and says nothing
+	// about the stream it happened to name, so it buys the group another TTL and nothing else.
+	if !s.groupProbeAfter.IsZero() {
+		s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+
+		return nil
+	}
+
 	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the
 	// batches after it from finding and excluding theirs.
 	s.isolationCalls = 0
+	s.batchAnswered = false
+	s.isolated = s.isolated[:0]
 
-	return s.isolateMissing(ctx, streams, sink)
+	isolationErr := s.isolateMissing(ctx, streams, sink)
+
+	s.attributeRejection(streams)
+
+	return isolationErr
+}
+
+// attributeRejection decides what the rejection of a whole batch was about. CloudWatch reports a
+// missing log group and a missing log stream as the same error, and a missing group rejects every
+// request, so a batch that answered nothing and had every one of its streams singled out is evidence
+// about the group. Reading it as streams instead would cost a bisect per scrape, exclude streams that
+// exist, and name instances that are fine.
+func (s *scraper) attributeRejection(streams []string) {
+	if !s.batchAnswered && len(streams) >= minStreamsToBlameTheGroup && len(s.isolated) == len(streams) {
+		s.markGroupMissing()
+
+		return
+	}
+
+	for _, stream := range s.isolated {
+		s.markMissing(stream)
+	}
 }
 
 // isolateMissing halves a rejected batch until it can attribute the rejection to single log
@@ -398,7 +459,7 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 // time is retried on the next scrape with a fresh budget.
 func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *eventSink) error {
 	if len(streams) == 1 {
-		s.markMissing(streams[0])
+		s.isolated = append(s.isolated, streams[0])
 
 		return nil
 	}
@@ -442,6 +503,19 @@ func (s *scraper) markMissing(logStreamName string) {
 	)
 }
 
+// markGroupMissing pauses the requests of a session whose log group does not exist. Enhanced
+// Monitoring writes the group itself, so this is a region that has never published an OS metrics
+// event, and every instance in it is waiting on the same thing rather than on a stream of its own.
+func (s *scraper) markGroupMissing() {
+	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+	s.errorCounts[errorKindGroupNotFound]++
+
+	level.Warn(s.logger).Log(
+		"msg", "CloudWatch log group does not exist; pausing Enhanced Monitoring requests.",
+		"log_group", logGroupName,
+	)
+}
+
 // collectPages paginates a single FilterLogEvents request, keeping the events of every page
 // fetched before an error.
 func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) error {
@@ -466,7 +540,7 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 
 		// A later page failing must not hold a stream out of the next request for another TTL: the
 		// request was already answered once, which is all the evidence its streams exist.
-		s.clearAccepted(streams)
+		s.noteAnswered(streams)
 
 		for _, event := range output.Events {
 			s.handleEvent(event, sink)
@@ -474,6 +548,23 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 	}
 
 	return nil
+}
+
+// noteAnswered records everything an answered request proves: the log group exists, every stream it
+// listed exists, and the batch being bisected has at least one half that is not the problem.
+func (s *scraper) noteAnswered(streams []string) {
+	s.batchAnswered = true
+
+	if !s.groupProbeAfter.IsZero() {
+		s.groupProbeAfter = time.Time{}
+
+		level.Info(s.logger).Log(
+			"msg", "CloudWatch log group exists again; resuming Enhanced Monitoring requests.",
+			"log_group", logGroupName,
+		)
+	}
+
+	s.clearAccepted(streams)
 }
 
 // clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names
