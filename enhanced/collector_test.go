@@ -141,6 +141,23 @@ func TestConfigure(t *testing.T) {
 		}, collector.configured)
 		assert.Len(t, enabled["session-b"], 1, "an instance PMM disabled must not be scraped")
 	})
+
+	t.Run("leaves out a session with nothing to scrape", func(t *testing.T) {
+		t.Parallel()
+
+		disabled := testInstance("disabled", "disabled-resource-id")
+		disabled.DisableEnhancedMetrics = true
+
+		collector := newCollector(promlog.New(&promlog.Config{}))
+		enabled := collector.configure(map[string][]sessions.Instance{
+			"session-a": {disabled},
+		})
+
+		// A scraper for such a session has no log stream to request and no region to report under, so
+		// it would publish its self-metrics with an empty region label and poll AWS for nothing.
+		assert.NotContains(t, enabled, "session-a")
+		assert.Empty(t, collector.configured)
+	})
 }
 
 func TestCollect(t *testing.T) { //nolint:funlen

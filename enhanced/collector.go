@@ -191,8 +191,18 @@ func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]s
 	enabled := make(map[string][]sessions.Instance, len(all))
 
 	for session, instances := range all {
-		enabled[session] = getEnabledInstances(instances)
-		for _, instance := range enabled[session] {
+		enabledInstances := getEnabledInstances(instances)
+
+		// A session left without instances has no log stream to request and no region to report
+		// under, so a scraper for it would poll AWS for nothing and publish its self-metrics with an
+		// empty region label. The flag it was filtered on comes from the configuration file, which
+		// cannot change while the exporter runs, so nothing can arrive later to justify one.
+		if len(enabledInstances) == 0 {
+			continue
+		}
+
+		enabled[session] = enabledInstances
+		for _, instance := range enabledInstances {
 			c.configured[keyOf(instance)] = struct{}{}
 		}
 	}
