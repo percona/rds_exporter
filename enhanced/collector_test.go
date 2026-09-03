@@ -367,6 +367,7 @@ func futureResult(eventTime time.Time) scrapeResult {
 	}
 }
 
+// TestSetMetrics covers what a stored sample does to the instance it belongs to.
 func TestSetMetrics(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
@@ -389,74 +390,6 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 
 		assert.Equal(t, eventTime.Add(metricsTTL(10*time.Minute)), collector.metrics[testKey("primary")].expiresAt,
 			"expiry must follow the interval AWS reports now, not the one reported at startup")
-	})
-
-	t.Run("ignores a redelivered event", func(t *testing.T) {
-		t.Parallel()
-
-		eventTime := time.Now().Add(-time.Minute)
-		collector := testCollector(map[instanceKey]instanceState{})
-		result := scrapeResult{
-			metrics: map[instanceKey]instanceMetrics{
-				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
-			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
-		}
-
-		collector.setMetrics(result, time.Now())
-		firstExpiry := collector.metrics[testKey("primary")].expiresAt
-
-		// FilterLogEvents StartTime is inclusive, so the newest event of the slowest instance comes back
-		// on every scrape. Expiry must follow the event timestamp, not the wall clock.
-		collector.setMetrics(result, time.Now())
-
-		assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
-	})
-
-	t.Run("accepts a real event stored after a future dated one", func(t *testing.T) {
-		t.Parallel()
-
-		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
-
-		// CloudWatch accepts event timestamps up to two hours ahead, and an exporter whose clock is
-		// behind AWS has nothing else to judge the instance by, so one gets stored.
-		collector.setMetrics(futureResult(now.Add(90*time.Minute)), now)
-
-		eventTime := now.Add(2 * time.Minute)
-		collector.setMetrics(futureResult(eventTime), eventTime)
-
-		state := collector.metrics[testKey("primary")]
-		require.Equal(t, eventTime, state.eventTime,
-			"an event dated in the future must not sit in front of the events that follow it")
-		assert.Equal(t, eventTime.Add(minMetricsTTL), state.expiresAt)
-
-		metrics := collectSamplesAt(t, collector, now.Add(4*time.Minute))
-		assert.NotNil(t, findMetric(metrics, osMetricName, "primary"))
-		require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
-		assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0)
-	})
-
-	t.Run("keeps following a clock that is behind AWS", func(t *testing.T) {
-		t.Parallel()
-
-		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
-
-		// Every event of every scrape is dated ahead, which is what a host an hour behind AWS sees.
-		for scrape := range 3 {
-			at := now.Add(time.Duration(scrape) * time.Minute)
-			collector.setMetrics(futureResult(at.Add(time.Hour)), at)
-
-			metrics := collectSamplesAt(t, collector, at)
-			require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
-			assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0,
-				"a clock that is behind AWS must not read as an instance that is down")
-		}
 	})
 
 	t.Run("restores an instance whose payload was released", func(t *testing.T) {
@@ -581,6 +514,80 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		}, time.Now())
 
 		assert.True(t, collector.silenced(key), "the scrapers report the state AWS has now, not at startup")
+	})
+}
+
+// TestSetMetricsEventTime covers which event timestamp a stored sample is judged by, on a clock
+// the monitored account controls.
+func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
+	t.Parallel()
+
+	t.Run("ignores a redelivered event", func(t *testing.T) {
+		t.Parallel()
+
+		eventTime := time.Now().Add(-time.Minute)
+		collector := testCollector(map[instanceKey]instanceState{})
+		result := scrapeResult{
+			metrics: map[instanceKey]instanceMetrics{
+				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
+			},
+			errorCounts:  nil,
+			skewedEvents: 0,
+			monitored:    nil,
+			region:       testRegion,
+			interval:     time.Minute,
+		}
+
+		collector.setMetrics(result, time.Now())
+		firstExpiry := collector.metrics[testKey("primary")].expiresAt
+
+		// FilterLogEvents StartTime is inclusive, so the newest event of the slowest instance comes back
+		// on every scrape. Expiry must follow the event timestamp, not the wall clock.
+		collector.setMetrics(result, time.Now())
+
+		assert.Equal(t, firstExpiry, collector.metrics[testKey("primary")].expiresAt)
+	})
+
+	t.Run("accepts a real event stored after a future dated one", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+
+		// CloudWatch accepts event timestamps up to two hours ahead, and an exporter whose clock is
+		// behind AWS has nothing else to judge the instance by, so one gets stored.
+		collector.setMetrics(futureResult(now.Add(90*time.Minute)), now)
+
+		eventTime := now.Add(2 * time.Minute)
+		collector.setMetrics(futureResult(eventTime), eventTime)
+
+		state := collector.metrics[testKey("primary")]
+		require.Equal(t, eventTime, state.eventTime,
+			"an event dated in the future must not sit in front of the events that follow it")
+		assert.Equal(t, eventTime.Add(minMetricsTTL), state.expiresAt)
+
+		metrics := collectSamplesAt(t, collector, now.Add(4*time.Minute))
+		assert.NotNil(t, findMetric(metrics, osMetricName, "primary"))
+		require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
+		assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0)
+	})
+
+	t.Run("keeps following a clock that is behind AWS", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+
+		// Every event of every scrape is dated ahead, which is what a host an hour behind AWS sees.
+		for scrape := range 3 {
+			at := now.Add(time.Duration(scrape) * time.Minute)
+			collector.setMetrics(futureResult(at.Add(time.Hour)), at)
+
+			metrics := collectSamplesAt(t, collector, at)
+			require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
+			assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0,
+				"a clock that is behind AWS must not read as an instance that is down")
+		}
 	})
 
 	t.Run("expires a future dated event from its receipt", func(t *testing.T) {
