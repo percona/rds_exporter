@@ -119,6 +119,24 @@ func TestScrapeDoesNotBlameTheLogGroupWithoutEvidence(t *testing.T) {
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 	})
 
+	t.Run("one batch of several", func(t *testing.T) {
+		t.Parallel()
+
+		// A missing group would have rejected the other batch too, so a batch that is merely gone
+		// says nothing about it.
+		streams := resourceIDs(maxLogStreamsPerRequest + 1)
+		client := groupMissingClient(streams[:maxLogStreamsPerRequest]...)
+		client.events = eventsFor(streams[maxLogStreamsPerRequest])
+		scraper := scraperWithStreams(client, streams...)
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, maxLogStreamsPerRequest, scraper.missing.len())
+		assert.NotEmpty(t, metrics[testKey(streams[maxLogStreamsPerRequest])],
+			"the batch that answered must keep reporting")
+	})
+
 	t.Run("a half that answered", func(t *testing.T) {
 		t.Parallel()
 
@@ -132,18 +150,33 @@ func TestScrapeDoesNotBlameTheLogGroupWithoutEvidence(t *testing.T) {
 		assert.Equal(t, len(streams)-1, scraper.missing.len())
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 	})
+}
 
-	t.Run("a bisect that ran out of budget", func(t *testing.T) {
-		t.Parallel()
+func TestScrapeBlamesTheLogGroupAcrossEveryBatch(t *testing.T) {
+	t.Parallel()
 
-		streams := resourceIDs(maxLogStreamsPerRequest)
-		client := groupMissingClient(streams...)
-		scraper := scraperWithStreams(client, streams...)
+	for _, testCase := range []struct {
+		name    string
+		streams int
+	}{
+		{name: "a full batch", streams: maxLogStreamsPerRequest},
+		{name: "more streams than one batch holds", streams: 2*maxLogStreamsPerRequest + 1},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-		scraper.scrape(t.Context())
+			streams := resourceIDs(testCase.streams)
+			client := groupMissingClient(streams...)
+			scraper := scraperWithStreams(client, streams...)
 
-		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound],
-			"a batch that was not attributed is no evidence about the group")
-		assert.True(t, scraper.groupProbeAfter.IsZero())
-	})
+			scraper.scrape(t.Context())
+
+			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+				"a scrape nothing answered anywhere is about the group however many requests it took")
+			assert.Zero(t, scraper.errorCounts[errorKindNotFound],
+				"no instance may be named for a fault that belongs to the group")
+			assert.Zero(t, scraper.missing.len())
+			assert.True(t, scraper.groupProbeAfter.After(time.Now()))
+		})
+	}
 }

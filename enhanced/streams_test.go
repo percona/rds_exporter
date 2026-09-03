@@ -502,45 +502,25 @@ func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
 		"a failed probe waits another TTL, so the first slots cannot keep the streams behind them from being retried")
 }
 
-func TestScrapeReportsIsolationBudgetExhaustion(t *testing.T) {
+// TestMaxIsolationCallsAttributesAFullBatch pins the budget to the worst case it has to cover. A
+// batch the bisect cannot finish is one whose healthy streams are excluded for a fault that is not
+// theirs, and whose rejection can never be read as the log group, because that reading needs every
+// stream singled out.
+func TestMaxIsolationCallsAttributesAFullBatch(t *testing.T) {
 	t.Parallel()
 
-	newScraper := func() *scraper {
-		streams := resourceIDs(maxLogStreamsPerRequest)
+	assert.Equal(t, bisectDivisor*(maxLogStreamsPerRequest-1), maxIsolationCalls,
+		"the budget is the cost of the worst case, so the two cannot move apart")
 
-		missing := make(map[string]struct{}, len(streams))
-		for _, stream := range streams {
-			missing[stream] = struct{}{}
-		}
+	streams := resourceIDs(maxLogStreamsPerRequest)
+	client := groupMissingClient(streams...)
+	scraper := scraperWithStreams(client, streams...)
 
-		client := &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
+	err := scraper.collectBatch(t.Context(), scraper.enhancedStreams(time.Now()), newEventSink())
 
-		return scraperWithStreams(client, streams...)
-	}
-
-	t.Run("says why it gave up", func(t *testing.T) {
-		t.Parallel()
-
-		scraper := newScraper()
-
-		err := scraper.collectBatch(t.Context(), scraper.enhancedStreams(time.Now()), newEventSink())
-
-		require.ErrorIs(t, err, errIsolationBudget)
-		assert.Equal(t, errorKindOther, errorKind(err), "running out of budget is neither a missing stream nor a refusal")
-	})
-
-	t.Run("counts the batch it could not attribute", func(t *testing.T) {
-		t.Parallel()
-
-		scraper := newScraper()
-
-		scraper.scrape(t.Context())
-
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindOther],
-			"a batch left unattributed must be visible as one error, not as silence")
-		assert.NotZero(t, scraper.errorCounts[errorKindNotFound],
-			"the streams the budget did reach must still be reported")
-	})
+	require.NoError(t, err, "a batch in which every stream is missing must still fit the budget")
+	assert.Len(t, scraper.isolated, len(streams))
+	assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
 }
 
 // scraperWithMissingStreams returns a scraper for a full batch in which every countth stream does

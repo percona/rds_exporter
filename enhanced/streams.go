@@ -9,15 +9,16 @@ const (
 	maxProbesPerScrape = 8
 	bisectDivisor      = 2
 
-	// maxIsolationCalls bounds the extra requests one batch may spend on finding its missing streams,
-	// so a region where many are missing converges over a few scrapes instead of flooding AWS. It is
-	// derived rather than picked: bisecting k missing streams out of n costs about 2k*log2(n/k)
-	// requests, and a scrape re-admits at most maxProbesPerScrape of them into a batch of
-	// maxLogStreamsPerRequest, so whatever the probe policy lets in can be attributed in the scrape
-	// that let it in. Anything below that leaves healthy streams in a half nobody could attribute,
-	// which costs them their sample. TestMaxIsolationCallsCoversTheProbeRate fails if the constants
-	// it is derived from move apart.
-	maxIsolationCalls = 2 * maxProbesPerScrape * 7 // 7 = ceil(log2(maxLogStreamsPerRequest))
+	// maxIsolationCalls bounds the requests one batch may spend on finding its missing streams. It is
+	// the exact cost of the worst case rather than a figure picked to be frugal: a bisect issues
+	// bisectDivisor requests per split and needs n-1 splits to single out n streams, so a batch of
+	// maxLogStreamsPerRequest in which every stream is missing costs this and can cost no more.
+	// Budgeting less is what makes a batch unattributable: the bisect stops half way, the streams it
+	// did reach are excluded for a fault they may not have, and a missing log group -- which rejects
+	// every request and so is only recognisable once every stream has been singled out -- can never
+	// be recognised for a full batch at all. A half holding no missing stream is answered rather than
+	// halved, so the ordinary case of a few missing streams costs a fraction of this.
+	maxIsolationCalls = bisectDivisor * (maxLogStreamsPerRequest - 1)
 )
 
 // missingStreams tracks the log streams CloudWatch reported as non-existent. It is only used from

@@ -126,8 +126,9 @@ type scraper struct {
 	stateResolver         instanceStateResolver
 	missing               *missingStreams
 	isolationCalls        int
-	isolated              []string // log streams the current batch's bisect singled out
-	batchAnswered         bool     // whether any request of the current batch was answered
+	isolated              []string
+	rejectedStreams       int
+	answered              bool
 	groupProbeAfter       time.Time
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
@@ -147,7 +148,8 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		missing:               newMissingStreams(),
 		isolationCalls:        0,
 		isolated:              nil,
-		batchAnswered:         false,
+		rejectedStreams:       0,
+		answered:              false,
 		groupProbeAfter:       time.Time{},
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
@@ -330,6 +332,8 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 
 	var scrapeErr error
 
+	s.beginAttribution()
+
 	for _, streams := range s.batches(time.Now()) {
 		batchErr := s.collectBatch(ctx, streams, sink)
 		if batchErr == nil {
@@ -346,6 +350,12 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 		if isContextError(batchErr) {
 			break
 		}
+	}
+
+	// A scrape cut short read only part of what it asked for, so what it did not hear back is the
+	// deadline talking rather than anything about the streams.
+	if !isContextError(scrapeErr) {
+		s.attributeRejections()
 	}
 
 	// result resets the count as it hands the scrape over, so this is what this scrape saw.
@@ -427,23 +437,30 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the
 	// batches after it from finding and excluding theirs.
 	s.isolationCalls = 0
-	s.batchAnswered = false
-	s.isolated = s.isolated[:0]
+	s.rejectedStreams += len(streams)
 
-	isolationErr := s.isolateMissing(ctx, streams, sink)
-
-	s.attributeRejection(streams)
-
-	return isolationErr
+	return s.isolateMissing(ctx, streams, sink)
 }
 
-// attributeRejection decides what the rejection of a whole batch was about. CloudWatch reports a
-// missing log group and a missing log stream as the same error, and a missing group rejects every
-// request, so a batch that answered nothing and had every one of its streams singled out is evidence
-// about the group. Reading it as streams instead would cost a bisect per scrape, exclude streams that
-// exist, and name instances that are fine.
-func (s *scraper) attributeRejection(streams []string) {
-	if !s.batchAnswered && len(streams) >= minStreamsToBlameTheGroup && len(s.isolated) == len(streams) {
+// beginAttribution starts the evidence this scrape will be read from.
+func (s *scraper) beginAttribution() {
+	s.isolated = s.isolated[:0]
+	s.rejectedStreams = 0
+	s.answered = false
+}
+
+// attributeRejections decides what the rejections this scrape collected were about. CloudWatch
+// reports a missing log group and a missing log stream as the same error, and a missing group rejects
+// every request, so a scrape that was answered nothing anywhere and singled out every stream it asked
+// for is evidence about the group. Reading that as streams instead would cost a bisect per scrape,
+// exclude streams that exist, and name instances that are fine.
+//
+// The evidence has to span the scrape and not one batch of it: a missing group would have rejected
+// the other batches too, so one batch of several saying nothing says nothing about the group, only
+// that the instances in it are gone. Attributing every stream also has to stay within
+// maxIsolationCalls, or the group could never be recognised for a batch of any size.
+func (s *scraper) attributeRejections() {
+	if !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup && len(s.isolated) == s.rejectedStreams {
 		s.markGroupMissing()
 
 		return
@@ -553,7 +570,7 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 // noteAnswered records everything an answered request proves: the log group exists, every stream it
 // listed exists, and the batch being bisected has at least one half that is not the problem.
 func (s *scraper) noteAnswered(streams []string) {
-	s.batchAnswered = true
+	s.answered = true
 
 	if !s.groupProbeAfter.IsZero() {
 		s.groupProbeAfter = time.Time{}
