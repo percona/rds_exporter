@@ -2,11 +2,14 @@ package enhanced
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,19 +17,123 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-type resourceIDResolver interface {
-	ResourceIDs(ctx context.Context) (map[string]string, error)
+type instanceStateResolver interface {
+	InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error)
 }
 
-const resourceIDRefreshInterval = 5 * time.Minute
+const (
+	resourceIDRefreshInterval = 5 * time.Minute
+	logGroupName              = "RDSOSMetrics"
+
+	// LogStreamNames accepts up to 100 items.
+	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
+	maxLogStreamsPerRequest = 100
+
+	// minStreamsToBlameTheGroup is how many log streams a rejected batch needs before its rejection
+	// can be read as evidence about the log group. A request for one stream is rejected the same way
+	// whether the stream or the group is what does not exist, so one stream can only blame itself.
+	minStreamsToBlameTheGroup = 2
+
+	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
+	// timestamped further behind the exporter's clock than this are never requested at all, so an
+	// instance whose clock lags that much reports a gap rather than samples.
+	maxLookback = 3 * time.Minute
+
+	// refreshBackoffFactor is how much longer each consecutive failed state refresh waits, growing
+	// from one scrape interval up to resourceIDRefreshInterval and back to zero on the first success.
+	refreshBackoffFactor = 2
+
+	// clockSkewReportThreshold is how far ahead of the exporter's own clock an event may be
+	// timestamped before the skew is worth reporting. It decides nothing about the data: a future
+	// timestamp is kept out of the request window and out of the sample's expiry by clamping both to
+	// now, so no value of this constant can cost a sample. Anything short enough to catch ordinary
+	// drift would otherwise have blanked every instance at once.
+	clockSkewReportThreshold = time.Minute
+)
+
+// instanceKey identifies an instance independently of its RDS resource ID, which changes on a
+// blue/green switchover.
+type instanceKey struct {
+	region   string
+	instance string
+}
+
+func keyOf(instance sessions.Instance) instanceKey {
+	return instanceKey{region: instance.Region, instance: instance.Instance}
+}
+
+// instanceMetrics is one instance's most recent Enhanced Monitoring sample.
+type instanceMetrics struct {
+	metrics   []prometheus.Metric
+	eventTime time.Time
+}
+
+// eventSink accumulates the metrics parsed out of log events, per instance and event timestamp.
+type eventSink struct {
+	metrics  map[instanceKey]map[time.Time][]prometheus.Metric
+	messages map[instanceKey]map[time.Time]string
+}
+
+func newEventSink() *eventSink {
+	return &eventSink{
+		metrics:  make(map[instanceKey]map[time.Time][]prometheus.Metric),
+		messages: make(map[instanceKey]map[time.Time]string),
+	}
+}
+
+func (sink *eventSink) add(key instanceKey, timestamp time.Time, metrics []prometheus.Metric, message string) {
+	if sink.metrics[key] == nil {
+		sink.metrics[key] = make(map[time.Time][]prometheus.Metric)
+	}
+
+	sink.metrics[key][timestamp] = metrics
+
+	if sink.messages[key] == nil {
+		sink.messages[key] = make(map[time.Time]string)
+	}
+
+	sink.messages[key][timestamp] = message
+}
+
+func (sink *eventSink) times() map[instanceKey][]time.Time {
+	res := make(map[instanceKey][]time.Time, len(sink.metrics))
+	for key, events := range sink.metrics {
+		res[key] = make([]time.Time, 0, len(events))
+		for timestamp := range events {
+			res[key] = append(res[key], timestamp)
+		}
+	}
+
+	return res
+}
+
+func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
+	metrics := make(map[instanceKey]instanceMetrics, len(times))
+	messages := make(map[instanceKey]string, len(times))
+
+	for key, timestamp := range times {
+		metrics[key] = instanceMetrics{metrics: sink.metrics[key][timestamp], eventTime: timestamp}
+		messages[key] = sink.messages[key][timestamp]
+	}
+
+	return metrics, messages
+}
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
 	instances             []sessions.Instance
-	logStreamNames        []string
-	svc                   *cloudwatchlogs.Client
-	resourceIDResolver    resourceIDResolver
+	svc                   cloudwatchlogs.FilterLogEventsAPIClient
+	stateResolver         instanceStateResolver
+	missing               *missingStreams
+	isolationCalls        int
+	isolated              []string
+	rejectedStreams       int
+	answered              bool
+	groupProbeAfter       time.Time
+	errorCounts           map[string]uint64
+	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
+	refreshBackoff        time.Duration
 	nextStartTime         time.Time
 	logger                log.Logger
 
@@ -34,175 +141,606 @@ type scraper struct {
 }
 
 func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
-	logStreamNames := make([]string, 0, len(instances))
-	for _, instance := range instances {
-		logStreamNames = append(logStreamNames, instance.ResourceID)
-	}
-
 	return &scraper{
 		instances:             instances,
-		logStreamNames:        logStreamNames,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
-		resourceIDResolver:    sessions.NewResourceIDResolver(cfg),
+		stateResolver:         sessions.NewResourceIDResolver(cfg),
+		missing:               newMissingStreams(),
+		isolationCalls:        0,
+		isolated:              nil,
+		rejectedStreams:       0,
+		answered:              false,
+		groupProbeAfter:       time.Time{},
+		errorCounts:           make(map[string]uint64),
+		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
-		nextStartTime:         time.Now().Add(-3 * time.Minute).Round(0), // strip monotonic clock reading
+		refreshBackoff:        0,
+		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
 		logger:                log.With(logger, "component", "enhanced"),
 	}
 }
 
-// start scrapes metrics in loop and sends them to the channel until context is canceled.
-func (s *scraper) start(ctx context.Context, interval time.Duration, ch chan<- map[string][]prometheus.Metric) {
+// enhancedStreams returns the log streams to request metrics from. Instances whose Enhanced
+// Monitoring is disabled in AWS have no log stream at all, and streams CloudWatch already reported
+// as missing are left out until their probe is due, because CloudWatch rejects the whole request
+// when any single requested stream does not exist.
+func (s *scraper) enhancedStreams(now time.Time) []string {
+	streams := make([]string, 0, len(s.instances))
+	requested := make(map[string]struct{}, len(s.instances))
+	probes := 0
+
+	for _, instance := range s.instances {
+		if instance.EnhancedMonitoringInterval <= 0 {
+			continue
+		}
+
+		// Instances configured more than once share one log stream, which therefore belongs in the
+		// request once and may spend one probe slot, not one per instance.
+		if _, listed := requested[instance.ResourceID]; listed {
+			continue
+		}
+
+		if s.missing.marked(instance.ResourceID) {
+			// Re-probes are staggered so that a fleet of missing streams cannot fill a whole batch.
+			if probes >= maxProbesPerScrape || !s.missing.due(instance.ResourceID, now) {
+				continue
+			}
+
+			probes++
+		}
+
+		requested[instance.ResourceID] = struct{}{}
+		streams = append(streams, instance.ResourceID)
+	}
+
+	return streams
+}
+
+type scrapeResult struct {
+	metrics      map[instanceKey]instanceMetrics
+	errorCounts  map[string]uint64 // error kind -> occurrences during the scrape
+	skewedEvents uint64            // events timestamped ahead of the exporter's clock during the scrape
+	monitored    map[instanceKey]bool
+	region       string
+	interval     time.Duration
+}
+
+// interval returns how often to scrape, following the shortest Enhanced Monitoring interval AWS
+// reports for the session.
+func (s *scraper) interval() time.Duration {
+	interval := maxInterval
+	for _, instance := range s.instances {
+		if instance.EnhancedMonitoringInterval > 0 && instance.EnhancedMonitoringInterval < interval {
+			interval = instance.EnhancedMonitoringInterval
+		}
+	}
+
+	return max(interval, minInterval)
+}
+
+// start scrapes metrics in loop and sends them to the channel until context is canceled. It owns
+// the channel, so the receiver's range loop ends when the scraper stops.
+func (s *scraper) start(ctx context.Context, results chan<- scrapeResult) {
+	interval := s.interval()
 	ticker := time.NewTicker(interval)
+
 	defer ticker.Stop()
+	defer close(results)
 
 	for {
 		select {
 		case <-ticker.C:
-			// nothing
 		case <-ctx.Done():
 			return
 		}
 
-		scrapeCtx, cancel := context.WithTimeout(ctx, interval)
-		m, _ := s.scrape(scrapeCtx)
-		cancel()
-		ch <- m
+		metrics := s.scrapeOnce(ctx, interval)
+
+		if !s.send(ctx, results, s.result(metrics)) {
+			return
+		}
+
+		interval = s.retune(interval, ticker)
 	}
+}
+
+// scrapeOnce bounds a scrape by the interval it belongs to. Isolating missing log streams costs
+// extra requests per batch, so without a deadline one scrape of a region where nothing exists could
+// keep running while the collector waits for it.
+func (s *scraper) scrapeOnce(ctx context.Context, interval time.Duration) map[instanceKey]instanceMetrics {
+	scrapeCtx, cancel := context.WithTimeout(ctx, interval)
+	defer cancel()
+
+	metrics, _ := s.scrape(scrapeCtx)
+
+	return metrics
+}
+
+// send delivers a result unless the scraper is stopping, so shutting down cannot block on a channel
+// nobody drains any more.
+func (s *scraper) send(ctx context.Context, results chan<- scrapeResult, result scrapeResult) bool {
+	select {
+	case results <- result:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+// retune follows a change of the Enhanced Monitoring interval AWS reports. Turning Enhanced
+// Monitoring on, or lowering its interval, would otherwise be ignored until the exporter restarts.
+func (s *scraper) retune(interval time.Duration, ticker *time.Ticker) time.Duration {
+	current := s.interval()
+	if current == interval {
+		return interval
+	}
+
+	level.Info(s.logger).Log("msg", "Enhanced metrics update interval changed.", "interval", current)
+	ticker.Reset(current)
+
+	return current
+}
+
+// result packages a scrape for the collector and resets the error counters.
+func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
+	counts := s.errorCounts
+	s.errorCounts = make(map[string]uint64)
+	skewed := s.skewedEvents
+	s.skewedEvents = 0
+
+	return scrapeResult{
+		metrics:      metrics,
+		errorCounts:  counts,
+		skewedEvents: skewed,
+		monitored:    s.monitoredInstances(),
+		region:       s.region(),
+		interval:     s.interval(),
+	}
+}
+
+// monitoredInstances reports which instances AWS currently has Enhanced Monitoring on for. The
+// collector cannot assert an instance is down when enhancedStreams has no log stream to request for
+// it, and only the scrape goroutine may read the instances, so the state travels with the result.
+func (s *scraper) monitoredInstances() map[instanceKey]bool {
+	monitored := make(map[instanceKey]bool, len(s.instances))
+
+	for _, instance := range s.instances {
+		key := keyOf(instance)
+		// Duplicate configurations share a key, and one of them having a stream is enough.
+		monitored[key] = monitored[key] || instance.EnhancedMonitoringInterval > 0
+	}
+
+	return monitored
+}
+
+func (s *scraper) region() string {
+	if len(s.instances) == 0 {
+		return ""
+	}
+
+	return s.instances[0].Region
 }
 
 // scrape performs a single scrape.
-func (s *scraper) scrape(ctx context.Context) (map[string][]prometheus.Metric, map[string]string) {
-	allMetrics := make(map[string]map[time.Time][]prometheus.Metric) // ResourceID -> event timestamp -> metrics
-	allMessages := make(map[string]map[time.Time]string)             // ResourceID -> event timestamp -> message
+func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
+	sink := newEventSink()
 
-	if err := s.refreshResourceIDs(ctx); err != nil {
-		level.Error(s.logger).Log("msg", "Failed to refresh RDS resource IDs.", "error", err)
+	err := s.refreshInstanceStates(ctx)
+	if err != nil {
+		level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
 	}
 
-	// LogStreamNames parameter supports up to 100 items.
-	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
-	streamCount := len(s.logStreamNames)
-	for i := 0; i < streamCount; i += 100 {
-		sliceStart := i
-		sliceEnd := i + 100
-		if sliceEnd > streamCount {
-			sliceEnd = streamCount
+	var scrapeErr error
+
+	s.beginAttribution()
+
+	for _, streams := range s.batches(time.Now()) {
+		batchErr := s.collectBatch(ctx, streams, sink)
+		if batchErr == nil {
+			continue
 		}
 
-		input := &cloudwatchlogs.FilterLogEventsInput{
-			LogGroupName:   aws.String("RDSOSMetrics"),
-			LogStreamNames: s.logStreamNames[sliceStart:sliceEnd],
-			StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
-		}
+		scrapeErr = errors.Join(scrapeErr, batchErr)
+		kind := errorKind(batchErr)
+		s.errorCounts[kind]++
 
-		level.Debug(log.With(s.logger, "next_start", s.nextStartTime.UTC(), "since_last", time.Since(s.nextStartTime))).Log("msg", "Requesting metrics")
+		level.Error(s.logger).Log("msg", "Failed to collect enhanced metrics.",
+			"error", batchErr, "kind", kind, "batch_size", len(streams))
 
-		paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
-		for paginator.HasMorePages() {
-			output, err := paginator.NextPage(ctx)
-			if err != nil {
-				level.Error(s.logger).Log("msg", "Failed to filter log events.", "error", err)
-				break
-			}
-			for _, event := range output.Events {
-				l := log.With(s.logger,
-					"EventId", aws.ToString(event.EventId),
-					"LogStreamName", aws.ToString(event.LogStreamName),
-					"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
-					"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
-
-				var instance *sessions.Instance
-				for _, i := range s.instances {
-					if i.ResourceID == aws.ToString(event.LogStreamName) {
-						instance = &i
-						break
-					}
-				}
-				if instance == nil {
-					level.Error(l).Log("msg", "Failed to find instance.")
-					continue
-				}
-
-				if instance.DisableEnhancedMetrics {
-					level.Debug(l).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
-					continue
-				}
-				l = log.With(l, "region", instance.Region, "instance", instance.Instance)
-
-				osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
-				if err != nil {
-					// only for tests
-					if s.testDisallowUnknownFields {
-						panic(fmt.Sprintf("New metrics should be added: %s", err))
-					}
-
-					level.Error(l).Log("msg", "Failed to parse metrics.", "error", err)
-					continue
-				}
-
-				timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
-				level.Debug(l).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.", osMetrics.Timestamp.UTC(), timestamp))
-
-				if allMetrics[instance.ResourceID] == nil {
-					allMetrics[instance.ResourceID] = make(map[time.Time][]prometheus.Metric)
-				}
-				allMetrics[instance.ResourceID][timestamp] = osMetrics.makePrometheusMetrics(instance.Region, instance.Labels)
-
-				if allMessages[instance.ResourceID] == nil {
-					allMessages[instance.ResourceID] = make(map[time.Time]string)
-				}
-				allMessages[instance.ResourceID][timestamp] = aws.ToString(event.Message)
-			}
+		if isContextError(batchErr) {
+			break
 		}
 	}
-	// get better times
-	allTimes := make(map[string][]time.Time)
-	for resourceID, events := range allMetrics {
-		allTimes[resourceID] = make([]time.Time, 0, len(events))
-		for timestamp := range events {
-			allTimes[resourceID] = append(allTimes[resourceID], timestamp)
-		}
-	}
-	var times map[string]time.Time
-	times, s.nextStartTime = betterTimes(allTimes)
 
-	// return only latest metrics/messages
-	resMetrics := make(map[string][]prometheus.Metric) // ResourceID -> metrics
-	resMessages := make(map[string]string)             // ResourceID -> message
-	for resourceID, timestamp := range times {
-		resMetrics[resourceID] = allMetrics[resourceID][timestamp]
-		resMessages[resourceID] = allMessages[resourceID][timestamp]
+	// A scrape cut short read only part of what it asked for, so what it did not hear back is the
+	// deadline talking rather than anything about the streams.
+	if !isContextError(scrapeErr) {
+		s.attributeRejections()
 	}
-	return resMetrics, resMessages
+
+	// result resets the count as it hands the scrape over, so this is what this scrape saw.
+	if s.skewedEvents > 0 {
+		level.Warn(s.logger).Log("msg", "Enhanced Monitoring events are timestamped in the future; "+
+			"check the clock of this host against AWS.", "events", s.skewedEvents)
+	}
+
+	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
+	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
+
+	return sink.latest(times)
 }
 
-func (s *scraper) refreshResourceIDs(ctx context.Context) error {
+// advanceStartTime moves the request window forward only when every batch reported. A failed scrape
+// that moved it would permanently skip the events it did not read, and the window is clamped at both
+// ends: recovering from a long outage cannot make the next request paginate through hours of events,
+// and an event timestamped in the future cannot push the window past events that have yet to arrive.
+// Clamping down only ever widens the window, because FilterLogEvents StartTime is inclusive.
+func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
+	if complete && oldestNewest.After(s.nextStartTime) {
+		s.nextStartTime = oldestNewest
+	}
+
+	now := time.Now()
+
+	// Round(0) strips the monotonic clock reading whichever bound the window lands on.
+	s.nextStartTime = notBefore(notAfter(s.nextStartTime, now), now.Add(-maxLookback)).Round(0)
+}
+
+func (s *scraper) batches(now time.Time) [][]string {
+	streams := s.enhancedStreams(now)
+
+	if probe, presumedMissing := s.groupProbe(streams, now); presumedMissing {
+		return probe
+	}
+
+	batches := make([][]string, 0, len(streams)/maxLogStreamsPerRequest+1)
+	for start := 0; start < len(streams); start += maxLogStreamsPerRequest {
+		end := min(start+maxLogStreamsPerRequest, len(streams))
+		batches = append(batches, streams[start:end])
+	}
+
+	return batches
+}
+
+// groupProbe answers what to request while the log group itself is presumed missing: nothing until
+// the probe is due, and then a single stream. A missing group rejects every request it is asked for,
+// so requesting the whole fleet would pay a full bisect to learn what one stream already says.
+func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
+	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
+		return nil, false
+	}
+
+	if now.Before(s.groupProbeAfter) {
+		return nil, true
+	}
+
+	return [][]string{streams[:1]}, true
+}
+
+// collectBatch collects the events of the given log streams. CloudWatch fails the whole request
+// when any single stream does not exist, so the batch is halved until the missing streams are
+// identified and excluded, which keeps the remaining instances reporting.
+func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *eventSink) error {
+	err := s.collectPages(ctx, streams, sink)
+	if err == nil || !isResourceNotFound(err) {
+		return err
+	}
+
+	// A probe of a group that is still missing is rejected for the group's sake and says nothing
+	// about the stream it happened to name, so it buys the group another TTL and nothing else.
+	if !s.groupProbeAfter.IsZero() {
+		s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+
+		return nil
+	}
+
+	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the
+	// batches after it from finding and excluding theirs.
+	s.isolationCalls = 0
+	s.rejectedStreams += len(streams)
+
+	return s.isolateMissing(ctx, streams, sink)
+}
+
+// beginAttribution starts the evidence this scrape will be read from.
+func (s *scraper) beginAttribution() {
+	s.isolated = s.isolated[:0]
+	s.rejectedStreams = 0
+	s.answered = false
+}
+
+// attributeRejections decides what the rejections this scrape collected were about. CloudWatch
+// reports a missing log group and a missing log stream as the same error, and a missing group rejects
+// every request, so a scrape that was answered nothing anywhere and singled out every stream it asked
+// for is evidence about the group. Reading that as streams instead would cost a bisect per scrape,
+// exclude streams that exist, and name instances that are fine.
+//
+// The evidence has to span the scrape and not one batch of it: a missing group would have rejected
+// the other batches too, so one batch of several saying nothing says nothing about the group, only
+// that the instances in it are gone. Attributing every stream also has to stay within
+// maxIsolationCalls, or the group could never be recognised for a batch of any size.
+func (s *scraper) attributeRejections() {
+	if !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup && len(s.isolated) == s.rejectedStreams {
+		s.markGroupMissing()
+
+		return
+	}
+
+	for _, stream := range s.isolated {
+		s.markMissing(stream)
+	}
+}
+
+// isolateMissing halves a rejected batch until it can attribute the rejection to single log
+// streams, spending at most maxIsolationCalls requests per scrape. What it cannot attribute this
+// time is retried on the next scrape with a fresh budget.
+func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *eventSink) error {
+	if len(streams) == 1 {
+		s.isolated = append(s.isolated, streams[0])
+
+		return nil
+	}
+
+	mid := len(streams) / bisectDivisor
+
+	return errors.Join(
+		s.isolateHalf(ctx, streams[:mid], sink),
+		s.isolateHalf(ctx, streams[mid:], sink),
+	)
+}
+
+func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *eventSink) error {
+	if s.isolationCalls >= maxIsolationCalls {
+		return errIsolationBudget
+	}
+
+	s.isolationCalls++
+
+	err := s.collectPages(ctx, streams, sink)
+	if err == nil || !isResourceNotFound(err) {
+		return err
+	}
+
+	return s.isolateMissing(ctx, streams, sink)
+}
+
+// markMissing excludes a log stream from later requests. It reports and logs only the transition, so
+// that a permanently missing stream neither inflates the counter nor floods the log every scrape.
+func (s *scraper) markMissing(logStreamName string) {
+	if !s.missing.mark(logStreamName, time.Now()) {
+		return
+	}
+
+	s.errorCounts[errorKindNotFound]++
+
+	level.Warn(s.logger).Log(
+		"msg", "CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests.",
+		"log_stream", logStreamName,
+		"instance", s.instanceNameFor(logStreamName),
+	)
+}
+
+// markGroupMissing pauses the requests of a session whose log group does not exist. Enhanced
+// Monitoring writes the group itself, so this is a region that has never published an OS metrics
+// event, and every instance in it is waiting on the same thing rather than on a stream of its own.
+func (s *scraper) markGroupMissing() {
+	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+	s.errorCounts[errorKindGroupNotFound]++
+
+	level.Warn(s.logger).Log(
+		"msg", "CloudWatch log group does not exist; pausing Enhanced Monitoring requests.",
+		"log_group", logGroupName,
+	)
+}
+
+// collectPages paginates a single FilterLogEvents request, keeping the events of every page
+// fetched before an error.
+func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) error {
+	input := &cloudwatchlogs.FilterLogEventsInput{ //nolint:exhaustruct
+		LogGroupName:   aws.String(logGroupName),
+		LogStreamNames: streams,
+		StartTime:      aws.Int64(s.nextStartTime.UnixMilli()),
+	}
+
+	level.Debug(log.With(s.logger,
+		"next_start", s.nextStartTime.UTC(),
+		"since_last", time.Since(s.nextStartTime),
+		"batch_size", len(streams),
+	)).Log("msg", "Requesting metrics")
+
+	paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to filter log events: %w", err)
+		}
+
+		// A later page failing must not hold a stream out of the next request for another TTL: the
+		// request was already answered once, which is all the evidence its streams exist.
+		s.noteAnswered(streams)
+
+		for _, event := range output.Events {
+			s.handleEvent(event, sink)
+		}
+	}
+
+	return nil
+}
+
+// noteAnswered records everything an answered request proves: the log group exists, every stream it
+// listed exists, and the batch being bisected has at least one half that is not the problem.
+func (s *scraper) noteAnswered(streams []string) {
+	s.answered = true
+
+	if !s.groupProbeAfter.IsZero() {
+		s.groupProbeAfter = time.Time{}
+
+		level.Info(s.logger).Log(
+			"msg", "CloudWatch log group exists again; resuming Enhanced Monitoring requests.",
+			"log_group", logGroupName,
+		)
+	}
+
+	s.clearAccepted(streams)
+}
+
+// clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names
+// no stream, so answering the request is the only positive evidence that every stream listed in it
+// exists. Waiting for an event instead would keep a stream that exists but published nothing inside
+// the request window excluded for another TTL, and since the window is only as wide as the fastest
+// instance's reporting interval, that is the common case rather than the exception.
+func (s *scraper) clearAccepted(streams []string) {
+	for _, stream := range streams {
+		if !s.missing.clear(stream) {
+			continue
+		}
+
+		level.Info(s.logger).Log(
+			"msg", "CloudWatch log stream exists again; resuming Enhanced Monitoring requests.",
+			"log_stream", stream,
+			"instance", s.instanceNameFor(stream),
+		)
+	}
+}
+
+// instanceNameFor returns the DB instance identifiers using the given log stream, for logging.
+func (s *scraper) instanceNameFor(logStreamName string) string {
+	names := make([]string, 0, 1)
+	for _, instance := range s.instancesFor(logStreamName) {
+		names = append(names, instance.Instance)
+	}
+
+	return strings.Join(names, ",")
+}
+
+func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
+	logger := log.With(s.logger,
+		"EventId", aws.ToString(event.EventId),
+		"LogStreamName", aws.ToString(event.LogStreamName),
+		"Timestamp", time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC(),
+		"IngestionTime", time.UnixMilli(aws.ToInt64(event.IngestionTime)).UTC())
+
+	logStreamName := aws.ToString(event.LogStreamName)
+
+	instances := s.instancesFor(logStreamName)
+	if len(instances) == 0 {
+		level.Error(logger).Log("msg", "Failed to find instance.")
+
+		return
+	}
+
+	timestamp := time.UnixMilli(aws.ToInt64(event.Timestamp)).UTC()
+	s.reportClockSkew(timestamp, logger)
+
+	osMetrics, err := parseOSMetrics([]byte(aws.ToString(event.Message)), s.testDisallowUnknownFields)
+	if err != nil {
+		// only for tests
+		if s.testDisallowUnknownFields {
+			panic(fmt.Sprintf("New metrics should be added: %s", err))
+		}
+
+		level.Error(logger).Log("msg", "Failed to parse metrics.", "error", err)
+
+		return
+	}
+
+	// Several configured instances can share a resource ID, and each of them needs its own sample.
+	for _, instance := range instances {
+		if instance.DisableEnhancedMetrics {
+			level.Debug(logger).Log("msg", fmt.Sprintf("Enhanced Metrics are disabled for instance %v.", instance))
+
+			continue
+		}
+
+		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
+		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
+			osMetrics.Timestamp.UTC(), timestamp))
+
+		sink.add(
+			keyOf(instance),
+			timestamp,
+			osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
+			aws.ToString(event.Message),
+		)
+	}
+}
+
+// reportClockSkew counts an event timestamped further ahead than the exporter's clock explains.
+// CloudWatch accepts log events dated up to two hours ahead, so the timestamp says as much about the
+// two clocks as about the event. The sample is exported either way, which is why the count is not an
+// error count: the request window and the expiry are the parts a future timestamp could stall, and
+// both clamp it to now themselves. One event is logged at debug because a host whose clock drifts
+// produces one per instance per scrape; scrape reports the total once.
+func (s *scraper) reportClockSkew(timestamp time.Time, logger log.Logger) {
+	if !timestamp.After(time.Now().Add(clockSkewReportThreshold)) {
+		return
+	}
+
+	s.skewedEvents++
+
+	level.Debug(logger).Log("msg", "Enhanced Monitoring event is timestamped in the future.")
+}
+
+func (s *scraper) instancesFor(logStreamName string) []sessions.Instance {
+	res := make([]sessions.Instance, 0, 1)
+
+	for _, instance := range s.instances {
+		if instance.ResourceID == logStreamName {
+			res = append(res, instance)
+		}
+	}
+
+	return res
+}
+
+func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 	if time.Now().Before(s.nextResourceIDRefresh) {
 		return nil
 	}
 
-	s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
-	return s.updateResourceIDs(ctx)
+	err := s.updateInstanceStates(ctx)
+	s.scheduleNextRefresh(err != nil)
+
+	return err
 }
 
-func (s *scraper) updateResourceIDs(ctx context.Context) error {
-	resourceIDs, err := s.resourceIDResolver.ResourceIDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to refresh resource IDs: %w", err)
+// scheduleNextRefresh decides when the instance states are worth asking AWS for again. A failed
+// refresh leaves every instance its paginator never reached with the resource ID it already had, so
+// waiting the full interval keeps a switchover this scraper cannot see from a retired log stream that
+// the isolation is meanwhile about to exclude as missing. The retry therefore backs off between the
+// scrape interval and the refresh interval: soon enough that one throttled page costs a scrape or
+// two, bounded so that a DescribeDBInstances that keeps failing is not asked once per scrape.
+func (s *scraper) scheduleNextRefresh(failed bool) {
+	if !failed {
+		s.refreshBackoff = 0
+		s.nextResourceIDRefresh = time.Now().Add(resourceIDRefreshInterval).Round(0)
+
+		return
 	}
 
+	s.refreshBackoff = min(max(refreshBackoffFactor*s.refreshBackoff, s.interval()), resourceIDRefreshInterval)
+	s.nextResourceIDRefresh = time.Now().Add(s.refreshBackoff).Round(0)
+}
+
+// updateInstanceStates follows the resource ID and the Enhanced Monitoring interval AWS reports.
+// InstanceStates returns the pages it did read alongside its error, and a partial result is still
+// authoritative for the instances it does contain: waiting a whole refresh interval for a resource ID
+// this scraper could already see would leave a retired log stream to be excluded as missing, which is
+// the outcome the isolation exists to prevent.
+func (s *scraper) updateInstanceStates(ctx context.Context) error {
+	states, err := s.stateResolver.InstanceStates(ctx)
+
 	for instanceIndex, instance := range s.instances {
-		resourceID := resourceIDs[instance.Instance]
-		if resourceID == "" {
-			level.Warn(s.logger).Log(
-				"msg", "RDS resource ID not found.",
-				"region", instance.Region,
-				"instance", instance.Instance,
-			)
+		state, ok := states[instance.Instance]
+		if !ok || state.ResourceID == "" {
+			s.logMissingResourceID(instance, err != nil)
+
 			continue
 		}
 
-		if resourceID == instance.ResourceID {
+		s.updateMonitoringInterval(instanceIndex, state.MonitoringInterval)
+
+		if state.ResourceID == instance.ResourceID {
 			continue
 		}
 
@@ -210,39 +748,110 @@ func (s *scraper) updateResourceIDs(ctx context.Context) error {
 			"msg", "RDS resource ID changed.",
 			"region", instance.Region,
 			"instance", instance.Instance,
-			"resource_id", resourceID,
+			"resource_id", state.ResourceID,
 		)
-		s.updateResourceID(instanceIndex, resourceID)
+
+		// The retired resource ID will never come back, and the new one deserves a fresh attempt.
+		s.missing.clear(instance.ResourceID)
+		s.instances[instanceIndex].ResourceID = state.ResourceID
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to refresh instance states: %w", err)
 	}
 
 	return nil
 }
 
-func (s *scraper) updateResourceID(instanceIndex int, resourceID string) {
-	// Scrapes for a single scraper run serially, so these paired slices can be
-	// updated in place as long as scrape execution is not parallelized.
-	s.instances[instanceIndex].ResourceID = resourceID
-	s.logStreamNames[instanceIndex] = resourceID
+// logMissingResourceID reports an instance AWS returned no resource ID for. When the refresh failed,
+// every instance the paginator never reached looks the same as one that is genuinely gone, so the
+// report is demoted rather than filling the log with a line per instance on every throttle.
+func (s *scraper) logMissingResourceID(instance sessions.Instance, refreshFailed bool) {
+	keyvals := []any{
+		"msg", "RDS resource ID not found.",
+		"region", instance.Region,
+		"instance", instance.Instance,
+	}
+
+	if refreshFailed {
+		level.Debug(s.logger).Log(keyvals...)
+
+		return
+	}
+
+	level.Warn(s.logger).Log(keyvals...)
 }
 
-// betterTimes returns timestamps of the latest metrics, and also StarTime that should be used in the next request
-func betterTimes(allTimes map[string][]time.Time) (times map[string]time.Time, nextStartTime time.Time) {
-	// keep only the most recent metrics for each instance
-	nextStartTime = time.Now()
-	times = make(map[string]time.Time) // ResourceID -> timestamp
-	for resourceID, events := range allTimes {
-		var newest time.Time
-		for _, timestamp := range events {
-			if newest.Before(timestamp) {
-				newest = timestamp
-				times[resourceID] = timestamp
-			}
+// updateMonitoringInterval records a change of the instance's Enhanced Monitoring state, which
+// decides whether the instance has a log stream to request at all.
+func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Duration) {
+	instance := s.instances[instanceIndex]
+	if instance.EnhancedMonitoringInterval == interval {
+		return
+	}
+
+	level.Info(s.logger).Log(
+		"msg", "RDS Enhanced Monitoring interval changed.",
+		"region", instance.Region,
+		"instance", instance.Instance,
+		"interval", interval,
+	)
+
+	if interval <= 0 {
+		// The stream is not requested at all any more, so its exclusion must not outlive it:
+		// re-enabling Enhanced Monitoring would otherwise wait for a probe to come due.
+		s.missing.clear(instance.ResourceID)
+	}
+
+	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
+}
+
+// newestEventTimes returns the event timestamp to judge each instance by, the oldest of those
+// timestamps, and whether any events were collected at all. The oldest is where the next request has
+// to start, and when nothing was collected the caller keeps its current start time.
+func newestEventTimes(allTimes map[instanceKey][]time.Time, now time.Time) (map[instanceKey]time.Time, time.Time, bool) {
+	times := make(map[instanceKey]time.Time, len(allTimes))
+
+	var oldestNewest time.Time
+
+	for key, events := range allTimes {
+		newest, collected := newestEventTime(events, now)
+		if !collected {
+			continue
 		}
 
-		if nextStartTime.After(newest) {
-			nextStartTime = newest
+		times[key] = newest
+
+		if oldestNewest.IsZero() || oldestNewest.After(newest) {
+			oldestNewest = newest
 		}
 	}
 
-	return
+	return times, oldestNewest, len(times) > 0
+}
+
+// newestEventTime returns the newest event that has already happened, falling back to the newest of
+// all of them when none has. The collector compares raw timestamps to tell one sample from the next,
+// so an event dated ahead of the real ones would sit in front of them until now caught up, and the
+// instance would publish nothing meanwhile. The fallback is what a host behind AWS relies on: when
+// every event is dated ahead there is nothing else to judge the instance by, and no skew may cost it
+// its sample.
+func newestEventTime(events []time.Time, now time.Time) (time.Time, bool) {
+	var newest, newestPast time.Time
+
+	for _, timestamp := range events {
+		if newest.Before(timestamp) {
+			newest = timestamp
+		}
+
+		if !timestamp.After(now) && newestPast.Before(timestamp) {
+			newestPast = timestamp
+		}
+	}
+
+	if !newestPast.IsZero() {
+		return newestPast, true
+	}
+
+	return newest, !newest.IsZero()
 }
