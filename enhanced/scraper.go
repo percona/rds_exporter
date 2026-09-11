@@ -353,10 +353,9 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 	}
 
 	// A scrape cut short read only part of what it asked for, so what it did not hear back is the
-	// deadline talking rather than anything about the streams.
-	if !isContextError(scrapeErr) {
-		s.attributeRejections()
-	}
+	// deadline talking rather than anything about the streams. That only limits what can be said
+	// about the log group: a stream singled out by a rejection is missing either way.
+	s.attributeRejections(!isContextError(scrapeErr))
 
 	// result resets the count as it hands the scrape over, so this is what this scrape saw.
 	if s.skewedEvents > 0 {
@@ -458,9 +457,13 @@ func (s *scraper) beginAttribution() {
 // The evidence has to span the scrape and not one batch of it: a missing group would have rejected
 // the other batches too, so one batch of several saying nothing says nothing about the group, only
 // that the instances in it are gone. Attributing every stream also has to stay within
-// maxIsolationCalls, or the group could never be recognised for a batch of any size.
-func (s *scraper) attributeRejections() {
-	if !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup && len(s.isolated) == s.rejectedStreams {
+// maxIsolationCalls, or the group could never be recognised for a batch of any size. A scrape that
+// ran out of time therefore attributes its streams and leaves the group alone: holding the streams
+// back as well would leave a bisect nothing to show for itself, and the next scrape would pay the
+// same doomed bisect over the same batch for as long as the budget stays too small to finish it.
+func (s *scraper) attributeRejections(mayBlameGroup bool) {
+	if mayBlameGroup && !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup &&
+		len(s.isolated) == s.rejectedStreams {
 		s.markGroupMissing()
 
 		return

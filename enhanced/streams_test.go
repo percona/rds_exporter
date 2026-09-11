@@ -736,6 +736,64 @@ func TestScrapeLeavesBatchesForTheNextScrapeWhenTimeRunsOut(t *testing.T) {
 	assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
 }
 
+// TestScrapeAttributesRejectionsWhenTimeRunsOut covers what a bisect the deadline interrupted is
+// still allowed to conclude. Four streams are singled out in five requests, so scripting the fifth
+// to run out of time leaves the bisect with streams it proved and a batch it never reached.
+func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
+	t.Parallel()
+
+	outOfTimeMidBisect := []error{nil, nil, nil, nil, context.DeadlineExceeded}
+
+	t.Run("excludes the streams it singled out", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(4)
+		client := &fakeLogsClient{
+			events:   nil,
+			missing:  map[string]struct{}{streams[0]: {}},
+			errs:     outOfTimeMidBisect,
+			pageSize: 0,
+			calls:    nil,
+		}
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		// Holding the stream back because the scrape ran out of time would cost the same bisect, and
+		// the same starved batch, on every scrape from here on: the budget does not grow.
+		assert.True(t, scraper.missing.marked(streams[0]),
+			"a request that named one stream and was rejected is evidence about that stream")
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
+	})
+
+	t.Run("leaves the log group alone", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(4)
+		missing := make(map[string]struct{}, len(streams))
+		for _, stream := range streams {
+			missing[stream] = struct{}{}
+		}
+
+		client := &fakeLogsClient{
+			events:   nil,
+			missing:  missing,
+			errs:     outOfTimeMidBisect,
+			pageSize: 0,
+			calls:    nil,
+		}
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		// Blaming the group needs every stream accounted for, and a scrape cut short never asked the
+		// batches a missing group would have rejected too.
+		assert.Zero(t, scraper.groupProbeAfter)
+		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, 2, scraper.missing.len(), "only the streams the bisect reached are excluded")
+	})
+}
+
 func TestScrapeBoundsIsolationCalls(t *testing.T) {
 	t.Parallel()
 
