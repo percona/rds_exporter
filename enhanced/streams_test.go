@@ -771,6 +771,7 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 
 		streams := resourceIDs(4)
 		missing := make(map[string]struct{}, len(streams))
+
 		for _, stream := range streams {
 			missing[stream] = struct{}{}
 		}
