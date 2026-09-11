@@ -364,18 +364,28 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 	}
 
 	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
-	s.advanceStartTime(oldestNewest, collected && scrapeErr == nil)
+	s.advanceStartTime(oldestNewest, collected && windowMayAdvance(scrapeErr))
 
 	return sink.latest(times)
 }
 
-// advanceStartTime moves the request window forward only when every batch reported. A failed scrape
-// that moved it would permanently skip the events it did not read, and the window is clamped at both
-// ends: recovering from a long outage cannot make the next request paginate through hours of events,
-// and an event timestamped in the future cannot push the window past events that have yet to arrive.
-// Clamping down only ever widens the window, because FilterLogEvents StartTime is inclusive.
-func (s *scraper) advanceStartTime(oldestNewest time.Time, complete bool) {
-	if complete && oldestNewest.After(s.nextStartTime) {
+// windowMayAdvance reports whether what a scrape collected may move the request window. A batch
+// rejected for a reason of its own is asked again on the next scrape, so keeping the window still
+// costs one scrape and loses nothing. A scrape that ran out of time is the opposite case: it would
+// be handed back the window it could not drain, run out of time on it again, and never report at
+// all, so the events it did read have to move the window even though the rest of the fleet did not
+// report. Only what is behind the new start and was never read is lost, bounded by maxLookback.
+func windowMayAdvance(scrapeErr error) bool {
+	return scrapeErr == nil || isContextError(scrapeErr)
+}
+
+// advanceStartTime moves the request window forward when the scrape is entitled to move it, and the
+// window is clamped at both ends: recovering from a long outage cannot make the next request
+// paginate through hours of events, and an event timestamped in the future cannot push the window
+// past events that have yet to arrive. Clamping down only ever widens the window, because
+// FilterLogEvents StartTime is inclusive.
+func (s *scraper) advanceStartTime(oldestNewest time.Time, mayAdvance bool) {
+	if mayAdvance && oldestNewest.After(s.nextStartTime) {
 		s.nextStartTime = oldestNewest
 	}
 

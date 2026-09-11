@@ -1,6 +1,7 @@
 package enhanced
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -66,6 +67,28 @@ func TestScrapeKeepsStartTimeWhenBatchFails(t *testing.T) {
 
 	require.Len(t, client.calls, 2)
 	assert.Equal(t, startTime, scraper.nextStartTime, "a partially failed scrape must not drop the events it missed")
+}
+
+func TestScrapeAdvancesStartTimeWhenTimeRunsOut(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(150)
+	client := &fakeLogsClient{
+		events:   eventsFor(streams[0]),
+		missing:  nil,
+		errs:     []error{nil, context.DeadlineExceeded},
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	// A window a scrape cannot drain inside one interval would be handed back unchanged, so the next
+	// scrape would run out of time on the same events and the session would never report at all.
+	require.Len(t, client.calls, 2)
+	assert.Equal(t, testEventTime(), scraper.nextStartTime,
+		"a scrape that ran out of time must narrow the window to what it did read")
 }
 
 func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
