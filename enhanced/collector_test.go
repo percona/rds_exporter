@@ -589,6 +589,36 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0)
 	})
 
+	t.Run("refuses a redelivered event after the payload is released", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+
+		// An event dated in the future is re-delivered on every scrape for as long as the account
+		// keeps it: the request names no end time, and the window starts before it.
+		future := now.Add(90 * time.Minute)
+		collector.setMetrics(futureResult(future), now)
+
+		released := now.Add(staleRetention + time.Minute)
+		collector.setMetrics(futureResult(future), released)
+		require.Nil(t, collector.metrics[testKey("primary")].metrics, "prune must have released the payload")
+
+		later := released.Add(time.Minute)
+		collector.setMetrics(futureResult(future), later)
+
+		assert.Nil(t, collector.metrics[testKey("primary")].metrics,
+			"a redelivery of the stored event says nothing new, whether or not its payload is still held")
+
+		metrics := collectSamplesAt(t, collector, later)
+
+		assert.Nil(t, findMetric(metrics, osMetricName, "primary"),
+			"an instance that has published nothing since must not report a sample as current")
+		require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
+		assert.InDelta(t, 0.0, findMetric(metrics, upMetricName, "primary").Value, 0,
+			"health must not flap back up every retention on one event the instance never repeated")
+	})
+
 	t.Run("keeps following a clock that is behind AWS", func(t *testing.T) {
 		t.Parallel()
 
