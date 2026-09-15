@@ -147,6 +147,7 @@ type scraper struct {
 	groupProbes           int
 	rejectedProbes        int
 	groupSeen             bool
+	groupBlamed           bool
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -171,6 +172,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		groupProbes:           0,
 		rejectedProbes:        0,
 		groupSeen:             false,
+		groupBlamed:           false,
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -592,15 +594,27 @@ func (s *scraper) markMissing(logStreamName string) {
 	)
 }
 
-// markGroupMissing pauses the requests of a session whose log group does not exist. Enhanced
-// Monitoring writes the group itself, so this is a region that has never published an OS metrics
-// event, and every instance in it is waiting on the same thing rather than on a stream of its own.
+// markGroupMissing pauses the requests of a session whose log group does not exist. Every instance
+// in it is then waiting on the same thing rather than on a stream of its own.
+//
+// Like markMissing it reports and logs only the transition, so that a group which stays missing
+// neither inflates the counter nor repeats the warning. That is not automatic here: a fallback
+// gives the pause up in order to test it, and so brings the session back past this every time it
+// finds nothing. Counting those would turn one outage into a rate.
 func (s *scraper) markGroupMissing() {
 	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
 	// Only the probes of this pause count towards abandoning it. The rotation itself is deliberately
 	// not rewound, so a pause that follows a fallback does not re-ask the streams it just learnt
 	// nothing from.
 	s.rejectedProbes = 0
+
+	// Blame the session already held is not news. Reaching here twice means a fallback gave the
+	// pause up to test it and found nothing that answers, which is the same outage still going.
+	if s.groupBlamed {
+		return
+	}
+
+	s.groupBlamed = true
 	s.errorCounts[errorKindGroupNotFound]++
 
 	level.Warn(s.logger).Log(
@@ -650,6 +664,10 @@ func (s *scraper) noteAnswered(streams []string) {
 	// Kept for the life of the session, because a group that has answered once and then goes dark has
 	// changed, and that is what makes giving up on a pause worth a bisect.
 	s.groupSeen = true
+	// The group is not the suspect any more, so the next time it is blamed is a new outage rather
+	// than the one this session is already reporting. Cleared whatever the pause is doing, because
+	// a fallback holds the blame with no pause left to clear.
+	s.groupBlamed = false
 
 	if !s.groupProbeAfter.IsZero() {
 		s.groupProbeAfter = time.Time{}

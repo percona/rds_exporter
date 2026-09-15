@@ -75,6 +75,36 @@ func probedStreams(t *testing.T, scraper *scraper, client *fakeLogsClient, scrap
 	return probed
 }
 
+// fallbackGaps runs the given number of scrapes with the log group probe always due, and returns
+// how many probes each fallback to isolating log streams waited for. A fallback opens with the
+// whole fleet rather than with one stream, which is what tells it apart from a probe.
+func fallbackGaps(t *testing.T, scraper *scraper, client *fakeLogsClient, scrapes int) []int {
+	t.Helper()
+
+	gaps := make([]int, 0, scrapes)
+	probes := 0
+
+	for range scrapes {
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.NotEmpty(t, client.calls, "a due probe must be requested")
+
+		if len(client.calls[0].streams) == 1 {
+			probes++
+
+			continue
+		}
+
+		gaps = append(gaps, probes)
+		probes = 0
+	}
+
+	return gaps
+}
+
 func TestScrapeBlamesTheLogGroupWhenNothingAnswers(t *testing.T) {
 	t.Parallel()
 
@@ -348,4 +378,19 @@ func TestScrapeKeepsProbingALogGroupThatNeverAnswered(t *testing.T) {
 		"a region that has never published Enhanced Monitoring must not be bisected for it")
 	assert.False(t, scraper.groupProbeAfter.IsZero(), "the group stays paused while its probes are rejected")
 	assert.Zero(t, scraper.missing.len(), "a probe rejected for the group still says nothing about its stream")
+}
+
+func TestScrapeReportsALogGroupOutageOnce(t *testing.T) {
+	t.Parallel()
+
+	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
+
+	gaps := fallbackGaps(t, scraper, client, 32)
+	require.NotEmpty(t, gaps, "the fallbacks this is about must have happened")
+
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+		"one group that went missing once is one error, however many fallbacks went looking for it")
+	assert.Zero(t, scraper.missing.len(),
+		"no instance may be named for a fault that belongs to the group")
+	assert.False(t, scraper.groupProbeAfter.IsZero(), "the group is still the one taking the blame")
 }
