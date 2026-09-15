@@ -137,6 +137,23 @@ func TestScrapeDoesNotBlameTheLogGroupWithoutEvidence(t *testing.T) {
 			"the batch that answered must keep reporting")
 	})
 
+	t.Run("a session of two streams", func(t *testing.T) {
+		t.Parallel()
+
+		// A pair of instances leaving CloudWatch together is fleet churn. Only a session monitoring
+		// nothing besides that pair could read it as the group, and it would pause itself to do so.
+		streams := resourceIDs(2)
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, uint64(len(streams)), scraper.errorCounts[errorKindNotFound])
+		assert.Equal(t, len(streams), scraper.missing.len())
+		assert.True(t, scraper.groupProbeAfter.IsZero(), "churn must not pause the whole session")
+	})
+
 	t.Run("a half that answered", func(t *testing.T) {
 		t.Parallel()
 

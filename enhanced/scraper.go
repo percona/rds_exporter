@@ -32,7 +32,12 @@ const (
 	// minStreamsToBlameTheGroup is how many log streams a rejected batch needs before its rejection
 	// can be read as evidence about the log group. A request for one stream is rejected the same way
 	// whether the stream or the group is what does not exist, so one stream can only blame itself.
-	minStreamsToBlameTheGroup = 2
+	// Two are barely better: a pair of instances leaving CloudWatch at once is ordinary fleet churn,
+	// and a session monitoring only that pair cannot tell it from the group disappearing. The misread
+	// is expensive in one direction only -- blaming the group pauses every instance in the session for
+	// a TTL, while blaming the streams costs an exclusion each and clears itself on the next probe --
+	// so a session that small attributes its streams instead.
+	minStreamsToBlameTheGroup = 3
 
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
 	// timestamped further behind the exporter's clock than this are never requested at all, so an
