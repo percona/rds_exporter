@@ -19,6 +19,37 @@ func groupMissingClient(streams ...string) *fakeLogsClient {
 	return &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
 }
 
+// blamedGroupScraper returns a session that collected once and then had every one of its log
+// streams disappear at the same time, which is the evidence that makes it blame the log group and
+// the history that makes it worth giving up on the pause.
+func blamedGroupScraper(t *testing.T, streams ...string) (*scraper, *fakeLogsClient) {
+	t.Helper()
+
+	client := &fakeLogsClient{
+		events:   eventsFor(streams...),
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	client.events = nil
+	client.missing = make(map[string]struct{}, len(streams))
+
+	for _, stream := range streams {
+		client.missing[stream] = struct{}{}
+	}
+
+	scraper.scrape(t.Context())
+
+	require.False(t, scraper.groupProbeAfter.IsZero(), "the group must be the one taking the blame")
+
+	return scraper, client
+}
+
 // probedStreams runs the given number of scrapes with the log group probe always due, and returns
 // the stream each of them probed. A scrape that gave up on probing opens with the whole fleet
 // instead of one stream, and contributes nothing.
@@ -230,10 +261,7 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 		t.Parallel()
 
 		streams := resourceIDs(4)
-		client := groupMissingClient(streams...)
-		scraper := scraperWithStreams(client, streams...)
-
-		scraper.scrape(t.Context())
+		scraper, client := blamedGroupScraper(t, streams...)
 
 		probed := probedStreams(t, scraper, client, 2*len(streams))
 
@@ -280,10 +308,7 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 
 	streams := resourceIDs(10)
 	dead, alive := streams[:len(streams)-1], streams[len(streams)-1]
-	client := groupMissingClient(streams...)
-	scraper := scraperWithStreams(client, streams...)
-
-	scraper.scrape(t.Context())
+	scraper, client := blamedGroupScraper(t, streams...)
 
 	// The group is back, and with it one stream that the rotation would not reach for another eight
 	// probes -- each of which would buy the pause holding that instance back another TTL.
@@ -306,4 +331,21 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 	assert.True(t, scraper.groupProbeAfter.IsZero(), "a pause no probe answers must not outlive them")
 	assert.Equal(t, len(dead), scraper.missing.len(), "the streams the probes landed on must be excluded")
 	assert.NotEmpty(t, metrics[testKey(alive)], "the instance whose stream exists must report again")
+}
+
+func TestScrapeKeepsProbingALogGroupThatNeverAnswered(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(4)
+	client := groupMissingClient(streams...)
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	probed := probedStreams(t, scraper, client, 2*maxRejectedProbes)
+
+	assert.Len(t, probed, 2*maxRejectedProbes,
+		"a region that has never published Enhanced Monitoring must not be bisected for it")
+	assert.False(t, scraper.groupProbeAfter.IsZero(), "the group stays paused while its probes are rejected")
+	assert.Zero(t, scraper.missing.len(), "a probe rejected for the group still says nothing about its stream")
 }

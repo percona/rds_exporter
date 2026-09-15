@@ -39,8 +39,8 @@ const (
 	// so a session that small attributes its streams instead.
 	minStreamsToBlameTheGroup = 3
 
-	// maxRejectedProbes is how many unanswered probes a presumed missing log group is given before
-	// the session goes back to isolating its streams. A rejected probe cannot say whether the group
+	// maxRejectedProbes is how many unanswered probes a log group that has answered before is given
+	// before the session goes back to isolating its streams. A rejected probe cannot say whether the group
 	// or the stream it named is what does not exist, so a rotation that keeps landing on streams
 	// that are genuinely gone would hold the whole session back one TTL at a time for as long as
 	// they stay gone. Three keeps the cheap explanation cheap -- a group that really is missing is
@@ -146,6 +146,7 @@ type scraper struct {
 	groupProbeAfter       time.Time
 	groupProbes           int
 	rejectedProbes        int
+	groupSeen             bool
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -169,6 +170,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		groupProbeAfter:       time.Time{},
 		groupProbes:           0,
 		rejectedProbes:        0,
+		groupSeen:             false,
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -438,9 +440,15 @@ func (s *scraper) batches(now time.Time) [][]string {
 // time is unrecoverable once that stream is the only thing still gone: the probe is rejected for its
 // own sake for as long as the session lives, and the instances whose streams do exist are never
 // requested again. Rotating is not enough on its own, because every stream it lands on while they
-// are all still gone buys the pause another TTL, so the pause is abandoned after maxRejectedProbes
-// of them and the streams are isolated the ordinary way. The rotation carries on from where it left
-// off across those fallbacks, so the probes that follow one ask streams the earlier ones did not.
+// are all still gone buys the pause another TTL, so a pause the group has earned by going dark is
+// abandoned after maxRejectedProbes of them and the streams are isolated the ordinary way. The
+// rotation carries on from where it left off across those fallbacks, so the probes that follow one
+// ask streams the earlier ones did not.
+//
+// A group that has never answered is left to its probes instead. Enhanced Monitoring writes the
+// group, so one that has said nothing since the exporter started is most likely a region that never
+// enabled it, and bisecting a fleet for that would pay the full cost of the answer a single probe
+// already has.
 func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
 	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
 		return nil, false
@@ -450,7 +458,7 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 		return nil, true
 	}
 
-	if s.rejectedProbes >= maxRejectedProbes {
+	if s.groupSeen && s.rejectedProbes >= maxRejectedProbes {
 		s.resumeUnprobed()
 
 		return nil, false
@@ -639,6 +647,9 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 // listed exists, and the batch being bisected has at least one half that is not the problem.
 func (s *scraper) noteAnswered(streams []string) {
 	s.answered = true
+	// Kept for the life of the session, because a group that has answered once and then goes dark has
+	// changed, and that is what makes giving up on a pause worth a bisect.
+	s.groupSeen = true
 
 	if !s.groupProbeAfter.IsZero() {
 		s.groupProbeAfter = time.Time{}
