@@ -485,7 +485,6 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 
 	probe := streams[s.groupProbes%len(streams)]
 	s.groupProbes++
-	s.rejectedProbes++
 
 	return [][]string{{probe}}, true
 }
@@ -509,16 +508,27 @@ func (s *scraper) resumeUnprobed() {
 // identified and excluded, which keeps the remaining instances reporting.
 func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *eventSink) error {
 	err := s.collectPages(ctx, streams, sink)
-	if err == nil || !isResourceNotFound(err) {
-		return err
-	}
 
-	// A probe of a group that is still missing is rejected for the group's sake and says nothing
-	// about the stream it happened to name, so it buys the group another TTL and nothing else.
-	if !s.groupProbeAfter.IsZero() {
+	// An answered probe has already ended the pause by now, so a pause still standing here means the
+	// probe was not answered, and it has spent its turn whatever the reason. Only a rejection counts
+	// against the group though: it is rejected for the group's sake and says nothing about the stream
+	// it happened to name. A probe that was throttled or refused says nothing about either, and
+	// counting it would let rate limiting alone talk the session into bisecting the whole fleet, at
+	// the one moment it can least afford to.
+	if err != nil && !s.groupProbeAfter.IsZero() {
 		s.groupProbeAfter = time.Now().Add(missingStreamTTL)
 
+		if !isResourceNotFound(err) {
+			return err
+		}
+
+		s.rejectedProbes++
+
 		return nil
+	}
+
+	if err == nil || !isResourceNotFound(err) {
+		return err
 	}
 
 	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the

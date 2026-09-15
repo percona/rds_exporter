@@ -432,3 +432,25 @@ func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
 	assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
 		"a fallback that found nothing makes the next one wait twice as long")
 }
+
+func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
+	t.Parallel()
+
+	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
+
+	for range maxRejectedProbes + 1 {
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+		client.errs = []error{throttlingError()}
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1, "a due probe is one request, throttled or not")
+		assert.Len(t, client.calls[0].streams, 1,
+			"rate limiting alone must not talk the session into bisecting the whole fleet")
+	}
+
+	assert.Zero(t, scraper.rejectedProbes, "only a rejection counts against the group")
+	assert.True(t, scraper.groupProbeAfter.After(time.Now()),
+		"a throttled probe has spent its turn, so the pause backs off rather than repeating every scrape")
+}
