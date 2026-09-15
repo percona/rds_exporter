@@ -19,6 +19,31 @@ func groupMissingClient(streams ...string) *fakeLogsClient {
 	return &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
 }
 
+// probedStreams runs the given number of scrapes with the log group probe always due, and returns
+// the stream each of them probed. A scrape that gave up on probing opens with the whole fleet
+// instead of one stream, and contributes nothing.
+func probedStreams(t *testing.T, scraper *scraper, client *fakeLogsClient, scrapes int) []string {
+	t.Helper()
+
+	probed := make([]string, 0, scrapes)
+
+	for range scrapes {
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.NotEmpty(t, client.calls, "a due probe must be requested")
+
+		first := client.calls[0].streams
+		if len(first) == 1 {
+			probed = append(probed, first[0])
+		}
+	}
+
+	return probed
+}
+
 func TestScrapeBlamesTheLogGroupWhenNothingAnswers(t *testing.T) {
 	t.Parallel()
 
@@ -210,22 +235,11 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 
 		scraper.scrape(t.Context())
 
-		client.calls = nil
+		probed := probedStreams(t, scraper, client, 2*len(streams))
 
-		for range streams {
-			scraper.groupProbeAfter = time.Now().Add(-time.Minute)
-
-			scraper.scrape(t.Context())
-		}
-
-		asked := make([]string, 0, len(client.calls))
-
-		for _, call := range client.calls {
-			require.Len(t, call.streams, 1, "one stream answers for the whole group")
-			asked = append(asked, call.streams[0])
-		}
-
-		assert.Equal(t, streams, asked, "every stream gets a turn before any of them is asked twice")
+		assert.Equal(t,
+			[]string{streams[0], streams[1], streams[2], streams[3], streams[0], streams[1]}, probed,
+			"every stream gets a turn, and the rotation carries on across a fallback")
 	})
 
 	t.Run("recovers when the stream it probed first is the missing one", func(t *testing.T) {
@@ -259,4 +273,37 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 			assert.NotEmpty(t, metrics[testKey(stream)], "an instance whose stream exists must report again")
 		}
 	})
+}
+
+func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(10)
+	dead, alive := streams[:len(streams)-1], streams[len(streams)-1]
+	client := groupMissingClient(streams...)
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	// The group is back, and with it one stream that the rotation would not reach for another eight
+	// probes -- each of which would buy the pause holding that instance back another TTL.
+	client.missing = make(map[string]struct{}, len(dead))
+
+	for _, stream := range dead {
+		client.missing[stream] = struct{}{}
+	}
+
+	client.events = eventsFor(alive)
+
+	var metrics map[instanceKey]instanceMetrics
+
+	for range maxRejectedProbes + 1 {
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+
+		metrics, _ = scraper.scrape(t.Context())
+	}
+
+	assert.True(t, scraper.groupProbeAfter.IsZero(), "a pause no probe answers must not outlive them")
+	assert.Equal(t, len(dead), scraper.missing.len(), "the streams the probes landed on must be excluded")
+	assert.NotEmpty(t, metrics[testKey(alive)], "the instance whose stream exists must report again")
 }

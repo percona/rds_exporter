@@ -39,6 +39,15 @@ const (
 	// so a session that small attributes its streams instead.
 	minStreamsToBlameTheGroup = 3
 
+	// maxRejectedProbes is how many unanswered probes a presumed missing log group is given before
+	// the session goes back to isolating its streams. A rejected probe cannot say whether the group
+	// or the stream it named is what does not exist, so a rotation that keeps landing on streams
+	// that are genuinely gone would hold the whole session back one TTL at a time for as long as
+	// they stay gone. Three keeps the cheap explanation cheap -- a group that really is missing is
+	// asked for one stream three times before it costs a bisect -- while capping what the expensive
+	// one can cost the instances that are fine.
+	maxRejectedProbes = 3
+
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
 	// timestamped further behind the exporter's clock than this are never requested at all, so an
 	// instance whose clock lags that much reports a gap rather than samples.
@@ -136,6 +145,7 @@ type scraper struct {
 	answered              bool
 	groupProbeAfter       time.Time
 	groupProbes           int
+	rejectedProbes        int
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -158,6 +168,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		answered:              false,
 		groupProbeAfter:       time.Time{},
 		groupProbes:           0,
+		rejectedProbes:        0,
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -426,7 +437,10 @@ func (s *scraper) batches(now time.Time) [][]string {
 // credited to the group and teaches nothing about the stream it named. Asking the same one every
 // time is unrecoverable once that stream is the only thing still gone: the probe is rejected for its
 // own sake for as long as the session lives, and the instances whose streams do exist are never
-// requested again.
+// requested again. Rotating is not enough on its own, because every stream it lands on while they
+// are all still gone buys the pause another TTL, so the pause is abandoned after maxRejectedProbes
+// of them and the streams are isolated the ordinary way. The rotation carries on from where it left
+// off across those fallbacks, so the probes that follow one ask streams the earlier ones did not.
 func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
 	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
 		return nil, false
@@ -436,10 +450,31 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 		return nil, true
 	}
 
+	if s.rejectedProbes >= maxRejectedProbes {
+		s.resumeUnprobed()
+
+		return nil, false
+	}
+
 	probe := streams[s.groupProbes%len(streams)]
 	s.groupProbes++
+	s.rejectedProbes++
 
 	return [][]string{{probe}}, true
+}
+
+// resumeUnprobed ends a pause whose probes were all rejected, so what the rotation kept landing on
+// can be attributed to the streams that own it. The bisect it hands the session back to either finds
+// those streams and excludes them, which is what lets the instances behind them recover, or is
+// rejected everywhere and blames the group again for another round of probes.
+func (s *scraper) resumeUnprobed() {
+	s.groupProbeAfter = time.Time{}
+
+	level.Info(s.logger).Log(
+		"msg", "CloudWatch rejected every Enhanced Monitoring log group probe; isolating log streams instead.",
+		"log_group", logGroupName,
+		"probes", s.rejectedProbes,
+	)
 }
 
 // collectBatch collects the events of the given log streams. CloudWatch fails the whole request
@@ -554,8 +589,10 @@ func (s *scraper) markMissing(logStreamName string) {
 // event, and every instance in it is waiting on the same thing rather than on a stream of its own.
 func (s *scraper) markGroupMissing() {
 	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
-	// Rotation restarts, so a fresh pause does not inherit the stream the last one left off at.
-	s.groupProbes = 0
+	// Only the probes of this pause count towards abandoning it. The rotation itself is deliberately
+	// not rewound, so a pause that follows a fallback does not re-ask the streams it just learnt
+	// nothing from.
+	s.rejectedProbes = 0
 	s.errorCounts[errorKindGroupNotFound]++
 
 	level.Warn(s.logger).Log(
