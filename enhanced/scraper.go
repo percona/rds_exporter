@@ -130,6 +130,7 @@ type scraper struct {
 	rejectedStreams       int
 	answered              bool
 	groupProbeAfter       time.Time
+	groupProbes           int
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -151,6 +152,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		rejectedStreams:       0,
 		answered:              false,
 		groupProbeAfter:       time.Time{},
+		groupProbes:           0,
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -414,6 +416,12 @@ func (s *scraper) batches(now time.Time) [][]string {
 // groupProbe answers what to request while the log group itself is presumed missing: nothing until
 // the probe is due, and then a single stream. A missing group rejects every request it is asked for,
 // so requesting the whole fleet would pay a full bisect to learn what one stream already says.
+//
+// Which stream is asked rotates, because a probe rejected while the group is presumed missing is
+// credited to the group and teaches nothing about the stream it named. Asking the same one every
+// time is unrecoverable once that stream is the only thing still gone: the probe is rejected for its
+// own sake for as long as the session lives, and the instances whose streams do exist are never
+// requested again.
 func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
 	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
 		return nil, false
@@ -423,7 +431,10 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 		return nil, true
 	}
 
-	return [][]string{streams[:1]}, true
+	probe := streams[s.groupProbes%len(streams)]
+	s.groupProbes++
+
+	return [][]string{{probe}}, true
 }
 
 // collectBatch collects the events of the given log streams. CloudWatch fails the whole request
@@ -538,6 +549,8 @@ func (s *scraper) markMissing(logStreamName string) {
 // event, and every instance in it is waiting on the same thing rather than on a stream of its own.
 func (s *scraper) markGroupMissing() {
 	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+	// Rotation restarts, so a fresh pause does not inherit the stream the last one left off at.
+	s.groupProbes = 0
 	s.errorCounts[errorKindGroupNotFound]++
 
 	level.Warn(s.logger).Log(

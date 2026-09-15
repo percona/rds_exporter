@@ -180,3 +180,66 @@ func TestScrapeBlamesTheLogGroupAcrossEveryBatch(t *testing.T) {
 		})
 	}
 }
+
+func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
+	t.Parallel()
+
+	t.Run("asks a different stream every time", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(4)
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		client.calls = nil
+
+		for range streams {
+			scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+
+			scraper.scrape(t.Context())
+		}
+
+		asked := make([]string, 0, len(client.calls))
+
+		for _, call := range client.calls {
+			require.Len(t, call.streams, 1, "one stream answers for the whole group")
+			asked = append(asked, call.streams[0])
+		}
+
+		assert.Equal(t, streams, asked, "every stream gets a turn before any of them is asked twice")
+	})
+
+	t.Run("recovers when the stream it probed first is the missing one", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(4)
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		// The group is back, and the stream the first probe names is the only thing still gone.
+		client.missing = map[string]struct{}{streams[0]: {}}
+		client.events = eventsFor(streams[1:]...)
+
+		var metrics map[instanceKey]instanceMetrics
+
+		for range len(streams) + 1 {
+			if !scraper.groupProbeAfter.IsZero() {
+				scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+			}
+
+			metrics, _ = scraper.scrape(t.Context())
+		}
+
+		assert.True(t, scraper.groupProbeAfter.IsZero(), "a probe that was answered must end the pause")
+		assert.True(t, scraper.missing.marked(streams[0]),
+			"the stream that is really gone must be excluded once the group stops taking the blame")
+
+		for _, stream := range streams[1:] {
+			assert.NotEmpty(t, metrics[testKey(stream)], "an instance whose stream exists must report again")
+		}
+	})
+}
