@@ -255,6 +255,30 @@ func TestScrapeDoesNotBlameTheLogGroupWithoutEvidence(t *testing.T) {
 	})
 }
 
+func TestScrapeDoesNotBlameTheLogGroupForAThrottledScrape(t *testing.T) {
+	t.Parallel()
+
+	// The throttled batch was not heard from, and what it would have said is exactly what tells a
+	// missing group from a few missing streams. Reading the rejections without it would take every
+	// healthy instance down for a TTL over the most ordinary thing AWS does.
+	streams := resourceIDs(maxLogStreamsPerRequest + minStreamsToBlameTheGroup)
+	healthy, gone := streams[:maxLogStreamsPerRequest], streams[maxLogStreamsPerRequest:]
+	client := groupMissingClient(gone...)
+	client.events = eventsFor(healthy...)
+	client.errs = []error{throttlingError()}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+	assert.True(t, scraper.groupProbeAfter.IsZero(), "a throttled scrape may not pause the whole session")
+	assert.Equal(t, len(gone), scraper.missing.len(), "the streams singled out are missing either way")
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.Len(t, metrics, len(healthy), "the batch that was throttled must report on the next scrape")
+}
+
 func TestScrapeBlamesTheLogGroupAcrossEveryBatch(t *testing.T) {
 	t.Parallel()
 
