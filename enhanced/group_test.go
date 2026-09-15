@@ -296,8 +296,10 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 		probed := probedStreams(t, scraper, client, 2*len(streams))
 
 		assert.Equal(t,
-			[]string{streams[0], streams[1], streams[2], streams[3], streams[0], streams[1]}, probed,
-			"every stream gets a turn, and the rotation carries on across a fallback")
+			[]string{streams[0], streams[1], streams[2], streams[3], streams[0], streams[1], streams[2]},
+			probed,
+			"every stream gets a turn, the rotation carries on across a fallback, and only one fallback "+
+				"fits in these scrapes because the second waits longer than the first")
 	})
 
 	t.Run("recovers when the stream it probed first is the missing one", func(t *testing.T) {
@@ -393,4 +395,16 @@ func TestScrapeReportsALogGroupOutageOnce(t *testing.T) {
 	assert.Zero(t, scraper.missing.len(),
 		"no instance may be named for a fault that belongs to the group")
 	assert.False(t, scraper.groupProbeAfter.IsZero(), "the group is still the one taking the blame")
+}
+
+func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
+	t.Parallel()
+
+	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
+
+	gaps := fallbackGaps(t, scraper, client, 32)
+
+	require.GreaterOrEqual(t, len(gaps), 3, "three fallbacks must fit in these scrapes")
+	assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
+		"a fallback that found nothing makes the next one wait twice as long")
 }

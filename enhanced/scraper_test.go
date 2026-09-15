@@ -157,6 +157,7 @@ func newTestScraperWith(
 		groupProbeAfter:           time.Time{},
 		groupProbes:               0,
 		rejectedProbes:            0,
+		unproductiveFallbacks:     0,
 		groupSeen:                 false,
 		groupBlamed:               false,
 		errorCounts:               make(map[string]uint64),

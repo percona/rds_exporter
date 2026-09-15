@@ -48,6 +48,18 @@ const (
 	// one can cost the instances that are fine.
 	maxRejectedProbes = 3
 
+	// maxProbeBackoff caps how far the wait between fallbacks is allowed to double. A fallback is
+	// worth its bisect early and worth much less late: the probe rotation recovers a wrongly blamed
+	// group on its own as soon as it lands on a stream that answers, so what a fallback buys is
+	// arriving there sooner, and buying that again every fifteen minutes spends the fleet's whole
+	// request budget on an answer that has not changed since the last one. What the cap sets is how
+	// long a session can take to notice a fleet coming back after everything in it stayed gone: the
+	// fallback is the only thing that asks the whole fleet at once, so nothing else would find the
+	// first stream to return until the rotation reached it. Three doublings stretch the wait from
+	// three pauses to twenty-four, which is two hours at missingStreamTTL, and leave the cost of
+	// staying ready one bisect per two hours rather than one per fifteen minutes.
+	maxProbeBackoff = 3
+
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
 	// timestamped further behind the exporter's clock than this are never requested at all, so an
 	// instance whose clock lags that much reports a gap rather than samples.
@@ -146,6 +158,7 @@ type scraper struct {
 	groupProbeAfter       time.Time
 	groupProbes           int
 	rejectedProbes        int
+	unproductiveFallbacks int
 	groupSeen             bool
 	groupBlamed           bool
 	errorCounts           map[string]uint64
@@ -171,6 +184,7 @@ func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger
 		groupProbeAfter:       time.Time{},
 		groupProbes:           0,
 		rejectedProbes:        0,
+		unproductiveFallbacks: 0,
 		groupSeen:             false,
 		groupBlamed:           false,
 		errorCounts:           make(map[string]uint64),
@@ -445,7 +459,8 @@ func (s *scraper) batches(now time.Time) [][]string {
 // are all still gone buys the pause another TTL, so a pause the group has earned by going dark is
 // abandoned after maxRejectedProbes of them and the streams are isolated the ordinary way. The
 // rotation carries on from where it left off across those fallbacks, so the probes that follow one
-// ask streams the earlier ones did not.
+// ask streams the earlier ones did not. What a fallback costs it is only worth once, so the wait
+// before the next one doubles for as long as they keep finding nothing, up to maxProbeBackoff.
 //
 // A group that has never answered is left to its probes instead. Enhanced Monitoring writes the
 // group, so one that has said nothing since the exporter started is most likely a region that never
@@ -460,7 +475,7 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 		return nil, true
 	}
 
-	if s.groupSeen && s.rejectedProbes >= maxRejectedProbes {
+	if s.groupSeen && s.rejectedProbes >= maxRejectedProbes<<s.unproductiveFallbacks {
 		s.resumeUnprobed()
 
 		return nil, false
@@ -608,9 +623,12 @@ func (s *scraper) markGroupMissing() {
 	// nothing from.
 	s.rejectedProbes = 0
 
-	// Blame the session already held is not news. Reaching here twice means a fallback gave the
-	// pause up to test it and found nothing that answers, which is the same outage still going.
+	// Blame the session already held is not news. Reaching here twice means a fallback bisected the
+	// fleet and found nothing that answers, which is the one thing that says the next fallback is
+	// not worth what this one cost.
 	if s.groupBlamed {
+		s.unproductiveFallbacks = min(s.unproductiveFallbacks+1, maxProbeBackoff)
+
 		return
 	}
 
@@ -665,9 +683,11 @@ func (s *scraper) noteAnswered(streams []string) {
 	// changed, and that is what makes giving up on a pause worth a bisect.
 	s.groupSeen = true
 	// The group is not the suspect any more, so the next time it is blamed is a new outage rather
-	// than the one this session is already reporting. Cleared whatever the pause is doing, because
-	// a fallback holds the blame with no pause left to clear.
+	// than the one this session is already reporting, and its first fallback is worth paying for
+	// again. Cleared whatever the pause is doing, because a fallback holds the blame with no pause
+	// left to clear.
 	s.groupBlamed = false
+	s.unproductiveFallbacks = 0
 
 	if !s.groupProbeAfter.IsZero() {
 		s.groupProbeAfter = time.Time{}
