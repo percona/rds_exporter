@@ -590,6 +590,7 @@ func TestScrapeKeepsAnExclusionTheLogGroupCannotHaveMade(t *testing.T) {
 	// is throttled.
 	client.missing = missingSet(gone...)
 	client.events = eventsFor(healthy...)
+
 	client.errs = append(make([]error, 10), throttlingError())
 
 	scraper.scrape(t.Context())
@@ -606,6 +607,7 @@ func TestScrapeKeepsAnExclusionTheLogGroupCannotHaveMade(t *testing.T) {
 		"the group answering says nothing about an exclusion the group cannot have made")
 
 	client.calls = nil
+
 	scraper.scrape(t.Context())
 
 	assert.Len(t, client.calls, 1, "the bisect must not be paid again")
