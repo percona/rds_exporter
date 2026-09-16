@@ -144,23 +144,16 @@ type scraper struct {
 
 func newScraper(session string, cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
 	return &scraper{
-		session:         session,
-		instances:       instances,
-		svc:             cloudwatchlogs.NewFromConfig(cfg),
-		stateResolver:   sessions.NewResourceIDResolver(cfg),
-		missing:         newMissingStreams(),
-		isolationCalls:  0,
-		isolated:        nil,
-		rejectedStreams: 0,
-		answered:        false,
-		group: logGroup{
-			probeAfter:            time.Time{},
-			probes:                0,
-			rejectedProbes:        0,
-			unproductiveFallbacks: 0,
-			seen:                  false,
-			blamed:                false,
-		},
+		session:               session,
+		instances:             instances,
+		svc:                   cloudwatchlogs.NewFromConfig(cfg),
+		stateResolver:         sessions.NewResourceIDResolver(cfg),
+		missing:               newMissingStreams(),
+		isolationCalls:        0,
+		isolated:              nil,
+		rejectedStreams:       0,
+		answered:              false,
+		group:                 newLogGroup(),
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -523,12 +516,13 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	// counting it would let rate limiting alone talk the session into bisecting the whole fleet, at
 	// the one moment it can least afford to.
 	if err != nil && s.group.paused() {
-		rejected := isResourceNotFound(err)
-		s.group.noteProbeFailed(rejected, time.Now())
+		if !isResourceNotFound(err) {
+			s.group.noteProbeFailed(time.Now())
 
-		if !rejected {
 			return err
 		}
+
+		s.group.noteProbeRejected(time.Now())
 
 		return nil
 	}
@@ -636,7 +630,7 @@ func (s *scraper) markMissing(logStreamName string, tentative bool) {
 	}
 
 	// A stream confirmed gone was counted when it was first excluded; only its evidence changed.
-	if outcome != markConfirmed {
+	if outcome != markConfirmedFirm {
 		s.errorCounts[errorKindNotFound]++
 	}
 
@@ -651,7 +645,7 @@ func (s *scraper) markMissing(logStreamName string, tentative bool) {
 	// every stream it reached without ever being able to say so of the group; each would otherwise be
 	// a warning naming an instance that is fine. The warning is kept for an exclusion that rests on
 	// evidence about the stream itself.
-	if outcome == markTentative {
+	if outcome == markNewTentative {
 		level.Info(s.logger).Log(keyvals...)
 
 		return

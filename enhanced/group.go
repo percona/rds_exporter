@@ -63,6 +63,17 @@ type logGroup struct {
 	blamed bool
 }
 
+func newLogGroup() logGroup {
+	return logGroup{
+		probeAfter:            time.Time{},
+		probes:                0,
+		rejectedProbes:        0,
+		unproductiveFallbacks: 0,
+		seen:                  false,
+		blamed:                false,
+	}
+}
+
 // probeDecision is what a paused session is to request.
 type probeDecision int
 
@@ -141,13 +152,17 @@ func (g *logGroup) blame(now time.Time) bool {
 }
 
 // noteProbeFailed extends the pause by a TTL after a probe that was not answered, which has spent its
-// turn whatever the reason, and counts it against the pause only if it was rejected over existence.
-func (g *logGroup) noteProbeFailed(rejected bool, now time.Time) {
+// turn whatever the reason. A probe throttled or refused says nothing about the group, so it counts
+// for nothing else.
+func (g *logGroup) noteProbeFailed(now time.Time) {
 	g.probeAfter = now.Add(missingStreamTTL)
+}
 
-	if rejected {
-		g.rejectedProbes++
-	}
+// noteProbeRejected extends the pause like any failed probe and counts the rejection against it,
+// since a rejection over existence is the one failure that may be the group's doing.
+func (g *logGroup) noteProbeRejected(now time.Time) {
+	g.noteProbeFailed(now)
+	g.rejectedProbes++
 }
 
 // noteAnswered records that the group exists and is not the suspect any more, so that the next time

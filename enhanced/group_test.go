@@ -46,9 +46,14 @@ func blamedGroupScraper(t *testing.T, streams ...string) (*scraper, *fakeLogsCli
 
 	scraper.scrape(t.Context())
 
-	require.False(t, scraper.group.probeAfter.IsZero(), "the group must be the one taking the blame")
+	require.True(t, scraper.group.paused(), "the group must be the one taking the blame")
 
 	return scraper, client
+}
+
+// expirePause makes the next log group probe due, so that a test need not wait out a TTL.
+func (s *scraper) expirePause() {
+	s.group.probeAfter = time.Now().Add(-time.Minute)
 }
 
 // probedStreams runs the given number of scrapes with the log group probe always due, and returns
@@ -60,7 +65,7 @@ func probedStreams(t *testing.T, scraper *scraper, client *fakeLogsClient, scrap
 	probed := make([]string, 0, scrapes)
 
 	for range scrapes {
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 		client.calls = nil
 
 		scraper.scrape(t.Context())
@@ -86,7 +91,7 @@ func fallbackGaps(t *testing.T, scraper *scraper, client *fakeLogsClient, scrape
 	probes := 0
 
 	for range scrapes {
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 		client.calls = nil
 
 		scraper.scrape(t.Context())
@@ -119,7 +124,7 @@ func TestScrapeBlamesTheLogGroupWhenNothingAnswers(t *testing.T) {
 	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
 		"the group is one problem, not one per instance")
 	assert.Zero(t, scraper.errorCounts[errorKindNotFound])
-	assert.False(t, scraper.group.probeAfter.IsZero(), "the group must be retried")
+	assert.True(t, scraper.group.paused(), "the group must be retried")
 }
 
 func TestScrapeStopsRequestingWhileTheLogGroupIsMissing(t *testing.T) {
@@ -150,7 +155,7 @@ func TestScrapeProbesTheLogGroupWithOneStream(t *testing.T) {
 
 	scraper.scrape(t.Context())
 
-	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+	scraper.expirePause()
 	client.calls = nil
 
 	scraper.scrape(t.Context())
@@ -172,11 +177,12 @@ func TestScrapeRecoversWhenTheLogGroupExistsAgain(t *testing.T) {
 
 	client.missing = map[string]struct{}{}
 	client.events = eventsFor(streams...)
-	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+
+	scraper.expirePause()
 
 	metrics, _ := scraper.scrape(t.Context())
 	require.Empty(t, metrics[testKey(streams[1])], "the probe only asks for one stream")
-	assert.True(t, scraper.group.probeAfter.IsZero(), "an answered request is all the evidence the group exists")
+	assert.False(t, scraper.group.paused(), "an answered request is all the evidence the group exists")
 
 	client.calls = nil
 
@@ -238,7 +244,7 @@ func TestScrapeDoesNotBlameTheLogGroupWithoutEvidence(t *testing.T) {
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 		assert.Equal(t, uint64(len(streams)), scraper.errorCounts[errorKindNotFound])
 		assert.Equal(t, len(streams), scraper.missing.len())
-		assert.True(t, scraper.group.probeAfter.IsZero(), "churn must not pause the whole session")
+		assert.False(t, scraper.group.paused(), "churn must not pause the whole session")
 	})
 
 	t.Run("a half that answered", func(t *testing.T) {
@@ -272,7 +278,7 @@ func TestScrapeDoesNotBlameTheLogGroupForAThrottledScrape(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
-	assert.True(t, scraper.group.probeAfter.IsZero(), "a throttled scrape may not pause the whole session")
+	assert.False(t, scraper.group.paused(), "a throttled scrape may not pause the whole session")
 	assert.Equal(t, len(gone), scraper.missing.len(), "the streams singled out are missing either way")
 
 	metrics, _ := scraper.scrape(t.Context())
@@ -343,14 +349,14 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 		var metrics map[instanceKey]instanceMetrics
 
 		for range len(streams) + 1 {
-			if !scraper.group.probeAfter.IsZero() {
-				scraper.group.probeAfter = time.Now().Add(-time.Minute)
+			if scraper.group.paused() {
+				scraper.expirePause()
 			}
 
 			metrics, _ = scraper.scrape(t.Context())
 		}
 
-		assert.True(t, scraper.group.probeAfter.IsZero(), "a probe that was answered must end the pause")
+		assert.False(t, scraper.group.paused(), "a probe that was answered must end the pause")
 		assert.True(t, scraper.missing.marked(streams[0]),
 			"the stream that is really gone must be excluded once the group stops taking the blame")
 
@@ -376,12 +382,12 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 	var metrics map[instanceKey]instanceMetrics
 
 	for range maxRejectedProbes + 1 {
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 
 		metrics, _ = scraper.scrape(t.Context())
 	}
 
-	assert.True(t, scraper.group.probeAfter.IsZero(), "a pause no probe answers must not outlive them")
+	assert.False(t, scraper.group.paused(), "a pause no probe answers must not outlive them")
 	assert.Equal(t, len(dead), scraper.missing.len(), "the streams the probes landed on must be excluded")
 	assert.NotEmpty(t, metrics[testKey(alive)], "the instance whose stream exists must report again")
 }
@@ -399,7 +405,7 @@ func TestScrapeKeepsProbingALogGroupThatNeverAnswered(t *testing.T) {
 
 	assert.Len(t, probed, 2*maxRejectedProbes,
 		"a region that has never published Enhanced Monitoring must not be bisected for it")
-	assert.False(t, scraper.group.probeAfter.IsZero(), "the group stays paused while its probes are rejected")
+	assert.True(t, scraper.group.paused(), "the group stays paused while its probes are rejected")
 	assert.Zero(t, scraper.missing.len(), "a probe rejected for the group still says nothing about its stream")
 }
 
@@ -415,7 +421,7 @@ func TestScrapeReportsALogGroupOutageOnce(t *testing.T) {
 		"one group that went missing once is one error, however many fallbacks went looking for it")
 	assert.Zero(t, scraper.missing.len(),
 		"no instance may be named for a fault that belongs to the group")
-	assert.False(t, scraper.group.probeAfter.IsZero(), "the group is still the one taking the blame")
+	assert.True(t, scraper.group.paused(), "the group is still the one taking the blame")
 }
 
 func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
@@ -440,7 +446,7 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.logger = level.NewFilter(log.NewLogfmtLogger(buf), level.AllowDebug())
 		scraper.group.rejectedProbes = maxRejectedProbes
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 
 		return scraper, client
 	}
@@ -494,7 +500,7 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.group.rejectedProbes = maxRejectedProbes
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
 
 		scraper.scrape(t.Context())
@@ -628,7 +634,7 @@ func TestScrapeProbesTheLogGroupWithAStreamAlreadyExcluded(t *testing.T) {
 		scraper.missing.mark(stream, time.Now(), false)
 	}
 
-	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+	scraper.expirePause()
 	client.calls = nil
 
 	scraper.scrape(t.Context())
@@ -673,7 +679,8 @@ func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
 	client.events = eventsFor(alive...)
 	client.missing = missingSet(gone...)
 	client.calls = nil
-	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+
+	scraper.expirePause()
 
 	scraper.scrape(t.Context())
 
@@ -711,14 +718,14 @@ func TestScrapeFallsBackOverTheWholeFleet(t *testing.T) {
 	var metrics map[instanceKey]instanceMetrics
 
 	for range maxRejectedProbes + 1 {
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 
 		metrics, _ = scraper.scrape(t.Context())
 	}
 
 	assert.Len(t, metrics, len(alive), "the instances whose streams exist must report once the fallback asks for them")
 	assert.Equal(t, len(gone), scraper.missing.len(), "the streams that are gone are excluded on their own evidence")
-	assert.True(t, scraper.group.probeAfter.IsZero(), "a group that answered is not blamed")
+	assert.False(t, scraper.group.paused(), "a group that answered is not blamed")
 }
 
 func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
@@ -727,7 +734,7 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
 
 	for range maxRejectedProbes + 1 {
-		scraper.group.probeAfter = time.Now().Add(-time.Minute)
+		scraper.expirePause()
 		client.errs = []error{throttlingError()}
 		client.calls = nil
 

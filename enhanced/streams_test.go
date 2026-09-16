@@ -789,7 +789,7 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 
 		// Blaming the group needs every stream accounted for, and a scrape cut short never asked the
 		// batches a missing group would have rejected too.
-		assert.Zero(t, scraper.group.probeAfter)
+		assert.False(t, scraper.group.paused())
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 		assert.Equal(t, 2, scraper.missing.len(), "only the streams the bisect reached are excluded")
 	})
@@ -806,10 +806,10 @@ func TestMissingStreamsMark(t *testing.T) {
 		tentative bool
 		want      markOutcome
 	}{
-		{name: "first exclusion in doubt", before: nil, tentative: true, want: markTentative},
-		{name: "first exclusion on evidence", before: nil, tentative: false, want: markFirm},
+		{name: "first exclusion in doubt", before: nil, tentative: true, want: markNewTentative},
+		{name: "first exclusion on evidence", before: nil, tentative: false, want: markNewFirm},
 		{name: "doubt repeated", before: []bool{true}, tentative: true, want: markUnchanged},
-		{name: "doubt settled", before: []bool{true}, tentative: false, want: markConfirmed},
+		{name: "doubt settled", before: []bool{true}, tentative: false, want: markConfirmedFirm},
 		{name: "evidence repeated", before: []bool{false}, tentative: false, want: markUnchanged},
 		{
 			// A rejection under doubt says nothing an earlier one made while the group answered did not.

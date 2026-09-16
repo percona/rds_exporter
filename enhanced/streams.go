@@ -43,9 +43,9 @@ type markOutcome int
 
 const (
 	markUnchanged markOutcome = iota
-	markTentative
-	markFirm
-	markConfirmed
+	markNewTentative
+	markNewFirm
+	markConfirmedFirm
 )
 
 // mark excludes a log stream from later requests and reports what that changed. The exclusion is
@@ -62,13 +62,13 @@ func (m *missingStreams) mark(name string, now time.Time, tentative bool) markOu
 	case !known && tentative:
 		m.tentative[name] = struct{}{}
 
-		return markTentative
+		return markNewTentative
 	case !known:
-		return markFirm
+		return markNewFirm
 	case wasTentative && !tentative:
 		delete(m.tentative, name)
 
-		return markConfirmed
+		return markConfirmedFirm
 	default:
 		return markUnchanged
 	}
