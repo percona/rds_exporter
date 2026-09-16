@@ -204,37 +204,49 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 	}
 }
 
-// enhancedStreams returns the log streams to request metrics from. Instances whose Enhanced
-// Monitoring is disabled in AWS have no log stream at all, and streams CloudWatch already reported
-// as missing are left out until their probe is due, because CloudWatch rejects the whole request
-// when any single requested stream does not exist.
-func (s *scraper) enhancedStreams(now time.Time) []string {
+// monitoredStreams returns the log stream of every instance whose Enhanced Monitoring is on, once
+// each: instances configured more than once share one log stream. An instance whose Enhanced
+// Monitoring is disabled in AWS has no log stream at all.
+func (s *scraper) monitoredStreams() []string {
 	streams := make([]string, 0, len(s.instances))
-	requested := make(map[string]struct{}, len(s.instances))
-	probes := 0
+	listed := make(map[string]struct{}, len(s.instances))
 
 	for _, instance := range s.instances {
 		if instance.EnhancedMonitoringInterval <= 0 {
 			continue
 		}
 
-		// Instances configured more than once share one log stream, which therefore belongs in the
-		// request once and may spend one probe slot, not one per instance.
-		if _, listed := requested[instance.ResourceID]; listed {
+		if _, seen := listed[instance.ResourceID]; seen {
 			continue
 		}
 
-		if s.missing.marked(instance.ResourceID) {
-			// Re-probes are staggered so that a fleet of missing streams cannot fill a whole batch.
-			if probes >= maxProbesPerScrape || !s.missing.due(instance.ResourceID, now) {
+		listed[instance.ResourceID] = struct{}{}
+		streams = append(streams, instance.ResourceID)
+	}
+
+	return streams
+}
+
+// enhancedStreams returns the log streams to request metrics from: the monitored streams less those
+// CloudWatch already reported as missing, which are left out until their probe is due, because
+// CloudWatch rejects the whole request when any single requested stream does not exist.
+func (s *scraper) enhancedStreams(now time.Time) []string {
+	monitored := s.monitoredStreams()
+	streams := make([]string, 0, len(monitored))
+	probes := 0
+
+	for _, stream := range monitored {
+		if s.missing.marked(stream) {
+			// Re-probes are staggered so that a fleet of missing streams cannot fill a whole batch. A
+			// stream shared by several instances spends one probe slot, not one per instance.
+			if probes >= maxProbesPerScrape || !s.missing.due(stream, now) {
 				continue
 			}
 
 			probes++
 		}
 
-		requested[instance.ResourceID] = struct{}{}
-		streams = append(streams, instance.ResourceID)
+		streams = append(streams, stream)
 	}
 
 	return streams
@@ -447,11 +459,11 @@ func (s *scraper) advanceStartTime(oldestNewest time.Time, mayAdvance bool) {
 }
 
 func (s *scraper) batches(now time.Time) [][]string {
-	streams := s.enhancedStreams(now)
-
-	if probe, presumedMissing := s.groupProbe(streams, now); presumedMissing {
+	if probe, presumedMissing := s.groupProbe(now); presumedMissing {
 		return probe
 	}
+
+	streams := s.enhancedStreams(now)
 
 	batches := make([][]string, 0, len(streams)/maxLogStreamsPerRequest+1)
 	for start := 0; start < len(streams); start += maxLogStreamsPerRequest {
@@ -481,7 +493,14 @@ func (s *scraper) batches(now time.Time) [][]string {
 // group, so one that has said nothing since the exporter started is most likely a region that never
 // enabled it, and bisecting a fleet for that would pay the full cost of the answer a single probe
 // already has.
-func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool) {
+//
+// The rotation runs over every monitored stream, excluded or not. An exclusion made while the group
+// was blamed rests on the group, and one made before it says nothing about whether the group is
+// back; a stream that exists answers either way, and that answer is what ends the pause. Rotating
+// over the streams due for a probe slot instead would stop at the first maxProbesPerScrape of them
+// in configuration order, and never reach the rest while those happened to be gone.
+func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
+	streams := s.monitoredStreams()
 	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
 		return nil, false
 	}
@@ -506,6 +525,11 @@ func (s *scraper) groupProbe(streams []string, now time.Time) ([][]string, bool)
 // can be attributed to the streams that own it. The bisect it hands the session back to either finds
 // those streams and excludes them, which is what lets the instances behind them recover, or is
 // rejected everywhere and blames the group again for another round of probes.
+//
+// The exclusions made while the group was in doubt are released first, so that the bisect asks the
+// whole fleet. They were made on the group's account, and a fallback is the one request that can
+// settle the group's account: left in place they would keep all but maxProbesPerScrape streams out
+// of it, and a fleet whose first few streams are genuinely gone would never be asked beyond them.
 func (s *scraper) resumeUnprobed() {
 	s.groupProbeAfter = time.Time{}
 
@@ -513,6 +537,7 @@ func (s *scraper) resumeUnprobed() {
 		"msg", "CloudWatch rejected every Enhanced Monitoring log group probe; isolating log streams instead.",
 		"log_group", logGroupName,
 		"probes", s.rejectedProbes,
+		"log_streams_retried", s.missing.releaseTentative(),
 	)
 }
 
