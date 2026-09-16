@@ -68,6 +68,8 @@ type probeDecision int
 
 const (
 	probeNotPaused probeDecision = iota
+	// probeWaiting is a pause with nothing to ask yet: the probe is not due, or the session monitors
+	// no stream a probe could name.
 	probeWaiting
 	probeDue
 	probeGivenUp
@@ -100,11 +102,11 @@ func (g *logGroup) fallbackThreshold() int {
 // its probes instead: bisecting a fleet for a region that never enabled Enhanced Monitoring would pay
 // the full cost of the answer a single probe already has.
 func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision) {
-	if !g.paused() || len(streams) == 0 {
+	if !g.paused() {
 		return "", probeNotPaused
 	}
 
-	if now.Before(g.probeAfter) {
+	if now.Before(g.probeAfter) || len(streams) == 0 {
 		return "", probeWaiting
 	}
 

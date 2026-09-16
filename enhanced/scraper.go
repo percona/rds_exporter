@@ -466,9 +466,9 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 		return nil, false
 	case probeNotPaused:
 		return nil, false
-	default:
-		return nil, false
 	}
+
+	return nil, false
 }
 
 // probeCandidates returns the monitored streams a log group probe may name, in configuration order so
@@ -500,11 +500,13 @@ func (s *scraper) probeCandidates() []string {
 // settle the group's account: left in place they would keep all but maxProbesPerScrape streams out
 // of it, and a fleet whose first few streams are genuinely gone would never be asked beyond them.
 func (s *scraper) resumeUnprobed() {
+	retried := s.missing.releaseTentative()
+
 	level.Info(s.logger).Log(
 		"msg", "CloudWatch rejected every Enhanced Monitoring log group probe; isolating log streams instead.",
 		"log_group", logGroupName,
 		"probes", s.group.rejectedProbes,
-		"log_streams_retried", s.missing.releaseTentative(),
+		"log_streams_retried", retried,
 	)
 }
 
