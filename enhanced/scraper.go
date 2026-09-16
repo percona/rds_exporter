@@ -586,8 +586,16 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 	// excluded either way, since asking for it again would reject the whole batch again, but only
 	// tentatively, so that the group answering releases it rather than leaving the instance behind it
 	// waiting a TTL for a probe slot on evidence the group's return has just undermined.
+	//
+	// That doubt only exists while the group is a suspect: blamed, or never heard from. A group that
+	// answered before and is not blamed is not what rejected these streams, however the rest of the
+	// scrape failed, and the next answer from it would release exclusions it had nothing to do with.
+	// The streams would then be requested again, rejected again and bisected again -- every other
+	// scrape, for as long as the healthy half kept being throttled or cut short by the deadline.
+	tentative := !s.answered && (s.groupBlamed || !s.groupSeen)
+
 	for _, stream := range s.isolated {
-		s.markMissing(stream, !s.answered)
+		s.markMissing(stream, tentative)
 	}
 }
 

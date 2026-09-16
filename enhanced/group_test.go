@@ -571,6 +571,48 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 	})
 }
 
+// TestScrapeKeepsAnExclusionTheLogGroupCannotHaveMade covers a bisect whose healthy half fails for
+// a reason of its own once the missing streams are singled out. Nothing in the scrape was answered,
+// but the group has answered before and is not blamed, so it is not what rejected them, and the
+// group answering next cannot release them: the fleet would otherwise pay the bisect every other
+// scrape for as long as the throttling lasted.
+func TestScrapeKeepsAnExclusionTheLogGroupCannotHaveMade(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(10)
+	gone, healthy := streams[:5], streams[5:]
+	client := &fakeLogsClient{events: eventsFor(streams...), missing: nil, errs: nil, pageSize: 0, calls: nil}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	// The bisect singles the gone streams out in ten requests, then the request for the healthy half
+	// is throttled.
+	client.missing = missingSet(gone...)
+	client.events = eventsFor(healthy...)
+	client.errs = append(make([]error, 10), throttlingError())
+
+	scraper.scrape(t.Context())
+
+	require.Empty(t, client.errs, "the throttle must land on the request for the healthy half")
+	require.Equal(t, len(gone), scraper.missing.len(), "the streams singled out are excluded")
+
+	client.calls = nil
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.Len(t, client.calls, 1, "with the gone streams excluded the healthy half is one request")
+	assert.Len(t, metrics, len(healthy))
+	assert.Equal(t, len(gone), scraper.missing.len(),
+		"the group answering says nothing about an exclusion the group cannot have made")
+
+	client.calls = nil
+	scraper.scrape(t.Context())
+
+	assert.Len(t, client.calls, 1, "the bisect must not be paid again")
+	assert.Equal(t, uint64(len(gone)), scraper.errorCounts[errorKindNotFound],
+		"a stream excluded once is counted once")
+}
+
 func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	t.Parallel()
 
