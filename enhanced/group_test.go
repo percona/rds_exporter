@@ -1,9 +1,13 @@
 package enhanced
 
 import (
+	"bytes"
+	"context"
 	"testing"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -431,6 +435,59 @@ func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
 	require.GreaterOrEqual(t, len(gaps), 3, "three fallbacks must fit in these scrapes")
 	assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
 		"a fallback that found nothing makes the next one wait twice as long")
+}
+
+func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.T) {
+	t.Parallel()
+
+	const excluded = `msg="CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests."`
+
+	// fallingBack returns a blamed session about to give its pause up for a bisect, logging into buf.
+	fallingBack := func(t *testing.T, buf *bytes.Buffer, streams ...string) (*scraper, *fakeLogsClient) {
+		t.Helper()
+
+		scraper, client := blamedGroupScraper(t, streams...)
+		scraper.logger = level.NewFilter(log.NewLogfmtLogger(buf), level.AllowDebug())
+		scraper.rejectedProbes = maxRejectedProbes
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+
+		return scraper, client
+	}
+
+	t.Run("does not warn while the group is the suspect", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		// The deadline cuts the bisect after four rejections, so the streams it singled out are excluded
+		// without the group ever being able to take the blame for them.
+		scraper, client := fallingBack(t, &buf, resourceIDs(10)...)
+		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
+
+		scraper.scrape(t.Context())
+
+		require.NotZero(t, scraper.missing.len(), "the streams singled out must still be excluded")
+		assert.Contains(t, buf.String(), "level=info "+excluded)
+		assert.NotContains(t, buf.String(), "level=warn "+excluded,
+			"a stream singled out while the group is gone would name an instance that is fine")
+	})
+
+	t.Run("warns once the group answers", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		streams := resourceIDs(10)
+		scraper, client := fallingBack(t, &buf, streams...)
+		delete(client.missing, streams[0])
+		client.events = eventsFor(streams[0])
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, len(streams)-1, scraper.missing.len())
+		assert.Contains(t, buf.String(), "level=warn "+excluded,
+			"a stream missing while its group answers is missing for a reason of its own")
+	})
 }
 
 func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {

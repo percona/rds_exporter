@@ -625,11 +625,25 @@ func (s *scraper) markMissing(logStreamName string) {
 
 	s.errorCounts[errorKindNotFound]++
 
-	level.Warn(s.logger).Log(
+	// While the group is the suspect, a stream singled out is not news of its own. A fallback bisect
+	// of a group that is still gone is rejected everywhere, and one the deadline cuts short singles
+	// out every stream it reached without ever being able to say so of the group; each would
+	// otherwise be a warning naming an instance that is fine. The exclusion stands either way, so
+	// the instances behind streams that are gone still recover once the group answers again, and the
+	// warning is kept for a stream that is missing while its group answers.
+	keyvals := []any{
 		"msg", "CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests.",
 		"log_stream", logStreamName,
 		"instance", s.instanceNameFor(logStreamName),
-	)
+	}
+
+	if s.groupBlamed {
+		level.Info(s.logger).Log(keyvals...)
+
+		return
+	}
+
+	level.Warn(s.logger).Log(keyvals...)
 }
 
 // markGroupMissing pauses the requests of a session whose log group does not exist. Every instance
