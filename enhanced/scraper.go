@@ -70,10 +70,13 @@ const (
 	refreshBackoffFactor = 2
 
 	// clockSkewReportThreshold is how far ahead of the exporter's own clock an event may be
-	// timestamped before the skew is worth reporting. It decides nothing about the data: a future
-	// timestamp is kept out of the request window and out of the sample's expiry by clamping both to
-	// now, so no value of this constant can cost a sample. Anything short enough to catch ordinary
-	// drift would otherwise have blanked every instance at once.
+	// timestamped and still be taken at face value: within it the timestamp is the ordinary drift of
+	// two clocks and the event is as current as it claims; beyond it the skew is reported, and the
+	// event is passed over for the newest one the clock does explain, or stored on its own when there
+	// is none. It decides nothing about whether an instance keeps its sample: a future timestamp is
+	// kept out of the request window and out of the sample's expiry by clamping both to now, so no
+	// value of this constant can cost one. Anything short enough to catch ordinary drift would
+	// otherwise have blanked every instance at once.
 	clockSkewReportThreshold = time.Minute
 )
 
@@ -984,27 +987,33 @@ func newestEventTimes(allTimes map[instanceKey][]time.Time, now time.Time) (map[
 	return times, oldestNewest, len(times) > 0
 }
 
-// newestEventTime returns the newest event that has already happened, falling back to the newest of
-// all of them when none has. The collector compares raw timestamps to tell one sample from the next,
-// so an event dated ahead of the real ones would sit in front of them until now caught up, and the
-// instance would publish nothing meanwhile. The fallback is what a host behind AWS relies on: when
-// every event is dated ahead there is nothing else to judge the instance by, and no skew may cost it
-// its sample.
+// newestEventTime returns the newest event the exporter's clock accounts for, falling back to the
+// newest of all of them when it accounts for none. An event dated up to clockSkewReportThreshold
+// ahead counts as current: a host a few seconds behind AWS sees every latest event dated ahead, and
+// preferring a strictly past one would judge each instance by the sample before its latest on every
+// scrape, without the skew ever being reported. Beyond the threshold the timestamp says more about
+// the clocks than the event, and the collector compares raw timestamps to tell one sample from the
+// next, so an event dated that far ahead of the real ones would sit in front of them until now caught
+// up, and the instance would publish nothing meanwhile. The fallback is what a host well behind AWS
+// relies on: when every event is dated ahead there is nothing else to judge the instance by, and no
+// skew may cost it its sample.
 func newestEventTime(events []time.Time, now time.Time) (time.Time, bool) {
-	var newest, newestPast time.Time
+	accepted := now.Add(clockSkewReportThreshold)
+
+	var newest, newestAccepted time.Time
 
 	for _, timestamp := range events {
 		if newest.Before(timestamp) {
 			newest = timestamp
 		}
 
-		if !timestamp.After(now) && newestPast.Before(timestamp) {
-			newestPast = timestamp
+		if !timestamp.After(accepted) && newestAccepted.Before(timestamp) {
+			newestAccepted = timestamp
 		}
 	}
 
-	if !newestPast.IsZero() {
-		return newestPast, true
+	if !newestAccepted.IsZero() {
+		return newestAccepted, true
 	}
 
 	return newest, !newest.IsZero()

@@ -171,6 +171,43 @@ func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 	}
 }
 
+func TestScrapeFollowsAHostSlightlyBehindAWS(t *testing.T) {
+	t.Parallel()
+
+	// AWS is ahead of this host by less than the drift worth reporting, so the event an instance has
+	// just published is always dated a little ahead of the clock, and the one before it a little behind.
+	lead := clockSkewReportThreshold / 2
+	previous := time.Now().Add(lead - time.Minute).UTC().Truncate(time.Second)
+	latest := previous.Add(time.Minute)
+	client := &fakeLogsClient{
+		events: map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEvent(oldResourceID, previous)},
+		},
+		missing:  nil,
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, oldResourceID)
+
+	metrics, _ := scraper.scrape(t.Context())
+	require.Equal(t, previous, metrics[testKey(oldResourceID)].eventTime)
+
+	client.events[oldResourceID] = append(client.events[oldResourceID], osMetricsEvent(oldResourceID, latest))
+
+	// The window is clamped to now, which the latest event stays ahead of, so it is delivered again on
+	// the scrape after the one that first read it.
+	for range 2 {
+		metrics, _ = scraper.scrape(t.Context())
+
+		assert.Equal(t, latest, metrics[testKey(oldResourceID)].eventTime,
+			"an instance is judged by its latest event, not by the one before it, for as long as the host trails AWS")
+		assert.Zero(t, scraper.skewedEvents, "drift within the threshold is not skew")
+		assert.False(t, scraper.nextStartTime.After(time.Now()),
+			"the window must not run ahead of events still to arrive")
+	}
+}
+
 func TestScrapeKeepsReportingThroughOneFutureDatedEvent(t *testing.T) {
 	t.Parallel()
 
