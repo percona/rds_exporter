@@ -50,6 +50,31 @@ type instanceState struct {
 	receivedAt time.Time
 }
 
+// supersededBy reports whether an event replaces the stored sample. A newer event does. The same
+// event does not: the request window starts at the newest event of the slowest instance, so that
+// event is re-delivered on every scrape and must not keep extending the sample's life, and the
+// refusal outlives the payload prune releases, or a future dated event -- re-delivered for as long as
+// the account keeps it, since the request names no end time -- would be stored again as current every
+// retention, and an instance with nothing to say would report itself up. An older event does not
+// either: a scrape that read an older page and then lost the newer one to an error would otherwise
+// roll the sample back, moving its timestamp backwards and its expiry closer. The one exception is a
+// stored event dated further ahead of its receipt than ordinary clock drift explains, which CloudWatch
+// let the monitored account write: it would otherwise sit in front of every real event until the clock
+// caught up, and the instance would report itself down meanwhile. A collected sample always carries
+// the timestamp of a real event, so the zero state of an instance that has never reported is never
+// mistaken for a redelivery.
+func (state instanceState) supersededBy(eventTime time.Time) bool {
+	if eventTime.After(state.eventTime) {
+		return true
+	}
+
+	if eventTime.Equal(state.eventTime) {
+		return false
+	}
+
+	return state.eventTime.After(state.receivedAt.Add(clockSkewReportThreshold))
+}
+
 type errorKey struct {
 	region string
 	kind   string
@@ -301,18 +326,7 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 
 	for key, fresh := range result.metrics {
 		previous := c.metrics[key]
-
-		// The request window starts at the newest event of the slowest instance, so that event is
-		// re-delivered on every scrape and must not keep extending the sample's life. Only the
-		// redelivery is refused, not every older timestamp: an event CloudWatch let the monitored
-		// account date in the future would otherwise sit in front of every real event until the
-		// clock caught up, and the instance would report itself down meanwhile. The refusal outlives
-		// the payload prune releases, or a future dated event -- which is re-delivered for as long as
-		// the account keeps it, since the request names no end time -- would be stored again as
-		// current every retention, and an instance with nothing to say would report itself up. A
-		// collected sample always carries the timestamp of a real event, so the zero state of an
-		// instance that has never reported is never mistaken for a redelivery.
-		if fresh.eventTime.Equal(previous.eventTime) {
+		if !previous.supersededBy(fresh.eventTime) {
 			continue
 		}
 

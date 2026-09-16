@@ -491,33 +491,35 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 	t.Run("restores an instance whose payload was released", func(t *testing.T) {
 		t.Parallel()
 
-		lastEvent := time.Now().Add(-staleRetention - time.Minute)
+		now := time.Now()
+		received := now.Add(-staleRetention - time.Minute)
 		collector := configuredCollector(map[instanceKey]instanceState{
 			testKey("promoted"): {
 				metrics:    nil,
-				eventTime:  lastEvent,
-				expiresAt:  lastEvent.Add(minMetricsTTL),
-				receivedAt: lastEvent,
+				eventTime:  received.Add(time.Hour),
+				expiresAt:  received.Add(minMetricsTTL),
+				receivedAt: received,
 			},
 		}, "promoted")
 
-		// A promoted instance whose clock trails the retired one's by more than the retention publishes
-		// events older than the last one stored, which the timestamp guard alone would refuse for good.
-		older := lastEvent.Add(-time.Hour)
+		// The retired instance dated its last event an hour ahead, so every event the promoted one
+		// publishes is older than what is stored. Prune keeps that timestamp after releasing the
+		// payload, and refusing the promoted instance's events on it would strand the instance for good.
+		eventTime := now.Add(-time.Minute)
 		collector.setMetrics(scrapeResult{
 			metrics: map[instanceKey]instanceMetrics{
-				testKey("promoted"): {metrics: sampleMetrics("promoted"), eventTime: older},
+				testKey("promoted"): {metrics: sampleMetrics("promoted"), eventTime: eventTime},
 			},
 			errorCounts:  nil,
 			skewedEvents: 0,
 			monitored:    nil,
 			region:       testRegion,
 			interval:     time.Minute,
-		}, time.Now())
+		}, now)
 
 		state := collector.metrics[testKey("promoted")]
 		assert.NotNil(t, state.metrics, "an instance with no payload left must be able to start reporting again")
-		assert.Equal(t, older, state.eventTime)
+		assert.Equal(t, eventTime, state.eventTime)
 	})
 
 	t.Run("removes long expired instances", func(t *testing.T) {
@@ -666,6 +668,39 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		assert.NotNil(t, findMetric(metrics, osMetricName, "primary"))
 		require.NotNil(t, findMetric(metrics, upMetricName, "primary"))
 		assert.InDelta(t, 1.0, findMetric(metrics, upMetricName, "primary").Value, 0)
+	})
+
+	t.Run("keeps the newer sample when an older event follows it", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector.setMetrics(futureResult(now.Add(-time.Minute)), now)
+		stored := collector.metrics[testKey("primary")]
+
+		// A scrape that read an older page and then lost the newer one to an error hands the collector
+		// an event older than the one it holds. Storing it would move the instance's last event
+		// backwards and bring its expiry closer, for a sample the instance has already superseded.
+		collector.setMetrics(futureResult(now.Add(-2*time.Minute)), now.Add(time.Minute))
+
+		assert.Equal(t, stored, collector.metrics[testKey("primary")],
+			"an older event must not roll a sample back")
+	})
+
+	t.Run("keeps a sample dated within the accepted clock skew", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+
+		// A host a few seconds behind AWS stores every latest event dated slightly ahead of its clock.
+		// That is ordinary drift, not a future dated event, so the sample is protected like any other.
+		ahead := now.Add(clockSkewReportThreshold / 2)
+		collector.setMetrics(futureResult(ahead), now)
+		collector.setMetrics(futureResult(now.Add(-time.Minute)), now.Add(time.Minute))
+
+		assert.Equal(t, ahead, collector.metrics[testKey("primary")].eventTime,
+			"only an event dated beyond the accepted skew may be superseded by an older one")
 	})
 
 	t.Run("refuses a redelivered event after the payload is released", func(t *testing.T) {
