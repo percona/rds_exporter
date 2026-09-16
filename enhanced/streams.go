@@ -38,20 +38,40 @@ func newMissingStreams() *missingStreams {
 	}
 }
 
-// mark excludes a log stream from later requests and reports whether it was not excluded already.
-// The exclusion is tentative when the scrape that made it was not answered anywhere, and the latest
-// rejection decides: what a stream was excluded on before says nothing about what rejected it now.
-func (m *missingStreams) mark(name string, now time.Time, tentative bool) bool {
+// markOutcome is what marking a log stream changed, which is what the scraper counts and logs on.
+type markOutcome int
+
+const (
+	markUnchanged markOutcome = iota
+	markTentative
+	markFirm
+	markConfirmed
+)
+
+// mark excludes a log stream from later requests and reports what that changed. The exclusion is
+// tentative when the scrape that made it was not answered anywhere, and a tentative exclusion is
+// confirmed by a later rejection that was not in doubt. A firm exclusion is never downgraded: it
+// rests on a rejection made while the group answered, and a rejection under doubt adds nothing to
+// that.
+func (m *missingStreams) mark(name string, now time.Time, tentative bool) markOutcome {
 	_, known := m.probeAfter[name]
+	_, wasTentative := m.tentative[name]
 	m.probeAfter[name] = now.Add(missingStreamTTL)
 
-	if tentative {
+	switch {
+	case !known && tentative:
 		m.tentative[name] = struct{}{}
-	} else {
-		delete(m.tentative, name)
-	}
 
-	return !known
+		return markTentative
+	case !known:
+		return markFirm
+	case wasTentative && !tentative:
+		delete(m.tentative, name)
+
+		return markConfirmed
+	default:
+		return markUnchanged
+	}
 }
 
 // clear stops excluding a log stream and reports whether it was excluded.

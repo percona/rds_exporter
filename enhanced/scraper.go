@@ -625,28 +625,31 @@ func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *event
 }
 
 // markMissing excludes a log stream from later requests, tentatively when nothing this scrape asked
-// was answered. It reports and logs only the transition, so that a permanently missing stream neither
+// was answered. It counts and logs only what changed, so that a permanently missing stream neither
 // inflates the counter nor floods the log every scrape.
 func (s *scraper) markMissing(logStreamName string, tentative bool) {
-	if !s.missing.mark(logStreamName, time.Now(), tentative) {
+	outcome := s.missing.mark(logStreamName, time.Now(), tentative)
+	if outcome == markUnchanged {
 		return
 	}
 
-	s.errorCounts[errorKindNotFound]++
+	// A stream confirmed gone was counted when it was first excluded; only its evidence changed.
+	if outcome != markConfirmed {
+		s.errorCounts[errorKindNotFound]++
+	}
 
-	// While the group is the suspect, a stream singled out is not news of its own. A fallback bisect
-	// of a group that is still gone is rejected everywhere, and one the deadline cuts short singles
-	// out every stream it reached without ever being able to say so of the group; each would
-	// otherwise be a warning naming an instance that is fine. The exclusion stands either way, so
-	// the instances behind streams that are gone still recover once the group answers again, and the
-	// warning is kept for a stream that is missing while its group answers.
 	keyvals := []any{
 		"msg", "CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests.",
 		"log_stream", logStreamName,
 		"instance", s.instanceNameFor(logStreamName),
 	}
 
-	if s.groupBlamed {
+	// While the group is in doubt a stream singled out is not news of its own. A fallback bisect of a
+	// group that is still gone is rejected everywhere, and one the deadline cuts short singles out
+	// every stream it reached without ever being able to say so of the group; each would otherwise be
+	// a warning naming an instance that is fine. The warning is kept for an exclusion that rests on
+	// evidence about the stream itself.
+	if outcome == markTentative {
 		level.Info(s.logger).Log(keyvals...)
 
 		return

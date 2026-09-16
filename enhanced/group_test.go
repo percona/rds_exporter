@@ -3,6 +3,7 @@ package enhanced
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,13 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// excludedLogStream is the log line a stream is excluded with, whatever level it is logged at.
+const excludedLogStream = `msg="CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests."`
+
 // groupMissingClient returns a client that rejects every request the way CloudWatch does when the
 // log group does not exist: no stream of the group can be found, whichever ones are asked for.
 func groupMissingClient(streams ...string) *fakeLogsClient {
-	missing := make(map[string]struct{}, len(streams))
-	for _, stream := range streams {
-		missing[stream] = struct{}{}
-	}
+	missing := missingSet(streams...)
 
 	return &fakeLogsClient{events: nil, missing: missing, errs: nil, pageSize: 0, calls: nil}
 }
@@ -41,11 +42,7 @@ func blamedGroupScraper(t *testing.T, streams ...string) (*scraper, *fakeLogsCli
 	scraper.scrape(t.Context())
 
 	client.events = nil
-	client.missing = make(map[string]struct{}, len(streams))
-
-	for _, stream := range streams {
-		client.missing[stream] = struct{}{}
-	}
+	client.missing = missingSet(streams...)
 
 	scraper.scrape(t.Context())
 
@@ -372,11 +369,7 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 
 	// The group is back, and with it one stream that the rotation would not reach for another eight
 	// probes -- each of which would buy the pause holding that instance back another TTL.
-	client.missing = make(map[string]struct{}, len(dead))
-
-	for _, stream := range dead {
-		client.missing[stream] = struct{}{}
-	}
+	client.missing = missingSet(dead...)
 
 	client.events = eventsFor(alive)
 
@@ -440,8 +433,6 @@ func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
 func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.T) {
 	t.Parallel()
 
-	const excluded = `msg="CloudWatch log stream does not exist; excluding it from Enhanced Monitoring requests."`
-
 	// fallingBack returns a blamed session about to give its pause up for a bisect, logging into buf.
 	fallingBack := func(t *testing.T, buf *bytes.Buffer, streams ...string) (*scraper, *fakeLogsClient) {
 		t.Helper()
@@ -467,8 +458,8 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 		scraper.scrape(t.Context())
 
 		require.NotZero(t, scraper.missing.len(), "the streams singled out must still be excluded")
-		assert.Contains(t, buf.String(), "level=info "+excluded)
-		assert.NotContains(t, buf.String(), "level=warn "+excluded,
+		assert.Contains(t, buf.String(), "level=info "+excludedLogStream)
+		assert.NotContains(t, buf.String(), "level=warn "+excludedLogStream,
 			"a stream singled out while the group is gone would name an instance that is fine")
 	})
 
@@ -485,7 +476,7 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 		scraper.scrape(t.Context())
 
 		assert.Equal(t, len(streams)-1, scraper.missing.len())
-		assert.Contains(t, buf.String(), "level=warn "+excluded,
+		assert.Contains(t, buf.String(), "level=warn "+excludedLogStream,
 			"a stream missing while its group answers is missing for a reason of its own")
 	})
 }
@@ -554,9 +545,14 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 
 		require.NotEmpty(t, gone)
 
-		client.missing = map[string]struct{}{gone: {}}
+		client.missing = missingSet(gone)
 		client.events = eventsFor(streams...)
 		delete(client.events, gone)
+
+		var buf bytes.Buffer
+
+		scraper.logger = level.NewFilter(log.NewLogfmtLogger(&buf), level.AllowDebug())
+		counted := scraper.errorCounts[errorKindNotFound]
 
 		scraper.scrape(t.Context())
 
@@ -568,6 +564,10 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 			"a stream still rejected while its group answers is missing for a reason of its own")
 		assert.Equal(t, 1, scraper.missing.len())
 		assert.Len(t, metrics, len(streams)-1)
+		assert.Equal(t, counted+1, scraper.errorCounts[errorKindNotFound],
+			"an exclusion released and made again is a second exclusion, and counts once more")
+		assert.Equal(t, 1, strings.Count(buf.String(), "level=warn "+excludedLogStream),
+			"the one stream missing for a reason of its own is warned about once")
 	})
 }
 

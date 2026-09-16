@@ -45,6 +45,16 @@ func eventsFor(resourceIDs ...string) map[string][]types.FilteredLogEvent {
 	return res
 }
 
+// missingSet returns the log streams a fake client is to reject as non-existent.
+func missingSet(resourceIDs ...string) map[string]struct{} {
+	res := make(map[string]struct{}, len(resourceIDs))
+	for _, resourceID := range resourceIDs {
+		res[resourceID] = struct{}{}
+	}
+
+	return res
+}
+
 func TestScrapeIsolatesMissingLogStream(t *testing.T) {
 	t.Parallel()
 
@@ -466,10 +476,7 @@ func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
 
 	streams := resourceIDs(rounds * maxProbesPerScrape)
 
-	missing := make(map[string]struct{}, len(streams))
-	for _, stream := range streams {
-		missing[stream] = struct{}{}
-	}
+	missing := missingSet(streams...)
 
 	// A stream that answers, so the rejection is attributed to the streams rather than to the group.
 	client := &fakeLogsClient{
@@ -667,10 +674,7 @@ func TestScrapeIsolatesEachBatchIndependently(t *testing.T) {
 	healthy := streams[len(streams)-1]
 
 	// Every stream of the first batch is missing, plus the first stream of the second batch.
-	missing := make(map[string]struct{}, maxLogStreamsPerRequest+1)
-	for _, stream := range streams[:maxLogStreamsPerRequest+1] {
-		missing[stream] = struct{}{}
-	}
+	missing := missingSet(streams[:maxLogStreamsPerRequest+1]...)
 
 	client := &fakeLogsClient{
 		events:   eventsFor(healthy),
@@ -770,11 +774,7 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 		t.Parallel()
 
 		streams := resourceIDs(4)
-		missing := make(map[string]struct{}, len(streams))
-
-		for _, stream := range streams {
-			missing[stream] = struct{}{}
-		}
+		missing := missingSet(streams...)
 
 		client := &fakeLogsClient{
 			events:   nil,
@@ -795,6 +795,42 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 	})
 }
 
+func TestMissingStreamsMark(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+
+	for _, testCase := range []struct {
+		name      string
+		before    []bool // the tentative flag of each earlier mark of the same stream
+		tentative bool
+		want      markOutcome
+	}{
+		{name: "first exclusion in doubt", before: nil, tentative: true, want: markTentative},
+		{name: "first exclusion on evidence", before: nil, tentative: false, want: markFirm},
+		{name: "doubt repeated", before: []bool{true}, tentative: true, want: markUnchanged},
+		{name: "doubt settled", before: []bool{true}, tentative: false, want: markConfirmed},
+		{name: "evidence repeated", before: []bool{false}, tentative: false, want: markUnchanged},
+		{
+			// A rejection under doubt says nothing an earlier one made while the group answered did not.
+			name: "evidence not downgraded", before: []bool{false}, tentative: true, want: markUnchanged,
+		},
+		{name: "settled then doubted", before: []bool{true, false}, tentative: true, want: markUnchanged},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			missing := newMissingStreams()
+			for _, tentative := range testCase.before {
+				missing.mark("stream", now, tentative)
+			}
+
+			assert.Equal(t, testCase.want, missing.mark("stream", now, testCase.tentative))
+			assert.True(t, missing.marked("stream"))
+		})
+	}
+}
+
 func TestMissingStreamsReleasesTentativeExclusions(t *testing.T) {
 	t.Parallel()
 
@@ -802,7 +838,6 @@ func TestMissingStreamsReleasesTentativeExclusions(t *testing.T) {
 	missing := newMissingStreams()
 	missing.mark("doubtful", now, true)
 	missing.mark("gone", now, false)
-	// The latest rejection decides what an exclusion rests on, in either direction.
 	missing.mark("settled", now, true)
 	missing.mark("settled", now, false)
 	missing.mark("unsettled", now, false)
@@ -810,9 +845,9 @@ func TestMissingStreamsReleasesTentativeExclusions(t *testing.T) {
 	missing.mark("cleared", now, true)
 	missing.clear("cleared")
 
-	assert.Equal(t, 2, missing.releaseTentative())
+	assert.Equal(t, 1, missing.releaseTentative())
 	assert.False(t, missing.marked("doubtful"))
-	assert.False(t, missing.marked("unsettled"))
+	assert.True(t, missing.marked("unsettled"), "a firm exclusion outlives a later rejection in doubt")
 	assert.True(t, missing.marked("gone"))
 	assert.True(t, missing.marked("settled"))
 	assert.Zero(t, missing.releaseTentative(), "a release leaves nothing tentative behind")
@@ -826,10 +861,7 @@ func TestScrapeBoundsIsolationCalls(t *testing.T) {
 	// The last stream answers, so the rejection is attributed to the streams rather than to the group.
 	healthy := streams[len(streams)-1]
 
-	missing := make(map[string]struct{}, len(streams))
-	for _, stream := range streams[:len(streams)-1] {
-		missing[stream] = struct{}{}
-	}
+	missing := missingSet(streams[:len(streams)-1]...)
 
 	client := &fakeLogsClient{events: eventsFor(healthy), missing: missing, errs: nil, pageSize: 0, calls: nil}
 	scraper := scraperWithStreams(client, streams...)
