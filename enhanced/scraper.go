@@ -444,13 +444,16 @@ func (s *scraper) batches(now time.Time) [][]string {
 // the probe is due, and then a single stream. A missing group rejects every request it is asked for,
 // so requesting the whole fleet would pay a full bisect to learn what one stream already says.
 //
-// The rotation runs over every monitored stream, excluded or not. An exclusion made while the group
-// was blamed rests on the group, and one made before it says nothing about whether the group is
-// back; a stream that exists answers either way, and that answer is what ends the pause. Rotating
-// over the streams due for a probe slot instead would stop at the first maxProbesPerScrape of them
-// in configuration order, and never reach the rest while those happened to be gone.
+// The rotation runs over every monitored stream the group could be blamed for, whether a probe slot
+// is due for it or not. An exclusion made while the group was blamed rests on the group, and the
+// stream answers as soon as the group is back; rotating over the streams due for a probe slot instead
+// would stop at the first maxProbesPerScrape of them in configuration order, and never reach the rest
+// while those happened to be gone. A firm exclusion is the one thing left out: it was made while the
+// group answered, so the stream is gone whatever the group is doing, and a probe spent on it costs
+// every instance in the session another TTL of silence to learn nothing. Only a fleet with no other
+// stream falls back to asking them, because asking nothing would hold the pause for good.
 func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
-	stream, decision := s.group.probe(s.monitoredStreams(), now)
+	stream, decision := s.group.probe(s.probeCandidates(), now)
 
 	switch decision {
 	case probeWaiting:
@@ -466,6 +469,25 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// probeCandidates returns the monitored streams a log group probe may name, in configuration order so
+// that the rotation cursor keeps advancing over the same list from one scrape to the next.
+func (s *scraper) probeCandidates() []string {
+	monitored := s.monitoredStreams()
+	candidates := make([]string, 0, len(monitored))
+
+	for _, stream := range monitored {
+		if !s.missing.firm(stream) {
+			candidates = append(candidates, stream)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return monitored
+	}
+
+	return candidates
 }
 
 // resumeUnprobed ends a pause whose probes were all rejected, so what the rotation kept landing on

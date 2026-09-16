@@ -104,6 +104,14 @@ func (m *missingStreams) marked(name string) bool {
 	return known
 }
 
+// firm reports whether a log stream is excluded on evidence about the stream itself: a rejection
+// made while the log group answered, which a missing group cannot have caused.
+func (m *missingStreams) firm(name string) bool {
+	_, tentative := m.tentative[name]
+
+	return m.marked(name) && !tentative
+}
+
 // due reports whether an excluded log stream may be probed again. A stream that is not excluded is
 // never due, because nothing is holding it back.
 func (m *missingStreams) due(name string, now time.Time) bool {

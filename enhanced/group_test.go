@@ -634,8 +634,60 @@ func TestScrapeProbesTheLogGroupWithAStreamAlreadyExcluded(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1, "a due probe is requested whatever the streams are excluded on")
-	assert.Len(t, client.calls[0].streams, 1)
-	assert.Contains(t, streams, client.calls[0].streams[0])
+	assert.Equal(t, []string{streams[0]}, client.calls[0].streams,
+		"with nothing better to ask the rotation starts over the whole fleet")
+}
+
+// TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone covers a pause during which some streams
+// were excluded on their own evidence before the group went dark: those are gone whatever the group
+// is doing, so a probe spent on one buys the whole session another TTL of silence and learns nothing.
+// The rotation must skip them, or a fleet whose first few streams are gone would wait through a
+// rejected probe per gone stream, and then a fallback bisect, to notice a group that is back.
+func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(10)
+	gone, alive := streams[:3], streams[3:]
+	client := &fakeLogsClient{
+		events:   eventsFor(alive...),
+		missing:  missingSet(gone...),
+		errs:     nil,
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	for _, stream := range gone {
+		require.True(t, scraper.missing.firm(stream), "a stream rejected while the group answered is excluded on its own evidence")
+	}
+
+	client.events = nil
+	client.missing = missingSet(streams...)
+
+	scraper.scrape(t.Context())
+
+	require.True(t, scraper.group.paused(), "the group must be the one taking the blame")
+
+	client.events = eventsFor(alive...)
+	client.missing = missingSet(gone...)
+	client.calls = nil
+	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+
+	scraper.scrape(t.Context())
+
+	require.NotEmpty(t, client.calls)
+	assert.Equal(t, []string{alive[0]}, client.calls[0].streams, "the probe must name a stream the group could be blamed for")
+	assert.False(t, scraper.group.paused(), "one answered probe ends the pause")
+
+	client.calls = nil
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.Len(t, client.calls, 1, "the next scrape asks the fleet in one request, not a bisect")
+	assert.Len(t, metrics, len(alive), "the instances whose streams exist report as soon as the pause ends")
+	assert.Equal(t, len(gone), scraper.missing.len(), "the streams gone on their own evidence stay excluded")
 }
 
 // TestScrapeFallsBackOverTheWholeFleet covers a fallback while every stream is excluded in doubt:
