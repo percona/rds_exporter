@@ -66,6 +66,7 @@ func probedStreams(t *testing.T, scraper *scraper, client *fakeLogsClient, scrap
 
 	for range scrapes {
 		scraper.expirePause()
+
 		client.calls = nil
 
 		scraper.scrape(t.Context())
@@ -92,6 +93,7 @@ func fallbackGaps(t *testing.T, scraper *scraper, client *fakeLogsClient, scrape
 
 	for range scrapes {
 		scraper.expirePause()
+
 		client.calls = nil
 
 		scraper.scrape(t.Context())
@@ -156,6 +158,7 @@ func TestScrapeProbesTheLogGroupWithOneStream(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	scraper.expirePause()
+
 	client.calls = nil
 
 	scraper.scrape(t.Context())
@@ -501,6 +504,7 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.group.rejectedProbes = maxRejectedProbes
 		scraper.expirePause()
+
 		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
 
 		scraper.scrape(t.Context())
@@ -635,6 +639,7 @@ func TestScrapeProbesTheLogGroupWithAStreamAlreadyExcluded(t *testing.T) {
 	}
 
 	scraper.expirePause()
+
 	client.calls = nil
 
 	scraper.scrape(t.Context())
@@ -735,6 +740,7 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 
 	for range maxRejectedProbes + 1 {
 		scraper.expirePause()
+
 		client.errs = []error{throttlingError()}
 		client.calls = nil
 
