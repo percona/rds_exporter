@@ -28,6 +28,7 @@ const (
 	sameResourceID           = "same-resource-id"
 	unchangedPrimaryInstance = "unchanged-primary"
 	testRegion               = "us-east-1"
+	testSession              = "us-east-1/AKIATEST"
 )
 
 var errDescribeFailed = errors.New("describe failed")
@@ -63,7 +64,7 @@ func TestScraper(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			cfg := sess.Configs[session]
-			s := newScraper(cfg, instances, logger)
+			s := newScraper(session, cfg, instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, messages := s.scrape(t.Context())
 			require.Len(t, metrics, len(instances))
@@ -76,13 +77,13 @@ func TestScraper(t *testing.T) {
 
 				instanceName := instance.Instance
 
-				actualMetrics := helpers.ReadMetrics(metrics[keyOf(instance)].metrics)
+				actualMetrics := helpers.ReadMetrics(metrics[keyOf(session, instance)].metrics)
 				sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
 				actualMetrics = filterMetrics(actualMetrics)
 				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 				if *golden {
-					writeTestDataJSON(t, instanceName, []byte(messages[keyOf(instance)]))
+					writeTestDataJSON(t, instanceName, []byte(messages[keyOf(session, instance)]))
 				}
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
@@ -146,6 +147,7 @@ func newTestScraperWith(
 	nextResourceIDRefresh time.Time,
 ) *scraper {
 	return &scraper{
+		session:                   testSession,
 		instances:                 instances,
 		svc:                       client,
 		stateResolver:             stateResolver,
@@ -723,12 +725,12 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 
 	for session, instances := range sess.AllSessions() {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			s := newScraper(sess.Configs[session], instances, logger)
+			s := newScraper(session, sess.Configs[session], instances, logger)
 			s.testDisallowUnknownFields = true
 			metrics, _ := s.scrape(t.Context())
 
 			for _, instance := range instances {
-				actualMetrics := helpers.ReadMetrics(metrics[keyOf(instance)].metrics)
+				actualMetrics := helpers.ReadMetrics(metrics[keyOf(session, instance)].metrics)
 				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 				name := instance.Instance
 				if instance.DisableEnhancedMetrics {

@@ -30,7 +30,9 @@ const (
 	ttlIntervals = 3
 
 	upMetricName           = "rds_exporter_enhanced_up"
+	upMetricHelp           = "Whether Enhanced Monitoring metrics for this instance are current (1) or stale (0)."
 	lastEventMetricName    = "rds_exporter_enhanced_last_event_timestamp_seconds"
+	lastEventMetricHelp    = "Timestamp of the most recent Enhanced Monitoring event received for this instance."
 	scrapeErrorsMetricName = "rds_exporter_enhanced_scrape_errors_total"
 	clockSkewMetricName    = "rds_exporter_enhanced_clock_skew_events_total"
 
@@ -57,17 +59,17 @@ type errorKey struct {
 type Collector struct {
 	logger log.Logger
 
-	upDesc        *prometheus.Desc
-	lastEventDesc *prometheus.Desc
-	errorsDesc    *prometheus.Desc
-	skewDesc      *prometheus.Desc
+	errorsDesc *prometheus.Desc
+	skewDesc   *prometheus.Desc
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
 	// configured is every instance the collector monitors, so health can be reported for instances
-	// that have never delivered a sample.
-	configured map[instanceKey]struct{}
+	// that have never delivered a sample, under the labels its own metrics carry. Health is labelled
+	// like the samples rather than by region and name alone because that pair is only unique within
+	// an account, and the configured labels are what tells two accounts' instances apart.
+	configured map[instanceKey]prometheus.Labels
 
 	rw sync.RWMutex
 	// monitored is whether AWS has Enhanced Monitoring on for a configured instance, as of its
@@ -87,12 +89,6 @@ func metricsTTL(interval time.Duration) time.Duration {
 func newCollector(logger log.Logger) *Collector {
 	return &Collector{
 		logger: log.With(logger, "component", "enhanced"),
-		upDesc: prometheus.NewDesc(upMetricName,
-			"Whether Enhanced Monitoring metrics for this instance are current (1) or stale (0).",
-			[]string{regionLabel, instanceLabel}, nil),
-		lastEventDesc: prometheus.NewDesc(lastEventMetricName,
-			"Timestamp of the most recent Enhanced Monitoring event received for this instance.",
-			[]string{regionLabel, instanceLabel}, nil),
 		errorsDesc: prometheus.NewDesc(scrapeErrorsMetricName,
 			"Enhanced Monitoring collection errors by kind; not_found counts log streams newly excluded, "+
 				"group_not_found the log group of a whole session.",
@@ -102,7 +98,7 @@ func newCollector(logger log.Logger) *Collector {
 			[]string{regionLabel}, nil),
 		cancel:     nil,
 		wg:         sync.WaitGroup{},
-		configured: make(map[instanceKey]struct{}),
+		configured: make(map[instanceKey]prometheus.Labels),
 		rw:         sync.RWMutex{},
 		monitored:  make(map[instanceKey]bool),
 		metrics:    make(map[instanceKey]instanceState),
@@ -120,7 +116,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 	for session, enabledInstances := range collector.configure(sessions.AllSessions()) {
 		cfg := sessions.Configs[session]
-		s := newScraper(cfg, enabledInstances, logger)
+		s := newScraper(session, cfg, enabledInstances, logger)
 
 		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", s.interval()))
 
@@ -203,7 +199,7 @@ func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]s
 
 		enabled[session] = enabledInstances
 		for _, instance := range enabledInstances {
-			c.configured[keyOf(instance)] = struct{}{}
+			c.configured[keyOf(session, instance)] = instanceLabels(instance.Region, instance.Instance, instance.Labels)
 		}
 	}
 
@@ -222,15 +218,34 @@ func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) 
 		}
 
 		if current || !c.silenced(key) {
-			out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, boolToFloat(current),
-				key.region, key.instance)
+			c.emitUp(out, key, current)
 		}
 
 		if !state.eventTime.IsZero() {
-			out <- prometheus.MustNewConstMetric(c.lastEventDesc, prometheus.GaugeValue,
-				float64(state.eventTime.Unix()), key.region, key.instance)
+			c.emitLastEvent(out, key, state.eventTime)
 		}
 	}
+}
+
+func (c *Collector) emitUp(out chan<- prometheus.Metric, key instanceKey, current bool) {
+	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(upMetricName, upMetricHelp, nil, c.labelsOf(key)),
+		prometheus.GaugeValue, boolToFloat(current))
+}
+
+func (c *Collector) emitLastEvent(out chan<- prometheus.Metric, key instanceKey, eventTime time.Time) {
+	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(lastEventMetricName, lastEventMetricHelp, nil, c.labelsOf(key)),
+		prometheus.GaugeValue, float64(eventTime.Unix()))
+}
+
+// labelsOf returns the labels an instance's health is reported under. A key the collector was not
+// configured with can only be a sample prune has not released yet, and it is reported by region and
+// name until then rather than dropped.
+func (c *Collector) labelsOf(key instanceKey) prometheus.Labels {
+	if labels, configured := c.configured[key]; configured {
+		return labels
+	}
+
+	return instanceLabels(key.region, key.instance, nil)
 }
 
 // collectSilentInstances reports the instances that have never delivered a sample as down. A log
@@ -246,7 +261,7 @@ func (c *Collector) collectSilentInstances(out chan<- prometheus.Metric) {
 			continue
 		}
 
-		out <- prometheus.MustNewConstMetric(c.upDesc, prometheus.GaugeValue, 0, key.region, key.instance)
+		c.emitUp(out, key, false)
 	}
 }
 

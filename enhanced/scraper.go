@@ -78,14 +78,17 @@ const (
 )
 
 // instanceKey identifies an instance independently of its RDS resource ID, which changes on a
-// blue/green switchover.
+// blue/green switchover. The session is part of it because a DB identifier is only unique within an
+// AWS account: two accounts monitored in one region can each have an instance of the same name, and
+// they are different instances with different samples.
 type instanceKey struct {
+	session  string
 	region   string
 	instance string
 }
 
-func keyOf(instance sessions.Instance) instanceKey {
-	return instanceKey{region: instance.Region, instance: instance.Instance}
+func keyOf(session string, instance sessions.Instance) instanceKey {
+	return instanceKey{session: session, region: instance.Region, instance: instance.Instance}
 }
 
 // instanceMetrics is one instance's most recent Enhanced Monitoring sample.
@@ -147,6 +150,7 @@ func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
+	session               string
 	instances             []sessions.Instance
 	svc                   cloudwatchlogs.FilterLogEventsAPIClient
 	stateResolver         instanceStateResolver
@@ -171,8 +175,9 @@ type scraper struct {
 	testDisallowUnknownFields bool // for tests only
 }
 
-func newScraper(cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
+func newScraper(session string, cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
 	return &scraper{
+		session:               session,
 		instances:             instances,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
 		stateResolver:         sessions.NewResourceIDResolver(cfg),
@@ -341,7 +346,7 @@ func (s *scraper) monitoredInstances() map[instanceKey]bool {
 	monitored := make(map[instanceKey]bool, len(s.instances))
 
 	for _, instance := range s.instances {
-		key := keyOf(instance)
+		key := keyOf(s.session, instance)
 		// Duplicate configurations share a key, and one of them having a stream is enough.
 		monitored[key] = monitored[key] || instance.EnhancedMonitoringInterval > 0
 	}
@@ -792,7 +797,7 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 			osMetrics.Timestamp.UTC(), timestamp))
 
 		sink.add(
-			keyOf(instance),
+			keyOf(s.session, instance),
 			timestamp,
 			osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
 			aws.ToString(event.Message),

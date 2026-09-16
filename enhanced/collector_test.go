@@ -15,10 +15,23 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-const osMetricName = "node_cpu_average"
+const (
+	osMetricName = "node_cpu_average"
+
+	sessionA = "session-a"
+	sessionB = "session-b"
+
+	// Two accounts monitored in one region, each with an instance of the same name.
+	firstSession  = "us-east-1/first"
+	secondSession = "us-east-1/second"
+	firstAccount  = "first"
+	secondAccount = "second"
+	accountLabel  = "account"
+	sharedName    = "prod-db"
+)
 
 func testKey(instance string) instanceKey {
-	return instanceKey{region: testRegion, instance: instance}
+	return instanceKey{session: testSession, region: testRegion, instance: instance}
 }
 
 func testCollector(states map[instanceKey]instanceState) *Collector {
@@ -33,7 +46,7 @@ func testCollector(states map[instanceKey]instanceState) *Collector {
 func configuredCollector(states map[instanceKey]instanceState, instances ...string) *Collector {
 	collector := testCollector(states)
 	for _, instance := range instances {
-		collector.configured[testKey(instance)] = struct{}{}
+		collector.configured[testKey(instance)] = instanceLabels(testRegion, instance, nil)
 	}
 
 	return collector
@@ -127,19 +140,22 @@ func TestConfigure(t *testing.T) {
 		disabled := testInstance("disabled", "disabled-resource-id")
 		disabled.DisableEnhancedMetrics = true
 
+		primary := testInstance("primary", oldResourceID)
+		replica := testInstance("replica", newResourceID)
+
 		collector := newCollector(promlog.New(&promlog.Config{}))
 		enabled := collector.configure(map[string][]sessions.Instance{
-			"session-a": {testInstance("primary", oldResourceID)},
-			"session-b": {testInstance("replica", newResourceID), disabled},
+			sessionA: {primary},
+			sessionB: {replica, disabled},
 		})
 
 		// prune reads the set from the drain goroutine of a session that is already scraping, so no
 		// session may still be missing from it by then.
-		assert.Equal(t, map[instanceKey]struct{}{
-			testKey("primary"): {},
-			testKey("replica"): {},
+		assert.Equal(t, map[instanceKey]prometheus.Labels{
+			keyOf(sessionA, primary): instanceLabels(testRegion, primary.Instance, nil),
+			keyOf(sessionB, replica): instanceLabels(testRegion, replica.Instance, nil),
 		}, collector.configured)
-		assert.Len(t, enabled["session-b"], 1, "an instance PMM disabled must not be scraped")
+		assert.Len(t, enabled[sessionB], 1, "an instance PMM disabled must not be scraped")
 	})
 
 	t.Run("leaves out a session with nothing to scrape", func(t *testing.T) {
@@ -150,14 +166,41 @@ func TestConfigure(t *testing.T) {
 
 		collector := newCollector(promlog.New(&promlog.Config{}))
 		enabled := collector.configure(map[string][]sessions.Instance{
-			"session-a": {disabled},
+			sessionA: {disabled},
 		})
 
 		// A scraper for such a session has no log stream to request and no region to report under, so
 		// it would publish its self-metrics with an empty region label and poll AWS for nothing.
-		assert.NotContains(t, enabled, "session-a")
+		assert.NotContains(t, enabled, sessionA)
 		assert.Empty(t, collector.configured)
 	})
+}
+
+func TestConfigureKeepsTheSameInstanceOfTwoAccountsApart(t *testing.T) {
+	t.Parallel()
+
+	// A DB identifier is only unique within an account, so two sessions monitoring one region can
+	// each have an instance of the same name. Their samples must not overwrite each other, and their
+	// health must be told apart the way their metrics are: by the configured labels.
+	first := testInstance(sharedName, oldResourceID)
+	first.Labels = map[string]string{accountLabel: firstAccount}
+	second := testInstance(sharedName, newResourceID)
+	second.Labels = map[string]string{accountLabel: secondAccount}
+
+	collector := newCollector(promlog.New(&promlog.Config{}))
+	collector.configure(map[string][]sessions.Instance{
+		firstSession:  {first},
+		secondSession: {second},
+	})
+
+	assert.Equal(t, map[instanceKey]prometheus.Labels{
+		{session: firstSession, region: testRegion, instance: sharedName}: {
+			regionLabel: testRegion, instanceLabel: sharedName, accountLabel: firstAccount,
+		},
+		{session: secondSession, region: testRegion, instance: sharedName}: {
+			regionLabel: testRegion, instanceLabel: sharedName, accountLabel: secondAccount,
+		},
+	}, collector.configured)
 }
 
 func TestCollect(t *testing.T) { //nolint:funlen
@@ -258,6 +301,42 @@ func TestCollect(t *testing.T) { //nolint:funlen
 		require.NotNil(t, errorsMetric)
 		assert.InDelta(t, 3.0, errorsMetric.Value, 0)
 		assert.Equal(t, prometheus.Labels{regionLabel: testRegion, kindLabel: errorKindThrottling}, errorsMetric.Labels)
+	})
+
+	t.Run("labels health like the samples", func(t *testing.T) {
+		t.Parallel()
+
+		// Two accounts' instances of the same name only differ by the labels the configuration gives
+		// them, and health reported by region and name alone would be one series for the two.
+		firstKey := instanceKey{session: firstSession, region: testRegion, instance: sharedName}
+		secondKey := instanceKey{session: secondSession, region: testRegion, instance: sharedName}
+		collector := testCollector(map[instanceKey]instanceState{
+			firstKey: {
+				metrics:    sampleMetrics(sharedName),
+				eventTime:  time.Now().Add(-time.Minute),
+				expiresAt:  time.Now().Add(time.Minute),
+				receivedAt: time.Now(),
+			},
+		})
+		collector.configured[firstKey] = instanceLabels(testRegion, sharedName, map[string]string{accountLabel: firstAccount})
+		collector.configured[secondKey] = instanceLabels(testRegion, sharedName, map[string]string{accountLabel: secondAccount})
+
+		metrics := collect(t, collector)
+
+		ups := make(map[string]float64)
+
+		for _, metric := range metrics {
+			if metric.Name == upMetricName {
+				ups[metric.Labels[accountLabel]] = metric.Value
+			}
+		}
+
+		assert.Equal(t, map[string]float64{firstAccount: 1, secondAccount: 0}, ups,
+			"each account's instance must report its own health")
+
+		lastEvent := findMetric(metrics, lastEventMetricName, sharedName)
+		require.NotNil(t, lastEvent)
+		assert.Equal(t, firstAccount, lastEvent.Labels[accountLabel])
 	})
 
 	t.Run("counts a wrong clock outside the error metric", func(t *testing.T) {

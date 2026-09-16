@@ -444,21 +444,32 @@ func makeNodeProcsMetrics(s *tasks, constLabels prometheus.Labels) []prometheus.
 	return res
 }
 
+// instanceLabels returns the labels every metric of an instance carries: its region and name, then
+// whatever the configuration adds. A configured label may override either of the two, and an empty
+// value drops one, so that two accounts monitoring an instance of the same name can be told apart on
+// every series, and by the same labels on all of them.
+func instanceLabels(region, instance string, labels map[string]string) prometheus.Labels {
+	res := prometheus.Labels{
+		regionLabel:   region,
+		instanceLabel: instance,
+	}
+
+	for name, value := range labels {
+		if value == "" {
+			delete(res, name)
+		} else {
+			res[name] = value
+		}
+	}
+
+	return res
+}
+
 // makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
 func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]string) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, 100)
 
-	constLabels := prometheus.Labels{
-		"region":   region,
-		"instance": m.InstanceID,
-	}
-	for n, v := range labels {
-		if v == "" {
-			delete(constLabels, n)
-		} else {
-			constLabels[n] = v
-		}
-	}
+	constLabels := instanceLabels(region, m.InstanceID, labels)
 
 	res = append(res, prometheus.MustNewConstMetric(
 		prometheus.NewDesc("rdsosmetrics_timestamp", "Metrics timestamp (UNIX seconds).", nil, constLabels),
