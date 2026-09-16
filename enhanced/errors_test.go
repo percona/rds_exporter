@@ -43,6 +43,32 @@ func TestErrorKind(t *testing.T) {
 			err:  errors.Join(apiError("ExpiredTokenException"), notFound),
 			want: errorKindAuth,
 		},
+		{
+			// The deadline cutting one half of a bisect short says nothing about why the other half failed.
+			name: "throttled before running out of time",
+			err:  errors.Join(apiError("ThrottlingException"), context.DeadlineExceeded),
+			want: errorKindThrottling,
+		},
+		{
+			name: "out of time before a missing stream",
+			err:  errors.Join(context.DeadlineExceeded, fmt.Errorf("wrapped: %w", notFound)),
+			want: errorKindNotFound,
+		},
+		{
+			name: "isolation budget exhausted before running out of time",
+			err:  errors.Join(errIsolationBudget, context.DeadlineExceeded),
+			want: errorKindOther,
+		},
+		{
+			name: "out of time in every batch",
+			err:  errors.Join(context.DeadlineExceeded, fmt.Errorf("wrapped: %w", context.DeadlineExceeded)),
+			want: errorKindContext,
+		},
+		{
+			name: "throttled deep in a nested join",
+			err:  errors.Join(errors.Join(context.DeadlineExceeded), errors.Join(apiError("ThrottlingException"), notFound)),
+			want: errorKindThrottling,
+		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()

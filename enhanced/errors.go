@@ -82,12 +82,39 @@ func hasAPIErrorCode(err error, codes ...string) bool {
 	return slices.Contains(codes, apiErr.ErrorCode())
 }
 
+// errorKindRank orders the kinds by how much they say about why a scrape failed, most telling last.
+// A bisect joins the errors of its halves, and the deadline cutting a later half short says nothing
+// about the throttle that failed an earlier one, so the leaf with the most to say names the join.
+func errorKindRank(kind string) int {
+	return slices.Index([]string{
+		errorKindContext,
+		errorKindOther,
+		errorKindNotFound,
+		errorKindAuth,
+		errorKindThrottling,
+	}, kind)
+}
+
 // errorKind classifies a scrape error for the error counter. The kinds are a closed set to keep the
 // metric's label cardinality bounded.
 func errorKind(err error) string {
-	switch {
-	case err == nil:
+	if err == nil {
 		return ""
+	}
+
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		kind := ""
+
+		for _, leaf := range joined.Unwrap() {
+			if leafKind := errorKind(leaf); errorKindRank(leafKind) > errorKindRank(kind) {
+				kind = leafKind
+			}
+		}
+
+		return kind
+	}
+
+	switch {
 	case isContextError(err):
 		return errorKindContext
 	case isThrottling(err):
