@@ -625,8 +625,9 @@ func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *event
 	return s.isolateMissing(ctx, streams, sink)
 }
 
-// markMissing excludes a log stream from later requests, tentatively when nothing this scrape asked
-// was answered. It counts and logs only what changed, so that a permanently missing stream neither
+// markMissing excludes a log stream from later requests, tentatively when the rejection may as well
+// be the log group's: nothing this scrape asked was answered, and the group is blamed or has never
+// answered. It counts and logs only what changed, so that a permanently missing stream neither
 // inflates the counter nor floods the log every scrape.
 func (s *scraper) markMissing(logStreamName string, tentative bool) {
 	outcome := s.missing.mark(logStreamName, time.Now(), tentative)

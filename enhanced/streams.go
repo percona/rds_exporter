@@ -52,7 +52,7 @@ const (
 // tentative when the scrape that made it was not answered anywhere, and a tentative exclusion is
 // confirmed by a later rejection that was not in doubt. A firm exclusion is never downgraded: it
 // rests on a rejection made while the group answered, and a rejection under doubt adds nothing to
-// that.
+// that. Whatever changed, the stream was just rejected again, so its exclusion is renewed for a TTL.
 func (m *missingStreams) mark(name string, now time.Time, tentative bool) markOutcome {
 	_, known := m.probeAfter[name]
 	_, wasTentative := m.tentative[name]
@@ -84,8 +84,9 @@ func (m *missingStreams) clear(name string) bool {
 }
 
 // releaseTentative stops excluding every stream whose exclusion was tentative and reports how many
-// there were. Called once the log group has answered, which is the evidence those exclusions were
-// waiting for: a stream among them that is still rejected is then rejected for a reason of its own.
+// there were. A tentative exclusion waits on the log group: an answer from it is the evidence that a
+// stream still rejected is rejected for a reason of its own, and a pause given up without one hands
+// the whole fleet back to the bisect, which the exclusions would otherwise keep most of it out of.
 func (m *missingStreams) releaseTentative() int {
 	released := len(m.tentative)
 
