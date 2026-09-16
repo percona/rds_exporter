@@ -789,7 +789,7 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 
 		// Blaming the group needs every stream accounted for, and a scrape cut short never asked the
 		// batches a missing group would have rejected too.
-		assert.Zero(t, scraper.groupProbeAfter)
+		assert.Zero(t, scraper.group.probeAfter)
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 		assert.Equal(t, 2, scraper.missing.len(), "only the streams the bisect reached are excluded")
 	})

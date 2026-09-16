@@ -29,37 +29,6 @@ const (
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
 	maxLogStreamsPerRequest = 100
 
-	// minStreamsToBlameTheGroup is how many log streams a rejected batch needs before its rejection
-	// can be read as evidence about the log group. A request for one stream is rejected the same way
-	// whether the stream or the group is what does not exist, so one stream can only blame itself.
-	// Two are barely better: a pair of instances leaving CloudWatch at once is ordinary fleet churn,
-	// and a session monitoring only that pair cannot tell it from the group disappearing. The misread
-	// is expensive in one direction only -- blaming the group pauses every instance in the session for
-	// a TTL, while blaming the streams costs an exclusion each and clears itself on the next probe --
-	// so a session that small attributes its streams instead.
-	minStreamsToBlameTheGroup = 3
-
-	// maxRejectedProbes is how many unanswered probes a log group that has answered before is given
-	// before the session goes back to isolating its streams. A rejected probe cannot say whether the group
-	// or the stream it named is what does not exist, so a rotation that keeps landing on streams
-	// that are genuinely gone would hold the whole session back one TTL at a time for as long as
-	// they stay gone. Three keeps the cheap explanation cheap -- a group that really is missing is
-	// asked for one stream three times before it costs a bisect -- while capping what the expensive
-	// one can cost the instances that are fine.
-	maxRejectedProbes = 3
-
-	// maxProbeBackoff caps how far the wait between fallbacks is allowed to double. A fallback is
-	// worth its bisect early and worth much less late: the probe rotation recovers a wrongly blamed
-	// group on its own as soon as it lands on a stream that answers, so what a fallback buys is
-	// arriving there sooner, and buying that again every fifteen minutes spends the fleet's whole
-	// request budget on an answer that has not changed since the last one. What the cap sets is how
-	// long a session can take to notice a fleet coming back after everything in it stayed gone: the
-	// fallback is the only thing that asks the whole fleet at once, so nothing else would find the
-	// first stream to return until the rotation reached it. Three doublings stretch the wait from
-	// three pauses to twenty-four, which is two hours at missingStreamTTL, and leave the cost of
-	// staying ready one bisect per two hours rather than one per fifteen minutes.
-	maxProbeBackoff = 3
-
 	// maxLookback bounds how far back a request may reach after a failed scrape or an outage. Events
 	// timestamped further behind the exporter's clock than this are never requested at all, so an
 	// instance whose clock lags that much reports a gap rather than samples.
@@ -162,12 +131,7 @@ type scraper struct {
 	isolated              []string
 	rejectedStreams       int
 	answered              bool
-	groupProbeAfter       time.Time
-	groupProbes           int
-	rejectedProbes        int
-	unproductiveFallbacks int
-	groupSeen             bool
-	groupBlamed           bool
+	group                 logGroup
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
 	nextResourceIDRefresh time.Time
@@ -180,21 +144,23 @@ type scraper struct {
 
 func newScraper(session string, cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
 	return &scraper{
-		session:               session,
-		instances:             instances,
-		svc:                   cloudwatchlogs.NewFromConfig(cfg),
-		stateResolver:         sessions.NewResourceIDResolver(cfg),
-		missing:               newMissingStreams(),
-		isolationCalls:        0,
-		isolated:              nil,
-		rejectedStreams:       0,
-		answered:              false,
-		groupProbeAfter:       time.Time{},
-		groupProbes:           0,
-		rejectedProbes:        0,
-		unproductiveFallbacks: 0,
-		groupSeen:             false,
-		groupBlamed:           false,
+		session:         session,
+		instances:       instances,
+		svc:             cloudwatchlogs.NewFromConfig(cfg),
+		stateResolver:   sessions.NewResourceIDResolver(cfg),
+		missing:         newMissingStreams(),
+		isolationCalls:  0,
+		isolated:        nil,
+		rejectedStreams: 0,
+		answered:        false,
+		group: logGroup{
+			probeAfter:            time.Time{},
+			probes:                0,
+			rejectedProbes:        0,
+			unproductiveFallbacks: 0,
+			seen:                  false,
+			blamed:                false,
+		},
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
@@ -478,47 +444,28 @@ func (s *scraper) batches(now time.Time) [][]string {
 // the probe is due, and then a single stream. A missing group rejects every request it is asked for,
 // so requesting the whole fleet would pay a full bisect to learn what one stream already says.
 //
-// Which stream is asked rotates, because a probe rejected while the group is presumed missing is
-// credited to the group and teaches nothing about the stream it named. Asking the same one every
-// time is unrecoverable once that stream is the only thing still gone: the probe is rejected for its
-// own sake for as long as the session lives, and the instances whose streams do exist are never
-// requested again. Rotating is not enough on its own, because every stream it lands on while they
-// are all still gone buys the pause another TTL, so a pause the group has earned by going dark is
-// abandoned after maxRejectedProbes of them and the streams are isolated the ordinary way. The
-// rotation carries on from where it left off across those fallbacks, so the probes that follow one
-// ask streams the earlier ones did not. What a fallback costs it is only worth once, so the wait
-// before the next one doubles for as long as they keep finding nothing, up to maxProbeBackoff.
-//
-// A group that has never answered is left to its probes instead. Enhanced Monitoring writes the
-// group, so one that has said nothing since the exporter started is most likely a region that never
-// enabled it, and bisecting a fleet for that would pay the full cost of the answer a single probe
-// already has.
-//
 // The rotation runs over every monitored stream, excluded or not. An exclusion made while the group
 // was blamed rests on the group, and one made before it says nothing about whether the group is
 // back; a stream that exists answers either way, and that answer is what ends the pause. Rotating
 // over the streams due for a probe slot instead would stop at the first maxProbesPerScrape of them
 // in configuration order, and never reach the rest while those happened to be gone.
 func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
-	streams := s.monitoredStreams()
-	if s.groupProbeAfter.IsZero() || len(streams) == 0 {
-		return nil, false
-	}
+	stream, decision := s.group.probe(s.monitoredStreams(), now)
 
-	if now.Before(s.groupProbeAfter) {
+	switch decision {
+	case probeWaiting:
 		return nil, true
-	}
-
-	if s.groupSeen && s.rejectedProbes >= maxRejectedProbes<<s.unproductiveFallbacks {
+	case probeDue:
+		return [][]string{{stream}}, true
+	case probeGivenUp:
 		s.resumeUnprobed()
 
 		return nil, false
+	case probeNotPaused:
+		return nil, false
+	default:
+		return nil, false
 	}
-
-	probe := streams[s.groupProbes%len(streams)]
-	s.groupProbes++
-
-	return [][]string{{probe}}, true
 }
 
 // resumeUnprobed ends a pause whose probes were all rejected, so what the rotation kept landing on
@@ -531,12 +478,10 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 // settle the group's account: left in place they would keep all but maxProbesPerScrape streams out
 // of it, and a fleet whose first few streams are genuinely gone would never be asked beyond them.
 func (s *scraper) resumeUnprobed() {
-	s.groupProbeAfter = time.Time{}
-
 	level.Info(s.logger).Log(
 		"msg", "CloudWatch rejected every Enhanced Monitoring log group probe; isolating log streams instead.",
 		"log_group", logGroupName,
-		"probes", s.rejectedProbes,
+		"probes", s.group.rejectedProbes,
 		"log_streams_retried", s.missing.releaseTentative(),
 	)
 }
@@ -553,14 +498,13 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	// it happened to name. A probe that was throttled or refused says nothing about either, and
 	// counting it would let rate limiting alone talk the session into bisecting the whole fleet, at
 	// the one moment it can least afford to.
-	if err != nil && !s.groupProbeAfter.IsZero() {
-		s.groupProbeAfter = time.Now().Add(missingStreamTTL)
+	if err != nil && s.group.paused() {
+		rejected := isResourceNotFound(err)
+		s.group.noteProbeFailed(rejected, time.Now())
 
-		if !isResourceNotFound(err) {
+		if !rejected {
 			return err
 		}
-
-		s.rejectedProbes++
 
 		return nil
 	}
@@ -617,7 +561,7 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 	// scrape failed, and the next answer from it would release exclusions it had nothing to do with.
 	// The streams would then be requested again, rejected again and bisected again -- every other
 	// scrape, for as long as the healthy half kept being throttled or cut short by the deadline.
-	tentative := !s.answered && (s.groupBlamed || !s.groupSeen)
+	tentative := !s.answered && s.group.inDoubt()
 
 	for _, stream := range s.isolated {
 		s.markMissing(stream, tentative)
@@ -699,22 +643,10 @@ func (s *scraper) markMissing(logStreamName string, tentative bool) {
 // gives the pause up in order to test it, and so brings the session back past this every time it
 // finds nothing. Counting those would turn one outage into a rate.
 func (s *scraper) markGroupMissing() {
-	s.groupProbeAfter = time.Now().Add(missingStreamTTL)
-	// Only the probes of this pause count towards abandoning it. The rotation itself is deliberately
-	// not rewound, so a pause that follows a fallback does not re-ask the streams it just learnt
-	// nothing from.
-	s.rejectedProbes = 0
-
-	// Blame the session already held is not news. Reaching here twice means a fallback bisected the
-	// fleet and found nothing that answers, which is the one thing that says the next fallback is
-	// not worth what this one cost.
-	if s.groupBlamed {
-		s.unproductiveFallbacks = min(s.unproductiveFallbacks+1, maxProbeBackoff)
-
+	if !s.group.blame(time.Now()) {
 		return
 	}
 
-	s.groupBlamed = true
 	s.errorCounts[errorKindGroupNotFound]++
 
 	level.Warn(s.logger).Log(
@@ -761,19 +693,8 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 // listed exists, and the batch being bisected has at least one half that is not the problem.
 func (s *scraper) noteAnswered(streams []string) {
 	s.answered = true
-	// Kept for the life of the session, because a group that has answered once and then goes dark has
-	// changed, and that is what makes giving up on a pause worth a bisect.
-	s.groupSeen = true
-	// The group is not the suspect any more, so the next time it is blamed is a new outage rather
-	// than the one this session is already reporting, and its first fallback is worth paying for
-	// again. Cleared whatever the pause is doing, because a fallback holds the blame with no pause
-	// left to clear.
-	s.groupBlamed = false
-	s.unproductiveFallbacks = 0
 
-	if !s.groupProbeAfter.IsZero() {
-		s.groupProbeAfter = time.Time{}
-
+	if s.group.noteAnswered() {
 		level.Info(s.logger).Log(
 			"msg", "CloudWatch log group exists again; resuming Enhanced Monitoring requests.",
 			"log_group", logGroupName,
