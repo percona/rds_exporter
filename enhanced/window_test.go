@@ -91,6 +91,31 @@ func TestScrapeAdvancesStartTimeWhenTimeRunsOut(t *testing.T) {
 		"a scrape that ran out of time must narrow the window to what it did read")
 }
 
+func TestScrapeKeepsStartTimeWhenABatchFailedBeforeTimeRanOut(t *testing.T) {
+	t.Parallel()
+
+	// Three batches: the first is throttled, the second answers, the third hits the deadline. The
+	// throttled batch is asked again on the next scrape, but only for the events still inside the
+	// window, so the deadline must not be allowed to move it past them.
+	streams := resourceIDs(2*maxLogStreamsPerRequest + 1)
+	client := &fakeLogsClient{
+		events:   eventsFor(streams[maxLogStreamsPerRequest]),
+		missing:  nil,
+		errs:     []error{throttlingError(), nil, context.DeadlineExceeded},
+		pageSize: 0,
+		calls:    nil,
+	}
+	scraper := scraperWithStreams(client, streams...)
+	startTime := scraper.nextStartTime
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 3)
+	assert.Len(t, metrics, 1, "the batch that answered must still report")
+	assert.Equal(t, startTime, scraper.nextStartTime,
+		"a deadline must not drop the events of a batch that failed for a reason of its own")
+}
+
 func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 	t.Parallel()
 

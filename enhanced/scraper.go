@@ -413,8 +413,13 @@ func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, 
 // be handed back the window it could not drain, run out of time on it again, and never report at
 // all, so the events it did read have to move the window even though the rest of the fleet did not
 // report. Only what is behind the new start and was never read is lost, bounded by maxLookback.
+//
+// Both can happen in one scrape, and then the first rule wins: a batch that was throttled before a
+// later one hit the deadline still has its events to deliver, and moving the window past them would
+// drop them for good rather than for one scrape. What that costs is bounded the same way, since the
+// window is clamped to maxLookback however long the two keep coinciding.
 func windowMayAdvance(scrapeErr error) bool {
-	return scrapeErr == nil || isContextError(scrapeErr)
+	return scrapeErr == nil || onlyContextErrors(scrapeErr)
 }
 
 // advanceStartTime moves the request window forward when the scrape is entitled to move it, and the

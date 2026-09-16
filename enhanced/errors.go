@@ -39,6 +39,26 @@ func isContextError(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
+// onlyContextErrors reports whether running out of time is all that went wrong. A scrape joins the
+// errors of its batches, and errors.Is is satisfied by any one of them, so a batch that was
+// throttled before the deadline hit a later one would otherwise pass for a scrape that merely ran
+// out of time. The two are not alike: the throttled batch is asked again on the next scrape, and only
+// if the window is still where it was.
+func onlyContextErrors(err error) bool {
+	joined, ok := err.(interface{ Unwrap() []error })
+	if !ok {
+		return isContextError(err)
+	}
+
+	for _, leaf := range joined.Unwrap() {
+		if !onlyContextErrors(leaf) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // isThrottling reports whether AWS rejected the request for rate limiting. The SDK has already
 // exhausted its own retries by the time the error reaches us.
 func isThrottling(err error) bool {

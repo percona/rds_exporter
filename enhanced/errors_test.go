@@ -51,3 +51,39 @@ func TestErrorKind(t *testing.T) {
 		})
 	}
 }
+
+func TestOnlyContextErrors(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "out of time", err: context.DeadlineExceeded, want: true},
+		{name: "wrapped", err: fmt.Errorf("wrapped: %w", context.Canceled), want: true},
+		{name: "throttled", err: apiError("ThrottlingException"), want: false},
+		{
+			name: "out of time in every batch",
+			err:  errors.Join(context.DeadlineExceeded, fmt.Errorf("wrapped: %w", context.DeadlineExceeded)),
+			want: true,
+		},
+		{
+			// errors.Is would say yes here, and the throttled batch would lose its events.
+			name: "throttled before running out of time",
+			err:  errors.Join(apiError("ThrottlingException"), context.DeadlineExceeded),
+			want: false,
+		},
+		{
+			name: "nested joins",
+			err:  errors.Join(errors.Join(context.DeadlineExceeded), errors.Join(errIsolationBudget, context.DeadlineExceeded)),
+			want: false,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, onlyContextErrors(testCase.err))
+		})
+	}
+}
