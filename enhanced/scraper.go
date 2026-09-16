@@ -581,8 +581,13 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 		return
 	}
 
+	// A scrape that was answered nowhere has the same gap in its evidence about each stream it singled
+	// out: the rejection would have looked the same had the group been what rejected it. The stream is
+	// excluded either way, since asking for it again would reject the whole batch again, but only
+	// tentatively, so that the group answering releases it rather than leaving the instance behind it
+	// waiting a TTL for a probe slot on evidence the group's return has just undermined.
 	for _, stream := range s.isolated {
-		s.markMissing(stream)
+		s.markMissing(stream, !s.answered)
 	}
 }
 
@@ -619,10 +624,11 @@ func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *event
 	return s.isolateMissing(ctx, streams, sink)
 }
 
-// markMissing excludes a log stream from later requests. It reports and logs only the transition, so
-// that a permanently missing stream neither inflates the counter nor floods the log every scrape.
-func (s *scraper) markMissing(logStreamName string) {
-	if !s.missing.mark(logStreamName, time.Now()) {
+// markMissing excludes a log stream from later requests, tentatively when nothing this scrape asked
+// was answered. It reports and logs only the transition, so that a permanently missing stream neither
+// inflates the counter nor floods the log every scrape.
+func (s *scraper) markMissing(logStreamName string, tentative bool) {
+	if !s.missing.mark(logStreamName, time.Now(), tentative) {
 		return
 	}
 
@@ -739,6 +745,26 @@ func (s *scraper) noteAnswered(streams []string) {
 	}
 
 	s.clearAccepted(streams)
+	s.retryTentative()
+}
+
+// retryTentative stops excluding the streams a scrape answered nowhere had singled out, now that the
+// group has answered and can no longer be what rejected them. They are requested again on the next
+// scrape: the ones that exist report, and one that is gone for a reason of its own is rejected again
+// and excluded on evidence about itself. Waiting for their probes instead would hold every instance
+// behind them back for a TTL and then let them return maxProbesPerScrape at a time, for a fault the
+// group's return has just explained away.
+func (s *scraper) retryTentative() {
+	released := s.missing.releaseTentative()
+	if released == 0 {
+		return
+	}
+
+	level.Info(s.logger).Log(
+		"msg", "CloudWatch log group answered; retrying the log streams excluded while it was in doubt.",
+		"log_group", logGroupName,
+		"log_streams", released,
+	)
 }
 
 // clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names

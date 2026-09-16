@@ -25,16 +25,31 @@ const (
 // the scrape goroutine, so it needs no lock.
 type missingStreams struct {
 	probeAfter map[string]time.Time // log stream name -> earliest time to try it again
+	// tentative holds the streams excluded by a scrape no request of which was answered. A rejection
+	// names no stream, and a scrape answered nothing anywhere cannot tell a stream that is gone from
+	// a log group that is: only a request the group answers settles that, so these wait for one.
+	tentative map[string]struct{}
 }
 
 func newMissingStreams() *missingStreams {
-	return &missingStreams{probeAfter: make(map[string]time.Time)}
+	return &missingStreams{
+		probeAfter: make(map[string]time.Time),
+		tentative:  make(map[string]struct{}),
+	}
 }
 
 // mark excludes a log stream from later requests and reports whether it was not excluded already.
-func (m *missingStreams) mark(name string, now time.Time) bool {
+// The exclusion is tentative when the scrape that made it was not answered anywhere, and the latest
+// rejection decides: what a stream was excluded on before says nothing about what rejected it now.
+func (m *missingStreams) mark(name string, now time.Time, tentative bool) bool {
 	_, known := m.probeAfter[name]
 	m.probeAfter[name] = now.Add(missingStreamTTL)
+
+	if tentative {
+		m.tentative[name] = struct{}{}
+	} else {
+		delete(m.tentative, name)
+	}
 
 	return !known
 }
@@ -43,8 +58,24 @@ func (m *missingStreams) mark(name string, now time.Time) bool {
 func (m *missingStreams) clear(name string) bool {
 	_, known := m.probeAfter[name]
 	delete(m.probeAfter, name)
+	delete(m.tentative, name)
 
 	return known
+}
+
+// releaseTentative stops excluding every stream whose exclusion was tentative and reports how many
+// there were. Called once the log group has answered, which is the evidence those exclusions were
+// waiting for: a stream among them that is still rejected is then rejected for a reason of its own.
+func (m *missingStreams) releaseTentative() int {
+	released := len(m.tentative)
+
+	for name := range m.tentative {
+		delete(m.probeAfter, name)
+	}
+
+	clear(m.tentative)
+
+	return released
 }
 
 func (m *missingStreams) marked(name string) bool {

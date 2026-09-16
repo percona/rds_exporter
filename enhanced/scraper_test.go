@@ -394,7 +394,7 @@ func TestRefreshAppliesPartialInstanceStates(t *testing.T) {
 		calls: 0,
 	}
 	scraper := newTestScraper(resolver)
-	scraper.missing.mark(oldResourceID, time.Now())
+	scraper.missing.mark(oldResourceID, time.Now(), false)
 
 	err := scraper.refreshInstanceStates(t.Context())
 

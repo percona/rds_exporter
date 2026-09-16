@@ -482,7 +482,7 @@ func TestScrapeProbesEveryMissingStreamAcrossScrapes(t *testing.T) {
 	scraper := scraperWithStreams(client, append(streams, sameResourceID)...)
 
 	for _, stream := range streams {
-		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL))
+		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL), false)
 	}
 
 	probed := make([]string, 0, len(streams))
@@ -697,7 +697,7 @@ func TestScrapeStaggersProbesAcrossScrapes(t *testing.T) {
 	scraper := scraperWithStreams(client, streams...)
 
 	for _, stream := range streams {
-		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL))
+		scraper.missing.mark(stream, time.Now().Add(-2*missingStreamTTL), false)
 	}
 
 	batches := scraper.batches(time.Now())
@@ -793,6 +793,29 @@ func TestScrapeAttributesRejectionsWhenTimeRunsOut(t *testing.T) {
 		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
 		assert.Equal(t, 2, scraper.missing.len(), "only the streams the bisect reached are excluded")
 	})
+}
+
+func TestMissingStreamsReleasesTentativeExclusions(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	missing := newMissingStreams()
+	missing.mark("doubtful", now, true)
+	missing.mark("gone", now, false)
+	// The latest rejection decides what an exclusion rests on, in either direction.
+	missing.mark("settled", now, true)
+	missing.mark("settled", now, false)
+	missing.mark("unsettled", now, false)
+	missing.mark("unsettled", now, true)
+	missing.mark("cleared", now, true)
+	missing.clear("cleared")
+
+	assert.Equal(t, 2, missing.releaseTentative())
+	assert.False(t, missing.marked("doubtful"))
+	assert.False(t, missing.marked("unsettled"))
+	assert.True(t, missing.marked("gone"))
+	assert.True(t, missing.marked("settled"))
+	assert.Zero(t, missing.releaseTentative(), "a release leaves nothing tentative behind")
 }
 
 func TestScrapeBoundsIsolationCalls(t *testing.T) {

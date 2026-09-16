@@ -490,6 +490,87 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 	})
 }
 
+// TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt covers what a fallback bisect the
+// deadline cut short leaves behind: streams singled out in a scrape nothing answered, whose
+// rejections the group may have been all there was to.
+func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T) { //nolint:funlen
+	t.Parallel()
+
+	// fallenBack returns a blamed session whose fallback bisect the deadline cut after four
+	// rejections, with the streams the bisect singled out excluded.
+	fallenBack := func(t *testing.T, streams ...string) (*scraper, *fakeLogsClient) {
+		t.Helper()
+
+		scraper, client := blamedGroupScraper(t, streams...)
+		scraper.rejectedProbes = maxRejectedProbes
+		scraper.groupProbeAfter = time.Now().Add(-time.Minute)
+		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
+
+		scraper.scrape(t.Context())
+
+		require.NotZero(t, scraper.missing.len(), "the streams the bisect singled out must be excluded")
+
+		return scraper, client
+	}
+
+	t.Run("as soon as the group answers", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(10)
+		scraper, client := fallenBack(t, streams...)
+
+		// The group is back with every stream in it. This scrape asks only for what was not excluded,
+		// and that is what proves the group exists.
+		client.missing = nil
+		client.events = eventsFor(streams...)
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		require.Less(t, len(metrics), len(streams), "the excluded streams were not asked for yet")
+		assert.Zero(t, scraper.missing.len(),
+			"an exclusion made while the group was in doubt must not outlive the group's answer")
+
+		metrics, _ = scraper.scrape(t.Context())
+
+		assert.Len(t, metrics, len(streams),
+			"the instances behind them must report on the next scrape rather than wait a TTL for a probe slot")
+	})
+
+	t.Run("and excludes again the one that stays gone", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(10)
+		scraper, client := fallenBack(t, streams...)
+
+		gone := ""
+
+		for _, stream := range streams {
+			if scraper.missing.marked(stream) {
+				gone = stream
+
+				break
+			}
+		}
+
+		require.NotEmpty(t, gone)
+
+		client.missing = map[string]struct{}{gone: {}}
+		client.events = eventsFor(streams...)
+		delete(client.events, gone)
+
+		scraper.scrape(t.Context())
+
+		require.False(t, scraper.missing.marked(gone), "the group answering releases every exclusion in doubt")
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		assert.True(t, scraper.missing.marked(gone),
+			"a stream still rejected while its group answers is missing for a reason of its own")
+		assert.Equal(t, 1, scraper.missing.len())
+		assert.Len(t, metrics, len(streams)-1)
+	})
+}
+
 func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	t.Parallel()
 
