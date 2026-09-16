@@ -16,6 +16,7 @@ linters:
     # module level, is off for the same reason.
     - depguard
     - gomodguard
+    # Deprecated in golangci-lint v2 in favour of wsl_v5, which stays enabled.
     - wsl
   settings:
     exhaustruct:

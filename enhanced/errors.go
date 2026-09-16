@@ -26,7 +26,7 @@ var errIsolationBudget = errors.New("log stream isolation budget exhausted")
 
 // isResourceNotFound reports whether CloudWatch rejected the request because a log stream or the
 // log group does not exist. Which of the two it was is not in the error, so it is decided from what
-// the requests of a batch answered, in attributeRejection.
+// the requests of a batch answered, in attributeRejections.
 func isResourceNotFound(err error) bool {
 	var notFound *types.ResourceNotFoundException
 
@@ -60,7 +60,7 @@ func onlyContextErrors(err error) bool {
 }
 
 // isThrottling reports whether AWS rejected the request for rate limiting. The SDK has already
-// exhausted its own retries by the time the error reaches us.
+// exhausted its own retries before the error is returned to the scraper.
 func isThrottling(err error) bool {
 	throttle := retry.ThrottleErrorCode{Codes: retry.DefaultThrottleErrorCodes}
 
