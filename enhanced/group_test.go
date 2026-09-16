@@ -41,19 +41,34 @@ func blamedGroupScraper(t *testing.T, streams ...string) (*scraper, *fakeLogsCli
 
 	scraper.scrape(t.Context())
 
+	blameGroup(t, scraper, client, streams...)
+
+	return scraper, client
+}
+
+// blameGroup makes every one of the given log streams disappear at once and scrapes, which is the
+// evidence that makes a session blame the log group rather than the streams.
+func blameGroup(t *testing.T, scraper *scraper, client *fakeLogsClient, streams ...string) {
+	t.Helper()
+
 	client.events = nil
 	client.missing = missingSet(streams...)
 
 	scraper.scrape(t.Context())
 
 	require.True(t, scraper.group.paused(), "the group must be the one taking the blame")
-
-	return scraper, client
 }
 
-// expirePause makes the next log group probe due, so that a test need not wait out a TTL.
-func (s *scraper) expirePause() {
-	s.group.probeAfter = time.Now().Add(-time.Minute)
+// makeProbeDue brings the next log group probe forward, so that a test need not wait out a TTL.
+func makeProbeDue(scraper *scraper) {
+	scraper.group.probeAfter = time.Now().Add(-time.Minute)
+}
+
+// expireExclusions brings every exclusion's retry forward, as a TTL passing between probes would.
+func expireExclusions(scraper *scraper) {
+	for name := range scraper.missing.probeAfter {
+		scraper.missing.probeAfter[name] = time.Now().Add(-time.Minute)
+	}
 }
 
 // probedStreams runs the given number of scrapes with the log group probe always due, and returns
@@ -65,7 +80,7 @@ func probedStreams(t *testing.T, scraper *scraper, client *fakeLogsClient, scrap
 	probed := make([]string, 0, scrapes)
 
 	for range scrapes {
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		client.calls = nil
 
@@ -92,7 +107,7 @@ func fallbackGaps(t *testing.T, scraper *scraper, client *fakeLogsClient, scrape
 	probes := 0
 
 	for range scrapes {
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		client.calls = nil
 
@@ -157,7 +172,7 @@ func TestScrapeProbesTheLogGroupWithOneStream(t *testing.T) {
 
 	scraper.scrape(t.Context())
 
-	scraper.expirePause()
+	makeProbeDue(scraper)
 
 	client.calls = nil
 
@@ -181,7 +196,7 @@ func TestScrapeRecoversWhenTheLogGroupExistsAgain(t *testing.T) {
 	client.missing = map[string]struct{}{}
 	client.events = eventsFor(streams...)
 
-	scraper.expirePause()
+	makeProbeDue(scraper)
 
 	metrics, _ := scraper.scrape(t.Context())
 	require.Empty(t, metrics[testKey(streams[1])], "the probe only asks for one stream")
@@ -353,7 +368,7 @@ func TestScrapeRotatesTheLogGroupProbe(t *testing.T) {
 
 		for range len(streams) + 1 {
 			if scraper.group.paused() {
-				scraper.expirePause()
+				makeProbeDue(scraper)
 			}
 
 			metrics, _ = scraper.scrape(t.Context())
@@ -385,7 +400,7 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 	var metrics map[instanceKey]instanceMetrics
 
 	for range maxRejectedProbes + 1 {
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		metrics, _ = scraper.scrape(t.Context())
 	}
@@ -449,7 +464,7 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.logger = level.NewFilter(log.NewLogfmtLogger(buf), level.AllowDebug())
 		scraper.group.rejectedProbes = maxRejectedProbes
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		return scraper, client
 	}
@@ -503,7 +518,7 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.group.rejectedProbes = maxRejectedProbes
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
 
@@ -638,7 +653,7 @@ func TestScrapeProbesTheLogGroupWithAStreamAlreadyExcluded(t *testing.T) {
 		scraper.missing.mark(stream, time.Now(), false)
 	}
 
-	scraper.expirePause()
+	makeProbeDue(scraper)
 
 	client.calls = nil
 
@@ -674,18 +689,13 @@ func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
 		require.True(t, scraper.missing.firm(stream), "a stream rejected while the group answered is excluded on its own evidence")
 	}
 
-	client.events = nil
-	client.missing = missingSet(streams...)
-
-	scraper.scrape(t.Context())
-
-	require.True(t, scraper.group.paused(), "the group must be the one taking the blame")
+	blameGroup(t, scraper, client, streams...)
 
 	client.events = eventsFor(alive...)
 	client.missing = missingSet(gone...)
 	client.calls = nil
 
-	scraper.expirePause()
+	makeProbeDue(scraper)
 
 	scraper.scrape(t.Context())
 
@@ -700,6 +710,76 @@ func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
 	assert.Len(t, client.calls, 1, "the next scrape asks the fleet in one request, not a bisect")
 	assert.Len(t, metrics, len(alive), "the instances whose streams exist report as soon as the pause ends")
 	assert.Equal(t, len(gone), scraper.missing.len(), "the streams gone on their own evidence stay excluded")
+}
+
+// TestScrapeFallsBackToTheStreamsAFirmExclusionKeepsOutOfTheProbe covers the one way skipping a firm
+// exclusion is wrong: a bisect the deadline cut on the first scrape of a group outage excludes the
+// streams it singled out on their own evidence, because the group had answered before and was not yet
+// blamed, though the group is what rejected them. Once the group is back and other streams are gone
+// for real, the probes name only those and the streams wrongly excluded wait for the fallback. That is
+// the price of a probe that never spends a TTL on a stream known to be gone, and the fallback must pay
+// it, or the instances behind those streams would be lost for as long as the pause lasted.
+func TestScrapeFallsBackToTheStreamsAFirmExclusionKeepsOutOfTheProbe(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(10)
+	client := &fakeLogsClient{events: eventsFor(streams...), missing: nil, errs: nil, pageSize: 0, calls: nil}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	// The group goes dark and the deadline cuts the bisect after ten rejections, half way through.
+	client.events = nil
+	client.missing = missingSet(streams...)
+	client.errs = []error{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, context.DeadlineExceeded}
+
+	scraper.scrape(t.Context())
+
+	require.False(t, scraper.group.paused(), "a bisect the deadline cut is not the evidence that blames the group")
+
+	var healthy, gone []string
+
+	for _, stream := range streams {
+		if scraper.missing.firm(stream) {
+			healthy = append(healthy, stream)
+		} else {
+			gone = append(gone, stream)
+		}
+	}
+
+	require.Len(t, healthy, len(streams)/2, "the streams singled out before the cut are excluded on their own evidence")
+
+	// The group is back with the streams wrongly excluded, and the rest are gone for real.
+	client.errs = nil
+	client.missing = missingSet(gone...)
+	client.events = eventsFor(healthy...)
+
+	scraper.scrape(t.Context())
+
+	require.True(t, scraper.group.paused(), "streams rejected everywhere blame the group")
+
+	for range maxRejectedProbes {
+		makeProbeDue(scraper)
+		expireExclusions(scraper)
+
+		client.calls = nil
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.Contains(t, gone, client.calls[0].streams[0], "the probe trusts a firm exclusion, wrong as it is")
+		assert.Empty(t, metrics)
+	}
+
+	makeProbeDue(scraper)
+
+	client.calls = nil
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	assert.False(t, scraper.group.paused(), "the fallback bisect ends the pause")
+	assert.Len(t, metrics, len(healthy), "the fallback asks the streams the probes skipped")
+	assert.Equal(t, len(gone), scraper.missing.len(), "the streams gone for real are excluded in their place")
 }
 
 // TestScrapeFallsBackOverTheWholeFleet covers a fallback while every stream is excluded in doubt:
@@ -723,7 +803,7 @@ func TestScrapeFallsBackOverTheWholeFleet(t *testing.T) {
 	var metrics map[instanceKey]instanceMetrics
 
 	for range maxRejectedProbes + 1 {
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		metrics, _ = scraper.scrape(t.Context())
 	}
@@ -739,7 +819,7 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
 
 	for range maxRejectedProbes + 1 {
-		scraper.expirePause()
+		makeProbeDue(scraper)
 
 		client.errs = []error{throttlingError()}
 		client.calls = nil
