@@ -79,8 +79,6 @@ type probeDecision int
 
 const (
 	probeNotPaused probeDecision = iota
-	// probeWaiting is a pause with nothing to ask yet: the probe is not due, or the session monitors
-	// no stream a probe could name.
 	probeWaiting
 	probeDue
 	probeGivenUp
@@ -111,7 +109,8 @@ func (g *logGroup) fallbackThreshold() int {
 // TTL, so a pause the group has earned by going dark is given up after fallbackThreshold rejected
 // probes, and the streams are isolated the ordinary way. A group that has never answered is left to
 // its probes instead: bisecting a fleet for a region that never enabled Enhanced Monitoring would pay
-// the full cost of the answer a single probe already has.
+// the full cost of the answer a single probe already has. A session with no stream to name waits as
+// if the probe were not due: it has nothing to ask, and giving up would hand a bisect nothing either.
 func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision) {
 	if !g.paused() {
 		return "", probeNotPaused
@@ -151,9 +150,9 @@ func (g *logGroup) blame(now time.Time) bool {
 	return true
 }
 
-// noteProbeFailed extends the pause by a TTL after a probe that was not answered, which has spent its
-// turn whatever the reason. A probe throttled or refused says nothing about the group, so it counts
-// for nothing else.
+// noteProbeFailed extends the pause by a TTL after a probe that was not answered: it has spent its turn
+// whatever the reason. Whether the failure also counts against the group is for the caller to say,
+// because only a rejection over existence does.
 func (g *logGroup) noteProbeFailed(now time.Time) {
 	g.probeAfter = now.Add(missingStreamTTL)
 }

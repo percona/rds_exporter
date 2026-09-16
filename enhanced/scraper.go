@@ -443,8 +443,7 @@ func (s *scraper) batches(now time.Time) [][]string {
 // would stop at the first maxProbesPerScrape of them in configuration order, and never reach the rest
 // while those happened to be gone. A firm exclusion is the one thing left out: it was made while the
 // group answered, so the stream is gone whatever the group is doing, and a probe spent on it costs
-// every instance in the session another TTL of silence to learn nothing. Only a fleet with no other
-// stream falls back to asking them, because asking nothing would hold the pause for good.
+// every instance in the session another TTL of silence to learn nothing.
 func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 	stream, decision := s.group.probe(s.probeCandidates(), now)
 
@@ -465,7 +464,11 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 }
 
 // probeCandidates returns the monitored streams a log group probe may name, in configuration order so
-// that the rotation cursor keeps advancing over the same list from one scrape to the next.
+// that the rotation cursor keeps advancing over the same list from one scrape to the next. A firm
+// exclusion is left out on trust: one made by mistake, on a stream a bisect the deadline cut singled
+// out before the group was blamed, is indistinguishable from a right one, and the stream it names
+// waits for the fallback instead of a probe. That is one pause of delay for a mistake the pause did
+// not make, against a probe wasted on every stream known to be gone for a mistake it did.
 func (s *scraper) probeCandidates() []string {
 	monitored := s.monitoredStreams()
 	candidates := make([]string, 0, len(monitored))
@@ -476,6 +479,8 @@ func (s *scraper) probeCandidates() []string {
 		}
 	}
 
+	// A fleet with nothing but firm exclusions has to ask something all the same, or the pause would
+	// stand for good.
 	if len(candidates) == 0 {
 		return monitored
 	}
@@ -510,11 +515,9 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	err := s.collectPages(ctx, streams, sink)
 
 	// An answered probe has already ended the pause by now, so a pause still standing here means the
-	// probe was not answered, and it has spent its turn whatever the reason. Only a rejection counts
-	// against the group though: it is rejected for the group's sake and says nothing about the stream
-	// it happened to name. A probe that was throttled or refused says nothing about either, and
-	// counting it would let rate limiting alone talk the session into bisecting the whole fleet, at
-	// the one moment it can least afford to.
+	// probe was not answered. A rejection is swallowed rather than returned: it is the group's, not the
+	// stream's the probe happened to name, and the ordinary attribution below would exclude that stream
+	// for it.
 	if err != nil && s.group.paused() {
 		if !isResourceNotFound(err) {
 			s.group.noteProbeFailed(time.Now())
