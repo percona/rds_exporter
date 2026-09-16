@@ -116,13 +116,13 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 	for session, enabledInstances := range collector.configure(sessions.AllSessions()) {
 		cfg := sessions.Configs[session]
-		s := newScraper(session, cfg, enabledInstances, logger)
+		sessionScraper := newScraper(session, cfg, enabledInstances, logger)
 
-		level.Info(s.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", s.interval()))
+		level.Info(sessionScraper.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", sessionScraper.interval()))
 
 		// perform first scrapes synchronously so returned collector has all metric descriptions
-		metrics := s.scrapeOnce(ctx, s.interval())
-		collector.setMetrics(s.result(metrics), time.Now())
+		metrics := sessionScraper.scrapeOnce(ctx, sessionScraper.interval())
+		collector.setMetrics(sessionScraper.result(metrics), time.Now())
 
 		results := make(chan scrapeResult)
 
@@ -133,7 +133,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 		})
 
 		collector.wg.Go(func() {
-			s.start(ctx, results)
+			sessionScraper.start(ctx, results)
 		})
 	}
 
