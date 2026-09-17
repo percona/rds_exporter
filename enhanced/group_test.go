@@ -1001,8 +1001,19 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	}
 
 	assert.Zero(t, scraper.group.rejectedProbes, "only a rejection counts against the group")
-	assert.True(t, scraper.group.probeAfter.After(time.Now()),
-		"a throttled probe has spent its turn, so the pause backs off rather than repeating every scrape")
+	assert.False(t, scraper.group.probeAfter.After(time.Now()),
+		"a throttled probe was not heard from, so it must not cost every instance in the session another TTL")
+
+	// The next scrape probes again without the test bringing the probe forward, and the rotation has
+	// moved past the stream the throttled probe named.
+	throttled := client.calls[0].streams
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1, "a probe not heard from is asked again on the next scrape")
+	assert.Len(t, client.calls[0].streams, 1)
+	assert.NotEqual(t, throttled, client.calls[0].streams, "the rotation moves on from the stream the throttled probe named")
 }
 
 // TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts pins a fleet gone all at once whose bisect

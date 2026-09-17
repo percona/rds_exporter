@@ -549,17 +549,15 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	// An answered probe has already ended the pause by now, so a pause still standing here means the
 	// probe was not answered. A rejection is swallowed rather than returned: it is the group's, not the
 	// stream's the probe happened to name, and the ordinary attribution below would exclude that stream
-	// for it.
+	// for it. Any other failure is returned as it is, and the probe is asked again next scrape.
 	if err != nil && s.group.paused() {
-		if !isResourceNotFound(err) {
-			s.group.noteProbeFailed(time.Now())
+		if isResourceNotFound(err) {
+			s.group.noteProbeRejected(time.Now())
 
-			return err
+			return nil
 		}
 
-		s.group.noteProbeRejected(time.Now())
-
-		return nil
+		return err
 	}
 
 	if err == nil || !isResourceNotFound(err) {

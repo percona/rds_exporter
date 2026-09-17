@@ -152,17 +152,14 @@ func (g *logGroup) blame(now time.Time) bool {
 	return true
 }
 
-// noteProbeFailed extends the pause by a TTL after a probe that was not answered: it has spent its turn
-// whatever the reason. Whether the failure also counts against the group is for the caller to say,
-// because only a rejection over existence does.
-func (g *logGroup) noteProbeFailed(now time.Time) {
-	g.probeAfter = now.Add(missingStreamTTL)
-}
-
-// noteProbeRejected extends the pause like any failed probe and counts the rejection against it,
-// since a rejection over existence is the one failure that may be the group's doing.
+// noteProbeRejected extends the pause by a TTL and counts the rejection against the group, since a
+// rejection over existence is the one answer that may be the group's doing. It is the only failure
+// that moves the pause: a probe that was throttled or cut short by the deadline was not heard from,
+// and holding every instance in the session back a TTL for it would let rate limiting alone stretch
+// an outage. The rotation has moved on, so the next scrape asks the next stream instead, at the one
+// request a probe costs.
 func (g *logGroup) noteProbeRejected(now time.Time) {
-	g.noteProbeFailed(now)
+	g.probeAfter = now.Add(missingStreamTTL)
 	g.rejectedProbes++
 }
 
