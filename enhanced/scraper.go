@@ -615,11 +615,11 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 		s.sweepCutShort = false
 	}
 
-	if s.attributeToTheGroup(mayBlameGroup) {
-		return
+	if !s.attributeToTheGroup(mayBlameGroup) {
+		s.attributeToTheStreams()
 	}
 
-	s.attributeToTheStreams()
+	s.keepTheBlamedGroupPaused()
 }
 
 // attributeToTheGroup charges the rejections to the log group when nothing in the scrape can account
@@ -719,6 +719,20 @@ func (s *scraper) attributeToTheStreams() {
 	for _, stream := range s.evidence.isolated {
 		s.markMissing(stream, tentative)
 	}
+}
+
+// keepTheBlamedGroupPaused takes the pause back for a group still blamed at the end of a scrape
+// nothing answered. A fallback gives the pause up so that the bisect it hands the session to can
+// settle the group's account, and a bisect that ran out of time or was throttled settles nothing: the
+// group is left blamed with no pause, which is a state nothing probes, so every scrape after it would
+// pay the same bisect for as long as the outage lasted. Nothing the fallback heard bears on the blame
+// it gave the pause up to test, so the pause stands again until something answers.
+func (s *scraper) keepTheBlamedGroupPaused() {
+	if s.sweep != sweepUnderWay || s.evidence.answered || !s.group.blamed || s.group.paused() {
+		return
+	}
+
+	s.group.resumeAfterFallback(time.Now(), s.probeSpacing(len(s.probeCandidates())))
 }
 
 // streamsNotRejected counts the monitored streams neither this scrape nor the unanswered scrapes

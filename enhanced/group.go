@@ -169,6 +169,19 @@ func (g *logGroup) blame(now time.Time, spacing time.Duration) bool {
 	return true
 }
 
+// resumeAfterFallback takes the pause back after a fallback that was not answered anywhere, with the
+// next probe due at once. Nothing the fallback heard bears on the group, so the blame it gave the
+// pause up to test still stands, and leaving the pause off would have every scrape after it pay the
+// same bisect. The probes of the resumed pause start from nothing, since the ones that ended the last
+// pause have been answered by the bisect they bought, and the fallback that bought it found nothing,
+// which is what the next one backs off for.
+func (g *logGroup) resumeAfterFallback(now time.Time, spacing time.Duration) {
+	g.spacing = spacing
+	g.probeAfter = now
+	g.rejectedProbes = 0
+	g.unproductiveFallbacks = min(g.unproductiveFallbacks+1, maxProbeBackoff)
+}
+
 // noteProbeRejected extends the pause to the next probe and counts the rejection against the group,
 // since a rejection over existence is the one answer that may be the group's doing. It is the only
 // failure that moves the pause: a probe that was throttled or cut short by the deadline was not

@@ -3,6 +3,7 @@ package enhanced
 import (
 	"bytes"
 	"context"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -124,6 +125,45 @@ func fallbackGaps(t *testing.T, scraper *scraper, client *fakeLogsClient, scrape
 	}
 
 	return gaps
+}
+
+// blamedGroupBehindADeadline returns a blamed session whose client can be made to cut every scrape
+// at a given number of requests, the way the scrape deadline cuts a bisect that does not fit the
+// interval. The cut is left off until the blame, which the scrapes leading up to it need answered.
+func blamedGroupBehindADeadline(t *testing.T, streams ...string) (*scraper, *deadlineClient) {
+	t.Helper()
+
+	client := &deadlineClient{
+		fakeLogsClient: &fakeLogsClient{
+			events:   eventsFor(streams...),
+			missing:  nil,
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		},
+		callsBeforeCut: math.MaxInt,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	blameGroup(t, scraper, client.fakeLogsClient, streams...)
+
+	return scraper, client
+}
+
+// fallBackAndRunOutOfTime gives the pause up for a fallback and cuts its bisect at the given request,
+// which is what a fleet whose bisect does not fit the scrape interval does on every scrape.
+func fallBackAndRunOutOfTime(t *testing.T, scraper *scraper, client *deadlineClient, cut int) {
+	t.Helper()
+
+	scraper.group.rejectedProbes = scraper.group.fallbackThreshold()
+	makeProbeDue(scraper)
+
+	client.calls = nil
+	client.callsBeforeCut = cut
+
+	scraper.scrape(t.Context())
 }
 
 func TestScrapeBlamesTheLogGroupWhenNothingAnswers(t *testing.T) {
@@ -574,8 +614,8 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 		streams := resourceIDs(10)
 		scraper, client := fallenBack(t, streams...)
 
-		// The group is back with every stream in it. This scrape asks only for what was not excluded,
-		// and that is what proves the group exists.
+		// The group is back with every stream in it. The pause the fallback could not settle is back
+		// too, so the probe of this scrape is what proves the group exists.
 		client.missing = nil
 		client.events = eventsFor(streams...)
 
@@ -618,8 +658,18 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 		scraper.logger = level.NewFilter(log.NewLogfmtLogger(&buf), level.AllowDebug())
 		counted := scraper.errorCounts[errorKindNotFound]
 
-		scraper.scrape(t.Context())
+		// A fallback the deadline cut leaves the pause standing, so the group's answer arrives through
+		// the probe rotation: rejected over the stream that stays gone, answered by the next one.
+		for range streams {
+			makeProbeDue(scraper)
+			scraper.scrape(t.Context())
 
+			if !scraper.group.blamed {
+				break
+			}
+		}
+
+		require.False(t, scraper.group.blamed, "a probe landing on a stream that exists clears the group")
 		require.False(t, scraper.missing.marked(gone), "the group answering releases every exclusion in doubt")
 
 		metrics := scraper.scrape(t.Context())
@@ -1055,6 +1105,58 @@ func TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	assert.Empty(t, fake.calls, "a blamed group is paused, not swept again")
+}
+
+// TestScrapeKeepsTheLogGroupPausedWhenTheFallbackRunsOutOfTime covers the fallback of a fleet whose
+// bisect does not fit the scrape interval. The pause is given up so that the bisect can settle the
+// group's account, and one that runs out of time settles nothing: the group is still blamed, still
+// the likeliest explanation, and a pause left off would have every scrape after it pay the same
+// bisect for as long as the outage lasted, at the whole account's rate limit.
+func TestScrapeKeepsTheLogGroupPausedWhenTheFallbackRunsOutOfTime(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(16)
+	scraper, client := blamedGroupBehindADeadline(t, streams...)
+
+	// A full bisect of sixteen missing streams costs thirty requests, so twelve is a fallback cut
+	// short of the streams it would take to blame the group again.
+	fallBackAndRunOutOfTime(t, scraper, client, 12)
+
+	require.True(t, scraper.group.blamed, "a fallback that heard nothing has not cleared the group")
+	require.True(t, scraper.group.paused(), "a fallback that settled nothing leaves the pause its blame stands on")
+
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1, "the scrape after the fallback probes rather than bisecting the fleet again")
+	assert.Len(t, client.calls[0].streams, 1)
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+		"the pause taken back is the same outage, and one outage is counted once")
+}
+
+// TestScrapeBacksOffTheFallbacksThatRanOutOfTime covers what the pause taken back is worth: a
+// fallback that ran out of time found nothing either, so the next one is worth less than the last,
+// and the wait for it doubles like any other fallback's. A pause resumed without that would buy a
+// bisect it cannot finish every threshold of probes, for the whole outage.
+func TestScrapeBacksOffTheFallbacksThatRanOutOfTime(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(16)
+	scraper, client := blamedGroupBehindADeadline(t, streams...)
+
+	threshold := scraper.group.fallbackThreshold()
+
+	for range 2 {
+		fallBackAndRunOutOfTime(t, scraper, client, 12)
+
+		require.True(t, scraper.group.paused(), "each fallback cut short must leave the pause behind it")
+	}
+
+	assert.Equal(t, 2, scraper.group.unproductiveFallbacks,
+		"a fallback that was not answered anywhere found nothing, whether it finished or not")
+	assert.Equal(t, threshold<<2, scraper.group.fallbackThreshold(),
+		"the probes the next pause is given double for each fallback that found nothing")
 }
 
 // TestScrapeProbesEveryStreamWithinATTL covers a fleet blamed together, as a blue/green switchover of
