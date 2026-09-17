@@ -30,16 +30,23 @@ type fakeLogsClient struct {
 	calls []logCall
 }
 
+// record adds a request to the call log. A wrapper that fails the call instead of answering it
+// records it here too, so that what the tests count is every request the scraper made, answered or
+// not, and the count a wrapper decides on cannot disagree with the log a test reads.
+func (c *fakeLogsClient) record(input *cloudwatchlogs.FilterLogEventsInput) {
+	c.calls = append(c.calls, logCall{
+		streams:   slices.Clone(input.LogStreamNames),
+		startTime: aws.ToInt64(input.StartTime),
+	})
+}
+
 // FilterLogEvents implements cloudwatchlogs.FilterLogEventsAPIClient.
 func (c *fakeLogsClient) FilterLogEvents(
 	ctx context.Context,
 	input *cloudwatchlogs.FilterLogEventsInput,
 	_ ...func(*cloudwatchlogs.Options),
 ) (*cloudwatchlogs.FilterLogEventsOutput, error) {
-	c.calls = append(c.calls, logCall{
-		streams:   slices.Clone(input.LogStreamNames),
-		startTime: aws.ToInt64(input.StartTime),
-	})
+	c.record(input)
 
 	err := ctx.Err()
 	if err != nil {
@@ -68,8 +75,9 @@ func (c *fakeLogsClient) FilterLogEvents(
 
 // deadlineClient answers like the fake it wraps until a scrape has made callsBeforeCut requests, and
 // then fails every request the way the scrape deadline does, so that a bisect is cut at the same place
-// on every scrape without a clock in the test. The count is the fake's call log, which a test resets
-// between scrapes.
+// on every scrape without a clock in the test. The fake is embedded rather than held in a field
+// because the count it cuts on is the fake's own call log, which a test resets between scrapes and
+// reads to see what the cut scrape asked for.
 type deadlineClient struct {
 	*fakeLogsClient
 
@@ -86,10 +94,7 @@ func (c *deadlineClient) FilterLogEvents(
 		return c.fakeLogsClient.FilterLogEvents(ctx, input, opts...)
 	}
 
-	c.calls = append(c.calls, logCall{
-		streams:   slices.Clone(input.LogStreamNames),
-		startTime: aws.ToInt64(input.StartTime),
-	})
+	c.record(input)
 
 	return nil, fmt.Errorf("fake CloudWatch Logs client: %w", context.DeadlineExceeded)
 }
