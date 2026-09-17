@@ -1468,3 +1468,43 @@ func TestScrapeReleasesTheExclusionsOfAnOutageOnceTheLogGroupAnswers(t *testing.
 	assert.Len(t, metrics, len(streams)-firm,
 		"every instance whose exclusion waited on the group reports again without waiting a TTL out")
 }
+
+func TestLogGroupTakesNoPauseBackWithoutBlame(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+
+	for _, testCase := range []struct {
+		name  string
+		group func() logGroup
+		want  bool
+	}{
+		{
+			name:  "a group nobody blamed has no pause to take back",
+			group: newLogGroup,
+			want:  false,
+		},
+		{
+			name: "a group the fallback blamed again keeps the wait that blame set",
+			group: func() logGroup {
+				group := newLogGroup()
+				group.blame(now, time.Minute)
+
+				return group
+			},
+			want: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			group := testCase.group()
+			probeAfter := group.probeAfter
+
+			group.resumeAfterFallback(now, time.Minute)
+
+			assert.Equal(t, testCase.want, group.paused())
+			assert.Equal(t, probeAfter, group.probeAfter, "the pause a blame set must not be moved")
+		})
+	}
+}

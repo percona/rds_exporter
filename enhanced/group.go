@@ -176,7 +176,14 @@ func (g *logGroup) blame(now time.Time, spacing time.Duration) bool {
 // same bisect. The probes of the resumed pause start from nothing, since the ones that ended the last
 // pause have been answered by the bisect they bought, and the fallback that bought it found nothing,
 // which is what the next one backs off for.
+//
+// A group that is not blamed has nothing to resume, and one already paused was blamed again by the
+// fallback itself, which set the wait the blame asks for; neither is the caller's business to know.
 func (g *logGroup) resumeAfterFallback(now time.Time, spacing time.Duration) {
+	if !g.blamed || g.paused() {
+		return
+	}
+
 	g.spacing = spacing
 	g.probeAfter = now
 	g.rejectedProbes = 0

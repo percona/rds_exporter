@@ -536,6 +536,13 @@ func (s *scraper) probeSpacing(candidates int) time.Duration {
 	return max(s.interval(), missingStreamTTL/time.Duration(candidates))
 }
 
+// currentProbeSpacing is the spacing a pause beginning now would probe at, over the candidates the
+// fleet has at this moment. The probe path has its candidate list in hand already; the paths that
+// blame the group or take its pause back ask for it here so that the two cannot drift apart.
+func (s *scraper) currentProbeSpacing() time.Duration {
+	return s.probeSpacing(len(s.probeCandidates()))
+}
+
 // probeCandidates returns the monitored streams a log group probe may name, in configuration order so
 // that the rotation cursor keeps advancing over the same list from one scrape to the next. A firm
 // exclusion is left out on trust: one made by mistake, on a stream a bisect the deadline cut singled
@@ -764,11 +771,11 @@ func (s *scraper) attributeToTheStreams() {
 // pay the same bisect for as long as the outage lasted. Nothing the fallback heard bears on the blame
 // it gave the pause up to test, so the pause stands again until something answers.
 func (s *scraper) keepTheBlamedGroupPaused() {
-	if s.sweep != sweepUnderWay || s.evidence.answered || !s.group.blamed || s.group.paused() {
+	if s.sweep != sweepUnderWay || s.evidence.answered {
 		return
 	}
 
-	s.group.resumeAfterFallback(time.Now(), s.probeSpacing(len(s.probeCandidates())))
+	s.group.resumeAfterFallback(time.Now(), s.currentProbeSpacing())
 }
 
 // streamsNotRejected counts the monitored streams neither this scrape nor the unanswered scrapes
@@ -873,7 +880,7 @@ func (s *scraper) markGroupMissing() {
 	clear(s.unansweredRejections)
 	s.sweepCutShort = false
 
-	if !s.group.blame(time.Now(), s.probeSpacing(len(s.probeCandidates()))) {
+	if !s.group.blame(time.Now(), s.currentProbeSpacing()) {
 		return
 	}
 
