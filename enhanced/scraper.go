@@ -719,6 +719,10 @@ func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
 // attributeToTheStreams excludes the streams this scrape singled out, on the terms the rest of the
 // scrape earned them.
 func (s *scraper) attributeToTheStreams() {
+	// Whether the group's account was already open when this scrape began, which is to say whether
+	// the scrape before it heard nothing either. Read before this scrape's own rejections join it.
+	outage := len(s.unansweredRejections) > 0
+
 	// A scrape nothing answered leaves the group's account open, so what it singled out is kept for
 	// attributeToTheGroup to count once a later scrape is rejected over the rest of the fleet.
 	if !s.evidence.answered {
@@ -735,12 +739,18 @@ func (s *scraper) attributeToTheStreams() {
 	// tentatively, so that the group answering releases it rather than leaving the instance behind it
 	// waiting a TTL for a probe slot on evidence the group's return has just undermined.
 	//
-	// That doubt only exists while the group is a suspect: blamed, or never heard from. A group that
-	// answered before and is not blamed is not what rejected these streams, however the rest of the
-	// scrape failed, and the next answer from it would release exclusions it had nothing to do with.
-	// The streams would then be requested again, rejected again and bisected again -- every other
-	// scrape, for as long as the healthy half kept being throttled or cut short by the deadline.
-	tentative := !s.evidence.answered && s.group.inDoubt()
+	// That doubt only exists while the group is a suspect: blamed, never heard from, or -- as here --
+	// in the middle of an outage no scrape has heard the end of. A group that answered before and is
+	// not blamed is not what rejected the streams a single unanswered scrape singled out, however the
+	// rest of that scrape failed, and the next answer from it would release exclusions it had nothing
+	// to do with: the streams would be requested again, rejected again and bisected again, every
+	// other scrape, for as long as the healthy half kept being throttled. A run of scrapes that heard
+	// nothing is the other case. Their rejections are being kept against the group precisely because
+	// none of them could tell a fleet that is gone from a group that is, so the exclusions made
+	// inside the run rest on the same open question, and reading them as the streams' own evidence
+	// would warn by name about every instance of a fleet the group is about to be blamed for and then
+	// hold them out of the sweep that ends the outage.
+	tentative := !s.evidence.answered && (s.group.inDoubt() || outage)
 
 	for _, stream := range s.evidence.isolated {
 		s.markMissing(stream, tentative)

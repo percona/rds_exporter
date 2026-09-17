@@ -1380,3 +1380,91 @@ func TestScrapeAsksAProbeSlotsWorthOfAFleetCarriedInFull(t *testing.T) {
 	assert.Len(t, asked, maxProbesPerScrape, "the fewest streams that can be rejected over in full are asked")
 	assert.Subset(t, streams, asked)
 }
+
+// firmExclusions counts the log streams excluded on evidence about themselves.
+func firmExclusions(scraper *scraper, streams []string) int {
+	firm := 0
+
+	for _, stream := range streams {
+		if scraper.missing.firm(stream) {
+			firm++
+		}
+	}
+
+	return firm
+}
+
+// TestScrapeHoldsInDoubtTheExclusionsOfAnOutageNoScrapeHeardTheEndOf covers a fleet gone all at once
+// whose bisect the deadline cuts on every scrape. Each cut scrape singles out more of it, and their
+// rejections are all being kept against the log group, because none of them could tell a fleet that
+// is gone from a group that is. Reading each of them as the streams' own evidence instead would warn
+// by name about every instance of a fleet the group is about to be blamed for.
+func TestScrapeHoldsInDoubtTheExclusionsOfAnOutageNoScrapeHeardTheEndOf(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	streams := resourceIDs(16)
+	// A full bisect of sixteen missing streams costs thirty requests; twelve reach a third of them.
+	scraper, client := fleetGoneBehindADeadline(t, 12, streams...)
+	scraper.logger = level.NewFilter(log.NewLogfmtLogger(&buf), level.AllowDebug())
+
+	scraper.scrape(t.Context())
+	ageExclusions(scraper, scraper.interval())
+
+	firm := scraper.missing.len()
+	require.NotZero(t, firm, "the first scrape of an outage has nothing to say the group is what rejected it")
+
+	for range 3 {
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+		ageExclusions(scraper, scraper.interval())
+	}
+
+	require.Greater(t, scraper.missing.len(), firm, "the scrapes after it single out more of the fleet")
+	assert.Equal(t, firm, firmExclusions(scraper, streams),
+		"an exclusion made while the outage's account was open waits on the group like the rejection it rests on")
+	assert.Equal(t, firm, strings.Count(buf.String(), "level=warn "+excludedLogStream),
+		"an instance is named only for an exclusion that rests on evidence about its own stream")
+}
+
+// TestScrapeReleasesTheExclusionsOfAnOutageOnceTheLogGroupAnswers covers what holding them in doubt
+// is worth: the group's answer releases every exclusion the outage made at once, so the instances
+// behind them report on the next scrape rather than waiting out a probe slot each.
+func TestScrapeReleasesTheExclusionsOfAnOutageOnceTheLogGroupAnswers(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(16)
+	scraper, client := fleetGoneBehindADeadline(t, 12, streams...)
+
+	scraper.scrape(t.Context())
+	ageExclusions(scraper, scraper.interval())
+
+	firm := scraper.missing.len()
+
+	for range 3 {
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+		ageExclusions(scraper, scraper.interval())
+	}
+
+	require.Greater(t, scraper.missing.len(), firm, "the outage must have excluded more than its first scrape did")
+
+	client.missing = nil
+	client.events = eventsFor(streams...)
+	client.callsBeforeCut = math.MaxInt
+
+	makeProbeDue(scraper)
+
+	scraper.scrape(t.Context())
+
+	assert.Equal(t, firm, scraper.missing.len(),
+		"the group answering leaves only the exclusions it cannot have been the cause of")
+
+	metrics := scraper.scrape(t.Context())
+
+	assert.Len(t, metrics, len(streams)-firm,
+		"every instance whose exclusion waited on the group reports again without waiting a TTL out")
+}
