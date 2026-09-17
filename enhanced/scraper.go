@@ -141,14 +141,22 @@ const (
 	sweepUnderWay
 )
 
-// scraper retrieves metrics from several RDS instances sharing a single session.
+// scraper retrieves metrics from several RDS instances sharing a single session. Its fields are one
+// session's scrape state, in the four groups below; the parts with rules of their own -- what a
+// rejected batch turned out to be, which streams are excluded, where the log group stands -- are
+// types of their own, and what is left here is the state that only the scrape sequence gives meaning.
 type scraper struct {
+	// What the session is and what it asks.
 	session       string
 	instances     []sessions.Instance
 	svc           cloudwatchlogs.FilterLogEventsAPIClient
 	stateResolver instanceStateResolver
-	missing       *missingStreams
-	evidence      scrapeEvidence
+	logger        log.Logger
+
+	// What this scrape found, and what the scrapes nothing answered add up to.
+	evidence scrapeEvidence
+	missing  *missingStreams
+	group    logGroup
 	// unansweredRejections holds the streams singled out by the scrapes nothing has answered since,
 	// so that what one scrape could not finish saying about the group is not lost to the next. A
 	// bisect the deadline cuts singles out the streams it reached and never gets to say whether the
@@ -159,15 +167,17 @@ type scraper struct {
 	// what lets the rejections carried above stand in for a sweep: a fleet that is all gone and does
 	// not fit the interval can be rejected over in full only across scrapes, but the first time the
 	// pieces add up the group is still owed the one request that could clear it.
-	sweepCutShort         bool
-	sweep                 sweepState
-	group                 logGroup
-	errorCounts           map[string]uint64
-	skewedEvents          uint64
+	sweepCutShort bool
+	sweep         sweepState
+
+	// When the next request window starts, and when the instance state is due to be resolved again.
+	nextStartTime         time.Time
 	nextResourceIDRefresh time.Time
 	refreshBackoff        time.Duration
-	nextStartTime         time.Time
-	logger                log.Logger
+
+	// What the scrape reports about itself.
+	errorCounts  map[string]uint64
+	skewedEvents uint64
 
 	testDisallowUnknownFields bool // for tests only
 }
