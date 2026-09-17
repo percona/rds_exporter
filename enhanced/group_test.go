@@ -247,6 +247,13 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 			assert.Equal(t, 1, scraper.missing.len(), "one stream cannot tell itself apart from its group")
 			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
 			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+
+			for range 2 {
+				scraper.scrape(t.Context())
+			}
+
+			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound], "a session this small never blames the group")
+			assert.False(t, scraper.group.paused())
 		})
 
 		t.Run("one batch of several", func(t *testing.T) {
@@ -282,6 +289,13 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 			assert.Equal(t, uint64(len(streams)), scraper.errorCounts[errorKindNotFound])
 			assert.Equal(t, len(streams), scraper.missing.len())
 			assert.False(t, scraper.group.paused(), "churn must not pause the whole session")
+
+			for range 2 {
+				scraper.scrape(t.Context())
+			}
+
+			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound], "a session this small never blames the group")
+			assert.False(t, scraper.group.paused())
 		})
 
 		t.Run("a half that answered", func(t *testing.T) {
@@ -343,6 +357,50 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 	// like, and also what maxProbesPerScrape streams that stayed gone look like while the exclusions
 	// behind them, some of which may exist again, wait for a slot. The group may only take the blame
 	// once the whole fleet has been asked.
+	t.Run("blames the log group of a fleet excluded one stream at a time", func(t *testing.T) {
+		t.Parallel()
+
+		// A fleet that lost all but one of its streams while the group kept answering, so every loss
+		// was excluded on its own evidence and the session asks for one stream, and then loses the
+		// group too.
+		streams := resourceIDs(maxLogStreamsPerRequest)
+		last := streams[len(streams)-1]
+		client := &fakeLogsClient{events: eventsFor(streams...), missing: nil, errs: nil, pageSize: 0, calls: nil}
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		client.events = eventsFor(last)
+		client.missing = missingSet(streams[:len(streams)-1]...)
+
+		scraper.scrape(t.Context())
+
+		require.Equal(t, len(streams)-1, scraper.missing.len())
+		require.False(t, scraper.group.paused(), "a group that answered is not what rejected the streams")
+
+		client.events = nil
+		client.missing = missingSet(streams...)
+
+		scraper.scrape(t.Context())
+
+		require.False(t, scraper.group.paused(), "one stream cannot tell itself apart from its group")
+		require.Equal(t, sweepNone, scraper.sweep)
+
+		scraper.scrape(t.Context())
+
+		require.Equal(t, sweepRequested, scraper.sweep, "a second rejection over the same stream asks for the fleet")
+		require.False(t, scraper.group.paused())
+
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.NotEmpty(t, client.calls)
+		assert.Equal(t, streams, client.calls[0].streams, "the whole fleet is asked before the group is blamed")
+		assert.True(t, scraper.group.paused(), "rejected over the fleet with nothing held back, the group takes the blame")
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+	})
+
 	t.Run("asks the streams held back before blaming the log group", func(t *testing.T) {
 		t.Parallel()
 

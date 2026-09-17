@@ -10,7 +10,10 @@ const (
 	// and a session monitoring only that pair cannot tell it from the group disappearing. The misread
 	// is expensive in one direction only -- blaming the group pauses every instance in the session for
 	// a TTL, while blaming the streams costs an exclusion each and clears itself on the next probe --
-	// so a session that small attributes its streams instead.
+	// so a session that small attributes its streams instead. The floor gates the blame alone: the
+	// sweep that gathers the evidence for it is asked for on a second unanswered rejection in a row,
+	// however few streams it was over, since a fleet excluded one stream at a time has nothing bigger
+	// left to ask.
 	minStreamsToBlameTheGroup = 3
 
 	// minProbesBeforeFallback is the fewest rejected probes a blamed log group is given before the

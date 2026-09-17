@@ -705,10 +705,25 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 // both at once and settles that in one scrape when it fits, and a pause would cost the instances
 // behind the first ones a TTL for a fault the group no longer has. A sweep that was cut cannot
 // settle it, and the carried rejections are what is left.
+//
+// The blame needs the rejection to span minStreamsToBlameTheGroup streams; the sweep does not. A
+// fleet that lost all but one or two of its streams while the group kept answering has excluded
+// each loss on its own evidence, and asks for the one or two left. When the group then goes, every
+// scrape is rejected over too few streams to blame it, and without the sweep the same carried stream
+// would be asked every scrape for a TTL, with the group never named, until the exclusions came due
+// and the sweep found it. What tells that from a single small rejection is the account being open
+// already: the scrape before this one was rejected everywhere too, and this one had nothing left to
+// ask but the streams that scrape carried. Asking them again cannot close the account; the fleet can.
 func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
-	rejectedEverywhere := mayBlameGroup && !s.evidence.answered && s.evidence.rejectedStreams >= minStreamsToBlameTheGroup &&
+	rejectedEverywhere := mayBlameGroup && !s.evidence.answered && s.evidence.rejectedStreams > 0 &&
 		len(s.evidence.isolated) == s.evidence.rejectedStreams
 	if !rejectedEverywhere {
+		return false
+	}
+
+	// Read before this scrape's own rejections join the account.
+	accountOpen := len(s.unansweredRejections) > 0
+	if s.evidence.rejectedStreams < minStreamsToBlameTheGroup && !accountOpen {
 		return false
 	}
 
@@ -716,6 +731,12 @@ func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
 
 	heldBack := s.streamsNotRejected(monitored)
 	if heldBack == 0 && (s.evidence.rejectedStreams == len(monitored) || s.sweepCutShort) {
+		// The fleet is covered, but a session this small still attributes its streams: see
+		// minStreamsToBlameTheGroup.
+		if s.evidence.rejectedStreams < minStreamsToBlameTheGroup {
+			return false
+		}
+
 		s.markGroupMissing()
 
 		return true
