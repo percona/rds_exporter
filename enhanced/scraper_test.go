@@ -365,6 +365,29 @@ func TestRefresh(t *testing.T) {
 			assert.Zero(t, scraper.instances[0].EnhancedMonitoringInterval)
 			assert.Empty(t, scraper.enhancedStreams(time.Now()))
 		})
+
+		t.Run("forgets the rejection carried against a stream turned off", func(t *testing.T) {
+			t.Parallel()
+
+			resolver := &fakeStateResolver{
+				states: map[string]sessions.InstanceState{
+					blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 0},
+				},
+				err:   nil,
+				calls: 0,
+			}
+			scraper := newTestScraperWith(nil, resolver, []sessions.Instance{
+				testInstance(blueGreenPrimaryInstance, oldResourceID),
+			}, time.Time{})
+			scraper.missing.mark(oldResourceID, time.Now(), false)
+			scraper.unansweredRejections[oldResourceID] = struct{}{}
+
+			require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+			assert.Zero(t, scraper.missing.len())
+			assert.Empty(t, scraper.unansweredRejections,
+				"a stream that is not requested any more cannot stand in the group's account")
+		})
 	})
 
 	t.Run("keeps monitoring interval on resolver error", func(t *testing.T) {
@@ -392,6 +415,8 @@ func TestRefresh(t *testing.T) {
 			calls: 0,
 		}
 		scraper := newTestScraper(resolver)
+		scraper.missing.mark(oldResourceID, time.Now(), false)
+		scraper.unansweredRejections[oldResourceID] = struct{}{}
 
 		err := scraper.refreshInstanceStates(t.Context())
 
@@ -400,6 +425,9 @@ func TestRefresh(t *testing.T) {
 		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
 		assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
 		assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+		assert.Zero(t, scraper.missing.len(), "the retired stream will never come back")
+		assert.Empty(t, scraper.unansweredRejections,
+			"a stream that is not requested any more cannot stand in the group's account")
 	})
 
 	t.Run("returns the resolver's error", func(t *testing.T) {

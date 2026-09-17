@@ -980,6 +980,16 @@ func (s *scraper) retryTentative(msg string) {
 	level.Info(s.logger).Log("msg", msg, "log_group", logGroupName, "log_streams", released)
 }
 
+// forget drops everything the session holds against a log stream it is not going to request again:
+// the exclusion, and the rejection carried against the log group's account. Both rest on the same
+// requests, so one outliving the other lets a stream turned off and back on count as already
+// rejected and understate what still stands between the rejection and the group.
+func (s *scraper) forget(stream string) bool {
+	delete(s.unansweredRejections, stream)
+
+	return s.missing.clear(stream)
+}
+
 // clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names
 // no stream, so answering the request is the only positive evidence that every stream listed in it
 // exists. Waiting for an event instead would keep a stream that exists but published nothing inside
@@ -1143,7 +1153,7 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		)
 
 		// The retired resource ID will never come back, and the new one deserves a fresh attempt.
-		s.missing.clear(instance.ResourceID)
+		s.forget(instance.ResourceID)
 		s.instances[instanceIndex].ResourceID = state.ResourceID
 	}
 
@@ -1191,7 +1201,7 @@ func (s *scraper) updateMonitoringInterval(instanceIndex int, interval time.Dura
 	if interval <= 0 {
 		// The stream is not requested at all any more, so its exclusion must not outlive it:
 		// re-enabling Enhanced Monitoring would otherwise wait for a probe to come due.
-		s.missing.clear(instance.ResourceID)
+		s.forget(instance.ResourceID)
 	}
 
 	s.instances[instanceIndex].EnhancedMonitoringInterval = interval
