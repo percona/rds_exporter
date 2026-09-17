@@ -89,7 +89,8 @@ const (
 	probeGivenUp
 )
 
-// paused reports whether requests are held back while the group is presumed missing.
+// paused reads the pause off the pending probe, so that the two cannot disagree: a pause with no
+// probe due is a state nothing would ever leave.
 func (g *logGroup) paused() bool {
 	return !g.probeAfter.IsZero()
 }

@@ -74,7 +74,8 @@ func (m *missingStreams) mark(name string, now time.Time, tentative bool) markOu
 	}
 }
 
-// clear stops excluding a log stream and reports whether it was excluded.
+// clear drops an exclusion outright, tentative or firm: the stream has answered, which is the one
+// thing that settles both. The report is what the caller counts a recovery by.
 func (m *missingStreams) clear(name string) bool {
 	_, known := m.probeAfter[name]
 	delete(m.probeAfter, name)

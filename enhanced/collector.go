@@ -27,6 +27,9 @@ const (
 	// before its series disappears.
 	staleRetention = 15 * time.Minute
 
+	// ttlIntervals is how many scrape intervals a sample stays valid for. Three tolerates a missed
+	// AWS delivery and the scrape that reads it, which is the ordinary jitter of a minute-granular
+	// feed, without holding a sample long enough to hide an outage.
 	ttlIntervals = 3
 
 	upMetricName           = "rds_exporter_enhanced_up"
