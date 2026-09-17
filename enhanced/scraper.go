@@ -221,6 +221,15 @@ func (s *scraper) monitoredStreams() []string {
 // for all of them once: the exclusions it overrides were made under a verdict on the group that has
 // since changed, and a stream that is still gone costs the bisect once rather than the TTL and the
 // probe slot it would otherwise wait for.
+//
+// A stream carried against the log group's open account is left out whether its probe is due or not.
+// It is excluded and still counted towards blaming the group, so asking it again settles nothing and
+// costs the rest of the fleet the budget its rejection spends: a fleet too large to bisect within one
+// scrape would otherwise get back, every scrape, as many streams as the probe slots hand out, and the
+// set of streams still to be rejected over would stop shrinking before the group could be blamed for
+// any of them. Left out, the set shrinks by what the scrape's bisect reaches, until one scrape is
+// rejected over the whole of what is left and the carried rejections can be cashed in. The account is
+// emptied by anything answering, which is what makes a stream its own suspect again.
 func (s *scraper) enhancedStreams(now time.Time) []string {
 	monitored := s.monitoredStreams()
 	if s.sweep == sweepUnderWay {
@@ -228,10 +237,17 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 	}
 
 	streams := make([]string, 0, len(monitored))
+	open := make([]string, 0, len(monitored))
 	probes := 0
 
 	for _, stream := range monitored {
 		if s.missing.marked(stream) {
+			if _, carried := s.unansweredRejections[stream]; carried {
+				open = append(open, stream)
+
+				continue
+			}
+
 			// Re-probes are staggered so that a fleet of missing streams cannot fill a whole batch. A
 			// stream shared by several instances spends one probe slot, not one per instance.
 			if probes >= maxProbesPerScrape || !s.missing.due(stream, now) {
@@ -242,6 +258,16 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 		}
 
 		streams = append(streams, stream)
+	}
+
+	// A fleet carried in full leaves nothing to ask, and that is the one way leaving the carried
+	// streams out could go quiet: the scrape whose rejections completed the group's account was cut
+	// short, so it could not close the account itself, and a session with no request to make has
+	// nothing that could close it either. A probe slot's worth is asked instead of none -- few enough
+	// to be rejected over in full within one scrape, which is what blaming the group takes, and few
+	// enough that the fleet is not bisected again to learn it.
+	if len(streams) == 0 {
+		return open[:min(len(open), maxProbesPerScrape)]
 	}
 
 	return streams

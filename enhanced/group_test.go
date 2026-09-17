@@ -1107,6 +1107,68 @@ func TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts(t *testing.T) {
 	assert.Empty(t, fake.calls, "a blamed group is paused, not swept again")
 }
 
+// fleetGoneBehindADeadline returns a session of the given size whose every stream disappeared after
+// one answered scrape, and whose client cuts each scrape at the given number of requests: a fleet
+// whose full bisect costs more requests than its scrape interval can spend, which is the ordinary
+// case at the five requests per second FilterLogEvents allows an account.
+func fleetGoneBehindADeadline(t *testing.T, cut int, streams ...string) (*scraper, *deadlineClient) {
+	t.Helper()
+
+	client := &deadlineClient{
+		fakeLogsClient: &fakeLogsClient{
+			events:   eventsFor(streams...),
+			missing:  nil,
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		},
+		callsBeforeCut: cut,
+	}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	client.events = nil
+	client.missing = missingSet(streams...)
+
+	return scraper, client
+}
+
+// ageExclusions spends one scrape interval of every wait a session is keeping, so that a test can
+// run the scrapes of a long outage without waiting one out. What the passing time buys the session is
+// probe slots: an exclusion whose TTL has run out is asked again, which is what a fleet still being
+// bisected cannot afford.
+func ageExclusions(scraper *scraper, interval time.Duration) {
+	for stream, probeAfter := range scraper.missing.probeAfter {
+		scraper.missing.probeAfter[stream] = probeAfter.Add(-interval)
+	}
+
+	if scraper.group.paused() {
+		scraper.group.probeAfter = scraper.group.probeAfter.Add(-interval)
+	}
+}
+
+// scrapesToBlameTheGroup scrapes until the log group is blamed, at most the given number of times,
+// and returns how many it took. Each scrape spends an interval of the waits the last one left.
+func scrapesToBlameTheGroup(t *testing.T, scraper *scraper, client *deadlineClient, limit int) int {
+	t.Helper()
+
+	scrapes := 0
+
+	for scrapes < limit && !scraper.group.paused() {
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+		ageExclusions(scraper, scraper.interval())
+
+		scrapes++
+	}
+
+	require.True(t, scraper.group.paused(), "the rejections of the cut scrapes must add up to the fleet")
+
+	return scrapes
+}
+
 // TestScrapeKeepsTheLogGroupPausedWhenTheFallbackRunsOutOfTime covers the fallback of a fleet whose
 // bisect does not fit the scrape interval. The pause is given up so that the bisect can settle the
 // group's account, and one that runs out of time settles nothing: the group is still blamed, still
@@ -1239,4 +1301,82 @@ func TestScrapeFallsBackAfterATTLOfRejectedProbes(t *testing.T) {
 
 	require.NotEmpty(t, client.calls)
 	assert.Equal(t, streams, client.calls[0].streams, "a TTL of rejected probes hands the fleet to the bisect")
+}
+
+// TestScrapeBlamesTheLogGroupOfAFleetTooLargeToBisectInOneScrape covers a fleet whose bisect costs
+// more requests than one scrape can spend. No scrape is ever rejected over the whole of it, so the
+// blame has to come from the rejections adding up, and that only happens if the set of streams still
+// to be rejected over shrinks: re-asking the streams already carried against the group would hand
+// back every scrape as much of the set as the probe slots give out, and a session whose budget is
+// smaller than that would never blame the group at all, paying a cut bisect every scrape for the
+// whole outage instead.
+func TestScrapeBlamesTheLogGroupOfAFleetTooLargeToBisectInOneScrape(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(250)
+	// Thirty requests is what a five second interval can spend; a full bisect of one batch of a
+	// hundred costs a hundred and ninety-eight.
+	scraper, client := fleetGoneBehindADeadline(t, 30, streams...)
+
+	scrapes := scrapesToBlameTheGroup(t, scraper, client, 40)
+
+	assert.Equal(t, 21, scrapes, "each cut scrape singles out what its budget reaches, so eighteen of them "+
+		"leave a remainder small enough to be rejected over in one; the sweep that asks the excluded "+
+		"streams too is cut as well, and the scrape after it is what blames the group")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1, "a blamed group probes one stream rather than bisecting the fleet again")
+	assert.Len(t, client.calls[0].streams, 1)
+}
+
+// TestScrapeReturnsAWholeFleetOnTheScrapeAfterTheLogGroupAnswers covers what the blame is worth to a
+// fleet that comes back: the answer sweeps every exclusion the outage made, so the instances behind
+// them report at once rather than a probe slot's worth per scrape.
+func TestScrapeReturnsAWholeFleetOnTheScrapeAfterTheLogGroupAnswers(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(250)
+	scraper, client := fleetGoneBehindADeadline(t, 30, streams...)
+
+	scrapesToBlameTheGroup(t, scraper, client, 40)
+
+	client.missing = nil
+	client.events = eventsFor(streams...)
+
+	makeProbeDue(scraper)
+
+	metrics := scraper.scrape(t.Context())
+
+	require.Len(t, metrics, 1, "the probe asks one stream, and it answers")
+
+	metrics = scraper.scrape(t.Context())
+
+	assert.Len(t, metrics, len(streams), "every instance reports on the scrape after the group answered")
+	assert.Zero(t, scraper.missing.len(), "the exclusions of the outage go with the group's answer")
+}
+
+// TestScrapeAsksAProbeSlotsWorthOfAFleetCarriedInFull covers the one way leaving the carried streams
+// out of the request could go quiet: the rejections cover the fleet, so there is nothing left to ask,
+// but the scrape they covered it on was cut short and could not blame the group with them. Asking
+// nothing would leave the session with no way to close the account it is waiting on.
+func TestScrapeAsksAProbeSlotsWorthOfAFleetCarriedInFull(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(16)
+	client := groupMissingClient(streams...)
+	scraper := scraperWithStreams(client, streams...)
+
+	for _, stream := range streams {
+		scraper.missing.mark(stream, time.Now(), true)
+		scraper.unansweredRejections[stream] = struct{}{}
+	}
+
+	asked := scraper.enhancedStreams(time.Now())
+
+	assert.Len(t, asked, maxProbesPerScrape, "the fewest streams that can be rejected over in full are asked")
+	assert.Subset(t, streams, asked)
 }
