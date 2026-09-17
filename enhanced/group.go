@@ -13,13 +13,13 @@ const (
 	// so a session that small attributes its streams instead.
 	minStreamsToBlameTheGroup = 3
 
-	// maxRejectedProbes is how many unanswered probes a log group that has answered before is given
-	// before the session goes back to isolating its streams. A rejected probe cannot say whether the group
-	// or the stream it named is what does not exist, so a rotation that keeps landing on streams
-	// that are genuinely gone would hold the whole session back one TTL at a time for as long as
-	// they stay gone. Three keeps the cheap explanation cheap -- a group that really is missing is
-	// asked for one stream three times before it costs a bisect -- while capping what the expensive
-	// one can cost the instances that are fine.
+	// maxRejectedProbes is how many unanswered probes a blamed log group is given before the session
+	// goes back to isolating its streams. A rejected probe cannot say whether the group or the stream
+	// it named is what does not exist, so a rotation that keeps landing on streams that are genuinely
+	// gone would hold the whole session back one TTL at a time for as long as they stay gone. Three
+	// keeps the cheap explanation cheap -- a group that really is missing is asked for one stream
+	// three times before it costs a bisect -- while capping what the expensive one can cost the
+	// instances that are fine.
 	maxRejectedProbes = 3
 
 	// maxProbeBackoff caps how far the wait between fallbacks is allowed to double. A fallback is
@@ -53,9 +53,9 @@ type logGroup struct {
 	// unproductiveFallbacks counts the fallbacks of the current outage that found nothing, which is
 	// the one thing that says the next fallback is not worth what the last one cost.
 	unproductiveFallbacks int
-	// seen is whether the group answered at least once in the life of the session. A group that has
-	// answered and then goes dark has changed, and that is what makes giving up on a pause worth a
-	// bisect; one that never answered is most likely a region that never enabled Enhanced Monitoring.
+	// seen is whether the group answered at least once in the life of the session. A group that
+	// never answered is most likely a region that never enabled Enhanced Monitoring, and until it
+	// answers it stays a suspect for every rejection nothing else in a scrape answered for.
 	seen bool
 	// blamed is whether the group is held responsible for the rejections at hand. It stands until
 	// the group answers, whatever the pause is doing, because a fallback holds the blame with no
@@ -106,11 +106,13 @@ func (g *logGroup) fallbackThreshold() int {
 // missing is credited to the group and teaches nothing about the stream it named; asking the same one
 // every time is unrecoverable once that stream is the only thing still gone. Rotating is not enough
 // on its own, because every stream it lands on while they are all still gone buys the pause another
-// TTL, so a pause the group has earned by going dark is given up after fallbackThreshold rejected
-// probes, and the streams are isolated the ordinary way. A group that has never answered is left to
-// its probes instead: bisecting a fleet for a region that never enabled Enhanced Monitoring would pay
-// the full cost of the answer a single probe already has. A session with no stream to name waits as
-// if the probe were not due: it has nothing to ask, and giving up would hand a bisect nothing either.
+// TTL, so the pause is given up after fallbackThreshold rejected probes, and the streams are isolated
+// the ordinary way. A group that has never answered falls back like any other: a region that never
+// enabled Enhanced Monitoring pays a bisect for the answer a probe already had, but the backoff makes
+// that one bisect per two hours at most, whereas a fleet of which one stream exists would otherwise
+// wait a TTL per stream ahead of it in the rotation for that one instance to report. A session with
+// no stream to name waits as if the probe were not due: it has nothing to ask, and giving up would
+// hand a bisect nothing either.
 func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision) {
 	if !g.paused() {
 		return "", probeNotPaused
@@ -120,7 +122,7 @@ func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision
 		return "", probeWaiting
 	}
 
-	if g.seen && g.rejectedProbes >= g.fallbackThreshold() {
+	if g.rejectedProbes >= g.fallbackThreshold() {
 		g.probeAfter = time.Time{}
 
 		return "", probeGivenUp

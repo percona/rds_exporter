@@ -408,21 +408,60 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 	assert.NotEmpty(t, metrics[testKey(alive)], "the instance whose stream exists must report again")
 }
 
-func TestScrapeKeepsProbingALogGroupThatNeverAnswered(t *testing.T) {
+// TestScrapeFallsBackForALogGroupThatNeverAnswered covers a session whose group was gone from its
+// first scrape. Its probes rotate one stream per TTL, so a fleet of which only the last stream exists
+// would wait a TTL per stream ahead of it to report; the fallback asks the whole fleet after
+// fallbackThreshold rejected probes, and backs off like a group that went dark, so that a region that
+// never enabled Enhanced Monitoring pays one bisect per two hours for it at most.
+func TestScrapeFallsBackForALogGroupThatNeverAnswered(t *testing.T) {
 	t.Parallel()
 
-	streams := resourceIDs(4)
-	client := groupMissingClient(streams...)
-	scraper := scraperWithStreams(client, streams...)
+	t.Run("recovers the one stream that exists", func(t *testing.T) {
+		t.Parallel()
 
-	scraper.scrape(t.Context())
+		streams := resourceIDs(10)
+		dead, alive := streams[:len(streams)-1], streams[len(streams)-1]
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
 
-	probed := probedStreams(t, scraper, client, 2*maxRejectedProbes)
+		scraper.scrape(t.Context())
 
-	assert.Len(t, probed, 2*maxRejectedProbes,
-		"a region that has never published Enhanced Monitoring must not be bisected for it")
-	assert.True(t, scraper.group.paused(), "the group stays paused while its probes are rejected")
-	assert.Zero(t, scraper.missing.len(), "a probe rejected for the group still says nothing about its stream")
+		require.True(t, scraper.group.paused())
+
+		client.missing = missingSet(dead...)
+		client.events = eventsFor(alive)
+
+		var metrics map[instanceKey]instanceMetrics
+
+		for range maxRejectedProbes + 1 {
+			makeProbeDue(scraper)
+
+			metrics, _ = scraper.scrape(t.Context())
+		}
+
+		assert.False(t, scraper.group.paused(), "a pause no probe answers must not outlive them")
+		assert.NotEmpty(t, metrics[testKey(alive)],
+			"the instance whose stream exists must not wait a TTL for every stream ahead of it")
+		assert.Equal(t, len(dead), scraper.missing.len(), "the streams the fallback found gone are excluded")
+	})
+
+	t.Run("backs off between fallbacks that find nothing", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(10)
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		gaps := fallbackGaps(t, scraper, client, 32)
+
+		require.GreaterOrEqual(t, len(gaps), 3, "three fallbacks must fit in these scrapes")
+		assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
+			"a region without Enhanced Monitoring is bisected less and less often")
+		assert.Zero(t, scraper.missing.len(), "a fallback rejected everywhere names no stream")
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound], "one group missing is one error")
+	})
 }
 
 func TestScrapeReportsALogGroupOutageOnce(t *testing.T) {
