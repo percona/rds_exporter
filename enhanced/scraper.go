@@ -176,7 +176,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		session:               session,
 		instances:             instances,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
-		stateResolver:         sessions.NewResourceIDResolver(cfg),
+		stateResolver:         sessions.NewInstanceStateResolver(cfg),
 		missing:               newMissingStreams(),
 		evidence:              scrapeEvidence{isolationCalls: 0, isolated: nil, rejectedStreams: 0, answered: false},
 		unansweredRejections:  make(map[string]struct{}),

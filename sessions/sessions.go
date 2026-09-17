@@ -53,14 +53,14 @@ type InstanceState struct {
 	MonitoringInterval time.Duration
 }
 
-// ResourceIDResolver resolves the current AWS state of DB instances.
-type ResourceIDResolver struct {
+// InstanceStateResolver resolves the current AWS state of DB instances.
+type InstanceStateResolver struct {
 	svc rds.DescribeDBInstancesAPIClient
 }
 
-// NewResourceIDResolver creates a resolver using the given AWS config.
-func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
-	return &ResourceIDResolver{
+// NewInstanceStateResolver creates a resolver using the given AWS config.
+func NewInstanceStateResolver(cfg aws.Config) *InstanceStateResolver {
+	return &InstanceStateResolver{
 		svc: rds.NewFromConfig(cfg),
 	}
 }
@@ -68,7 +68,7 @@ func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
 // InstanceStates returns the current AWS state of every DB instance, keyed by DB instance identifier.
 // An error is returned with the states of the pages that were read, because an instance missing from
 // the result loses its monitoring: dropping them all over one failed page is the worse outcome.
-func (r *ResourceIDResolver) InstanceStates(ctx context.Context) (map[string]InstanceState, error) {
+func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]InstanceState, error) {
 	states := make(map[string]InstanceState)
 
 	paginator := rds.NewDescribeDBInstancesPaginator(r.svc, &rds.DescribeDBInstancesInput{}) //nolint:exhaustruct
@@ -134,7 +134,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	}
 
 	for key, cfg := range res.Configs {
-		states, err := NewResourceIDResolver(cfg).InstanceStates(context.Background())
+		states, err := NewInstanceStateResolver(cfg).InstanceStates(context.Background())
 		if err != nil {
 			level.Error(logger).Log("msg", "Failed to get instance states.", "error", err)
 		}

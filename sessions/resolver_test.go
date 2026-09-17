@@ -122,7 +122,7 @@ func TestInstanceStates(t *testing.T) {
 
 			client := &fakeRDSClient{pages: testCase.pages, err: nil, calls: 0}
 
-			states, err := (&ResourceIDResolver{svc: client}).InstanceStates(t.Context())
+			states, err := (&InstanceStateResolver{svc: client}).InstanceStates(t.Context())
 
 			require.NoError(t, err)
 			assert.Equal(t, testCase.expectedCalls, client.calls)
@@ -135,7 +135,7 @@ func TestInstanceStates(t *testing.T) {
 
 		client := &fakeRDSClient{pages: nil, err: errDescribeRefused, calls: 0}
 
-		states, err := (&ResourceIDResolver{svc: client}).InstanceStates(t.Context())
+		states, err := (&InstanceStateResolver{svc: client}).InstanceStates(t.Context())
 
 		require.ErrorIs(t, err, errDescribeRefused)
 		assert.Empty(t, states)
@@ -152,7 +152,7 @@ func TestInstanceStates(t *testing.T) {
 			calls: 0,
 		}
 
-		states, err := (&ResourceIDResolver{svc: client}).InstanceStates(t.Context())
+		states, err := (&InstanceStateResolver{svc: client}).InstanceStates(t.Context())
 
 		require.ErrorIs(t, err, errDescribeRefused)
 		assert.Equal(t, map[string]InstanceState{
