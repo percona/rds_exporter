@@ -30,16 +30,6 @@ type fakeLogsClient struct {
 	calls []logCall
 }
 
-// record adds a request to the call log. A wrapper that fails the call instead of answering it
-// records it here too, so that what the tests count is every request the scraper made, answered or
-// not, and the count a wrapper decides on cannot disagree with the log a test reads.
-func (c *fakeLogsClient) record(input *cloudwatchlogs.FilterLogEventsInput) {
-	c.calls = append(c.calls, logCall{
-		streams:   slices.Clone(input.LogStreamNames),
-		startTime: aws.ToInt64(input.StartTime),
-	})
-}
-
 // FilterLogEvents implements cloudwatchlogs.FilterLogEventsAPIClient.
 func (c *fakeLogsClient) FilterLogEvents(
 	ctx context.Context,
@@ -71,6 +61,16 @@ func (c *fakeLogsClient) FilterLogEvents(
 	}
 
 	return c.page(c.matchingEvents(input), input.NextToken)
+}
+
+// record adds a request to the call log. A wrapper that fails the call instead of answering it
+// records it here too, so that what the tests count is every request the scraper made, answered or
+// not, and the count a wrapper decides on cannot disagree with the log a test reads.
+func (c *fakeLogsClient) record(input *cloudwatchlogs.FilterLogEventsInput) {
+	c.calls = append(c.calls, logCall{
+		streams:   slices.Clone(input.LogStreamNames),
+		startTime: aws.ToInt64(input.StartTime),
+	})
 }
 
 // deadlineClient answers like the fake it wraps until a scrape has made callsBeforeCut requests, and

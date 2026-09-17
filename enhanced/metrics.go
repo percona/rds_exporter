@@ -465,8 +465,9 @@ func instanceLabels(region, instance string, labels map[string]string) prometheu
 	return res
 }
 
-// metricsPerEvent is about what one Enhanced Monitoring document expands to, so the slice is sized
-// once instead of regrowing on every event.
+// metricsPerEvent is how many series one Enhanced Monitoring document expands to: a hundred covers
+// an instance with the ordinary handful of disks and filesystems, and the count grows with those
+// rather than with anything the exporter controls, so it is a starting size and not a bound.
 const metricsPerEvent = 100
 
 // makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
