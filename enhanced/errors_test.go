@@ -36,6 +36,12 @@ func TestErrorKind(t *testing.T) {
 		{name: "credentials expired", err: apiError("ExpiredTokenException"), want: errorKindAuth},
 		{name: "log stream missing", err: fmt.Errorf("wrapped: %w", notFound), want: errorKindNotFound},
 		{name: "isolation budget exhausted", err: errIsolationBudget, want: errorKindOther},
+		{
+			// The answer proved the streams exist, so the exception wrapped here is not a missing stream.
+			name: "rejected after a page was answered",
+			err:  rejectedAfterAnswer(notFound),
+			want: errorKindOther,
+		},
 		{name: "unrecognized", err: apiError("InternalFailure"), want: errorKindOther},
 		{
 			// Only not_found may exclude a log stream, so a refused credential must never reach that kind.

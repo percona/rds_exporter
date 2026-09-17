@@ -3,6 +3,7 @@ package enhanced
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,7 +23,21 @@ const (
 	errorKindOther         = "other"
 )
 
-var errIsolationBudget = errors.New("log stream isolation budget exhausted")
+var (
+	errIsolationBudget = errors.New("log stream isolation budget exhausted")
+
+	// errRejectedAfterAnswer stands for a ResourceNotFoundException returned for a later page of a
+	// request whose first page was answered. The answer proved the streams exist, so the rejection is
+	// neither theirs nor the group's, and it must not be counted as a missing stream.
+	errRejectedAfterAnswer = errors.New("request rejected after a page was answered")
+)
+
+// rejectedAfterAnswer returns the error a request fails with when a page after an answered one is
+// rejected. The exception is kept in the text but not wrapped: an error wrapping two is read by
+// errorKind as a join named by its most telling leaf, and the exception would make that not_found.
+func rejectedAfterAnswer(err error) error {
+	return fmt.Errorf("%w: %v", errRejectedAfterAnswer, err)
+}
 
 // isResourceNotFound reports whether CloudWatch rejected the request because a log stream or the
 // log group does not exist. Which of the two it was is not in the error, so it is decided from what
@@ -124,6 +139,8 @@ func errorKind(err error) string {
 		return errorKindThrottling
 	case isAuth(err):
 		return errorKindAuth
+	case errors.Is(err, errRejectedAfterAnswer):
+		return errorKindOther
 	case isResourceNotFound(err):
 		return errorKindNotFound
 	default:

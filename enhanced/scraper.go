@@ -606,13 +606,24 @@ func (s *scraper) resumeUnprobed() {
 // when any single stream does not exist, so the batch is halved until the missing streams are
 // identified and excluded, which keeps the remaining instances reporting.
 func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *eventSink) error {
-	err := s.collectPages(ctx, streams, sink)
+	answered, err := s.collectPages(ctx, streams, sink)
+	if err == nil {
+		return nil
+	}
+
+	// A rejection after an answered page is not the streams': the answer proved they exist, and for a
+	// request of one stream the bisect below would exclude it on no further evidence. It has also
+	// ended the pause already, so the probe branch below cannot claim it for the group either. It is
+	// returned as an ordinary failure, so the window holds and the request is asked again next scrape.
+	if answered && isResourceNotFound(err) {
+		return rejectedAfterAnswer(err)
+	}
 
 	// An answered probe has already ended the pause by now, so a pause still standing here means the
 	// probe was not answered. A rejection is swallowed rather than returned: it is the group's, not the
 	// stream's the probe happened to name, and the ordinary attribution below would exclude that stream
 	// for it. Any other failure is returned as it is, and the probe is asked again next scrape.
-	if err != nil && s.group.paused() {
+	if s.group.paused() {
 		if isResourceNotFound(err) {
 			s.group.noteProbeRejected(time.Now())
 
@@ -858,7 +869,11 @@ func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *event
 
 	s.evidence.isolationCalls++
 
-	err := s.collectPages(ctx, streams, sink)
+	answered, err := s.collectPages(ctx, streams, sink)
+	if answered && isResourceNotFound(err) {
+		return rejectedAfterAnswer(err)
+	}
+
 	if !isResourceNotFound(err) {
 		return err
 	}
@@ -925,8 +940,9 @@ func (s *scraper) markGroupMissing() {
 }
 
 // collectPages paginates a single FilterLogEvents request, keeping the events of every page
-// fetched before an error.
-func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) error {
+// fetched before an error, and reports whether any page was answered: a rejection after an answer is
+// not about the streams, which the answer proved exist.
+func (s *scraper) collectPages(ctx context.Context, streams []string, sink *eventSink) (bool, error) {
 	input := &cloudwatchlogs.FilterLogEventsInput{ //nolint:exhaustruct
 		LogGroupName:   aws.String(logGroupName),
 		LogStreamNames: streams,
@@ -940,14 +956,17 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 	)).Log("msg", "Requesting metrics")
 
 	paginator := cloudwatchlogs.NewFilterLogEventsPaginator(s.svc, input)
+	answered := false
+
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to filter log events: %w", err)
+			return answered, fmt.Errorf("failed to filter log events: %w", err)
 		}
 
 		// A later page failing must not hold a stream out of the next request for another TTL: the
 		// request was already answered once, which is all the evidence its streams exist.
+		answered = true
 		s.noteAnswered(streams)
 
 		for _, event := range output.Events {
@@ -955,7 +974,7 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 		}
 	}
 
-	return nil
+	return answered, nil
 }
 
 // noteAnswered records everything an answered request proves: the log group exists, every stream it

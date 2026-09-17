@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/aws/smithy-go"
@@ -292,6 +293,38 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 
 		assert.Empty(t, metrics[testKey(healthy)])
 		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
+	})
+
+	t.Run("does not exclude a stream answered before a later page was rejected", func(t *testing.T) {
+		t.Parallel()
+
+		// A stream deleted between two pages of one request, or a continuation token CloudWatch
+		// refused. The first page proved the stream exists, and a request of one stream has no bisect
+		// left to ask again, so the rejection would otherwise be the stream's on no further evidence.
+		client := &fakeLogsClient{
+			events: map[string][]types.FilteredLogEvent{
+				oldResourceID: {
+					osMetricsEvent(oldResourceID, testEventTime()),
+					osMetricsEvent(oldResourceID, testEventTime().Add(time.Second)),
+				},
+			},
+			missing: nil,
+			errs: []error{nil, &types.ResourceNotFoundException{ //nolint:exhaustruct
+				Message: aws.String("gone between pages"),
+			}},
+			pageSize: 1,
+			calls:    nil,
+		}
+		scraper := scraperWithStreams(client, oldResourceID)
+		startTime := scraper.nextStartTime
+
+		metrics := scraper.scrape(t.Context())
+
+		assert.Zero(t, scraper.missing.len(), "the answered page proved the stream exists")
+		assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a rejection after an answer is not a missing stream")
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindOther], "the request still failed")
+		assert.NotEmpty(t, metrics[testKey(oldResourceID)], "the events the answered page carried are kept")
 		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
 	})
 }

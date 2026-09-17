@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/stretchr/testify/assert"
@@ -572,6 +574,41 @@ func TestScrapeProbesTheBlamedLogGroup(t *testing.T) {
 		assert.Equal(t, streams[:1], client.calls[0].streams)
 		assert.Zero(t, scraper.missing.len(), "a probe rejected for the group says nothing about its stream")
 		assert.True(t, scraper.group.probeAfter.After(time.Now()), "a rejected probe must wait for the next turn")
+	})
+
+	t.Run("leaves the probed stream alone when a later page of the probe is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		// The first page answered, so the pause is over and the stream exists; the second page being
+		// rejected is neither the stream's fault nor the group's.
+		streams := resourceIDs(4)
+		client := groupMissingClient(streams...)
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		makeProbeDue(scraper)
+
+		probed := streams[0]
+		client.missing = nil
+		client.events = map[string][]types.FilteredLogEvent{
+			probed: {osMetricsEvent(probed, testEventTime()), osMetricsEvent(probed, testEventTime().Add(time.Second))},
+		}
+		client.pageSize = 1
+		client.errs = []error{nil, &types.ResourceNotFoundException{ //nolint:exhaustruct
+			Message: aws.String("gone between pages"),
+		}}
+		client.calls = nil
+
+		metrics := scraper.scrape(t.Context())
+
+		require.NotEmpty(t, client.calls)
+		require.Equal(t, []string{probed}, client.calls[0].streams)
+		assert.False(t, scraper.group.paused(), "the answered page ends the pause")
+		assert.Zero(t, scraper.missing.len(), "the answered page proved the probed stream exists")
+		assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a rejection after an answer names no stream")
+		assert.Zero(t, scraper.group.rejectedProbes, "a probe that was answered was not rejected")
+		assert.NotEmpty(t, metrics[testKey(probed)], "the events the answered page carried are kept")
 	})
 
 	t.Run("rotates the log group probe", func(t *testing.T) {
