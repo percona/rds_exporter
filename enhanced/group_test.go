@@ -57,7 +57,7 @@ func blameGroup(t *testing.T, scraper *scraper, client *fakeLogsClient, streams 
 
 	scraper.scrape(t.Context())
 
-	if scraper.sweep {
+	if scraper.sweep == sweepRequested {
 		scraper.scrape(t.Context())
 	}
 

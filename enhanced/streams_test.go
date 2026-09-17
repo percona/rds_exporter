@@ -28,6 +28,11 @@ func scraperWithStreams(client cloudwatchlogs.FilterLogEventsAPIClient, resource
 	return newTestScraperWithClient(client, instances)
 }
 
+// len reports how many log streams are excluded, on whatever evidence.
+func (m *missingStreams) len() int {
+	return len(m.probeAfter)
+}
+
 func resourceIDs(count int) []string {
 	res := make([]string, 0, count)
 	for i := range count {
@@ -527,7 +532,7 @@ func TestMaxIsolationCallsAttributesAFullBatch(t *testing.T) {
 	err := scraper.collectBatch(t.Context(), scraper.enhancedStreams(time.Now()), newEventSink())
 
 	require.NoError(t, err, "a batch in which every stream is missing must still fit the budget")
-	assert.Len(t, scraper.isolated, len(streams))
+	assert.Len(t, scraper.evidence.isolated, len(streams))
 	assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
 }
 

@@ -120,17 +120,44 @@ func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]
 	return metrics, messages
 }
 
-// scraper retrieves metrics from several RDS instances sharing a single session.
-type scraper struct {
-	session         string
-	instances       []sessions.Instance
-	svc             cloudwatchlogs.FilterLogEventsAPIClient
-	stateResolver   instanceStateResolver
-	missing         *missingStreams
+// scrapeEvidence is what one scrape gathers towards attributing its rejections: the streams it
+// singled out, how many streams the rejected batches held, whether anything at all was answered, and
+// the isolation budget of the batch under way. Every scrape begins it afresh.
+type scrapeEvidence struct {
 	isolationCalls  int
 	isolated        []string
 	rejectedStreams int
 	answered        bool
+}
+
+func (e *scrapeEvidence) reset() {
+	e.isolationCalls = 0
+	e.isolated = e.isolated[:0]
+	e.rejectedStreams = 0
+	e.answered = false
+}
+
+// sweepState is where a session stands with the sweep, the one scrape that asks for every monitored
+// stream, exclusions and probe cap notwithstanding. It is requested by the one kind of news that
+// undermines the exclusions all at once -- the group's account has changed, so the evidence they rest
+// on has to be gathered again -- and taken up by the scrape that follows. A fallback is under way as
+// one from the start, and the news it brings must not buy the fleet a second.
+type sweepState int
+
+const (
+	sweepNone sweepState = iota
+	sweepRequested
+	sweepUnderWay
+)
+
+// scraper retrieves metrics from several RDS instances sharing a single session.
+type scraper struct {
+	session       string
+	instances     []sessions.Instance
+	svc           cloudwatchlogs.FilterLogEventsAPIClient
+	stateResolver instanceStateResolver
+	missing       *missingStreams
+	evidence      scrapeEvidence
 	// unansweredRejections holds the streams singled out by the scrapes nothing has answered since,
 	// so that what one scrape could not finish saying about the group is not lost to the next. A
 	// bisect the deadline cuts singles out the streams it reached and never gets to say whether the
@@ -141,14 +168,8 @@ type scraper struct {
 	// what lets the rejections carried above stand in for a sweep: a fleet that is all gone and does
 	// not fit the interval can be rejected over in full only across scrapes, but the first time the
 	// pieces add up the group is still owed the one request that could clear it.
-	sweepCutShort bool
-	// sweep is whether the next scrape asks for every monitored stream, exclusions and probe cap
-	// notwithstanding. It is set by the one kind of news that undermines the exclusions all at once:
-	// the group's account has changed, so the evidence they rest on has to be gathered again.
-	sweep bool
-	// sweeping is whether the scrape under way is that sweep. A fallback is one, and the news it
-	// brings must not buy the fleet a second.
-	sweeping              bool
+	sweepCutShort         bool
+	sweep                 sweepState
 	group                 logGroup
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
@@ -167,20 +188,16 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
 		stateResolver:         sessions.NewResourceIDResolver(cfg),
 		missing:               newMissingStreams(),
-		isolationCalls:        0,
-		isolated:              nil,
-		rejectedStreams:       0,
-		answered:              false,
+		evidence:              scrapeEvidence{isolationCalls: 0, isolated: nil, rejectedStreams: 0, answered: false},
 		unansweredRejections:  make(map[string]struct{}),
 		sweepCutShort:         false,
-		sweep:                 false,
-		sweeping:              false,
+		sweep:                 sweepNone,
 		group:                 newLogGroup(),
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		refreshBackoff:        0,
-		nextStartTime:         time.Now().Add(-maxLookback).Round(0), // strip monotonic clock reading
+		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
 		logger:                log.With(logger, "component", "enhanced"),
 	}
 }
@@ -216,7 +233,7 @@ func (s *scraper) monitoredStreams() []string {
 // probe slot it would otherwise wait for.
 func (s *scraper) enhancedStreams(now time.Time) []string {
 	monitored := s.monitoredStreams()
-	if s.sweeping {
+	if s.sweep == sweepUnderWay {
 		return monitored
 	}
 
@@ -242,8 +259,8 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 
 type scrapeResult struct {
 	metrics      map[instanceKey]instanceMetrics
-	errorCounts  map[string]uint64 // error kind -> occurrences during the scrape
-	skewedEvents uint64            // events timestamped ahead of the exporter's clock during the scrape
+	errorCounts  map[string]uint64
+	skewedEvents uint64
 	monitored    map[instanceKey]bool
 	region       string
 	interval     time.Duration
@@ -542,15 +559,15 @@ func (s *scraper) probeCandidates() []string {
 // outright, since they were made on the group's account; a firm one is asked again but kept, so that
 // a stream still gone is re-excluded without being counted or warned about a second time.
 func (s *scraper) resumeUnprobed() {
-	s.sweeping = true
-	retried := s.missing.releaseTentative()
+	s.sweep = sweepUnderWay
 
 	level.Info(s.logger).Log(
 		"msg", "CloudWatch rejected every Enhanced Monitoring log group probe; isolating log streams instead.",
 		"log_group", logGroupName,
-		"probes", s.group.rejectedProbes,
-		"log_streams_retried", retried,
+		"probes", s.group.fallbackThreshold(),
 	)
+
+	s.retryTentative("CloudWatch log group probes were all rejected; retrying the log streams excluded while it was in doubt.")
 }
 
 // collectBatch collects the events of the given log streams. CloudWatch fails the whole request
@@ -573,14 +590,14 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 		return err
 	}
 
-	if err == nil || !isResourceNotFound(err) {
+	if !isResourceNotFound(err) {
 		return err
 	}
 
 	// Each batch gets its own budget, so a batch where every stream is missing cannot stop the
 	// batches after it from finding and excluding theirs.
-	s.isolationCalls = 0
-	s.rejectedStreams += len(streams)
+	s.evidence.isolationCalls = 0
+	s.evidence.rejectedStreams += len(streams)
 
 	return s.isolateMissing(ctx, streams, sink)
 }
@@ -588,11 +605,13 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 // beginAttribution starts the evidence this scrape will be read from, and takes up the sweep the last
 // one asked for.
 func (s *scraper) beginAttribution() {
-	s.isolated = s.isolated[:0]
-	s.rejectedStreams = 0
-	s.answered = false
-	s.sweeping = s.sweep
-	s.sweep = false
+	s.evidence.reset()
+
+	if s.sweep == sweepRequested {
+		s.sweep = sweepUnderWay
+	} else {
+		s.sweep = sweepNone
+	}
 }
 
 // attributeRejections decides what the rejections this scrape collected were about. CloudWatch
@@ -635,25 +654,25 @@ func (s *scraper) beginAttribution() {
 // it fits, and a pause would cost the instances behind the first ones a TTL for a fault the group no
 // longer has. A sweep that was cut cannot settle it, and the carried rejections are what is left.
 func (s *scraper) attributeRejections(mayBlameGroup bool) {
-	if s.answered {
+	if s.evidence.answered {
 		clear(s.unansweredRejections)
 		s.sweepCutShort = false
 	}
 
-	rejectedEverywhere := mayBlameGroup && !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup &&
-		len(s.isolated) == s.rejectedStreams
+	rejectedEverywhere := mayBlameGroup && !s.evidence.answered && s.evidence.rejectedStreams >= minStreamsToBlameTheGroup &&
+		len(s.evidence.isolated) == s.evidence.rejectedStreams
 
 	if rejectedEverywhere {
 		monitored := s.monitoredStreams()
 
 		heldBack := s.streamsNotRejected(monitored)
-		if heldBack == 0 && (s.rejectedStreams == len(monitored) || s.sweepCutShort) {
+		if heldBack == 0 && (s.evidence.rejectedStreams == len(monitored) || s.sweepCutShort) {
 			s.markGroupMissing()
 
 			return
 		}
 
-		s.sweep = true
+		s.sweep = sweepRequested
 
 		level.Info(s.logger).Log(
 			"msg", "CloudWatch rejected every Enhanced Monitoring log stream requested; "+
@@ -666,10 +685,10 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 		return
 	}
 
-	if !s.answered {
-		s.sweepCutShort = s.sweepCutShort || s.sweeping
+	if !s.evidence.answered {
+		s.sweepCutShort = s.sweepCutShort || s.sweep == sweepUnderWay
 
-		for _, stream := range s.isolated {
+		for _, stream := range s.evidence.isolated {
 			s.unansweredRejections[stream] = struct{}{}
 		}
 	}
@@ -685,9 +704,9 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 	// scrape failed, and the next answer from it would release exclusions it had nothing to do with.
 	// The streams would then be requested again, rejected again and bisected again -- every other
 	// scrape, for as long as the healthy half kept being throttled or cut short by the deadline.
-	tentative := !s.answered && s.group.inDoubt()
+	tentative := !s.evidence.answered && s.group.inDoubt()
 
-	for _, stream := range s.isolated {
+	for _, stream := range s.evidence.isolated {
 		s.markMissing(stream, tentative)
 	}
 }
@@ -695,8 +714,8 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 // streamsNotRejected counts the monitored streams neither this scrape nor the unanswered scrapes
 // before it were rejected over, which is what still stands between the rejection and the group.
 func (s *scraper) streamsNotRejected(monitored []string) int {
-	rejected := make(map[string]struct{}, len(s.isolated)+len(s.unansweredRejections))
-	for _, stream := range s.isolated {
+	rejected := make(map[string]struct{}, len(s.evidence.isolated)+len(s.unansweredRejections))
+	for _, stream := range s.evidence.isolated {
 		rejected[stream] = struct{}{}
 	}
 
@@ -720,7 +739,7 @@ func (s *scraper) streamsNotRejected(monitored []string) int {
 // time is retried on the next scrape with a fresh budget.
 func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *eventSink) error {
 	if len(streams) == 1 {
-		s.isolated = append(s.isolated, streams[0])
+		s.evidence.isolated = append(s.evidence.isolated, streams[0])
 
 		return nil
 	}
@@ -734,14 +753,14 @@ func (s *scraper) isolateMissing(ctx context.Context, streams []string, sink *ev
 }
 
 func (s *scraper) isolateHalf(ctx context.Context, streams []string, sink *eventSink) error {
-	if s.isolationCalls >= maxIsolationCalls {
+	if s.evidence.isolationCalls >= maxIsolationCalls {
 		return errIsolationBudget
 	}
 
-	s.isolationCalls++
+	s.evidence.isolationCalls++
 
 	err := s.collectPages(ctx, streams, sink)
-	if err == nil || !isResourceNotFound(err) {
+	if !isResourceNotFound(err) {
 		return err
 	}
 
@@ -851,21 +870,21 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 // has asked the fleet already, and the streams it is rejected over are excluded on their own evidence
 // by the end of it; sweeping again would only bisect them a second time.
 func (s *scraper) noteAnswered(streams []string) {
-	s.answered = true
+	s.evidence.answered = true
 
 	if s.group.noteAnswered() {
 		msg := "CloudWatch log group exists again; requesting every Enhanced Monitoring log stream."
-		if s.sweeping {
+		if s.sweep == sweepUnderWay {
 			msg = "CloudWatch log group exists again; resuming Enhanced Monitoring requests."
 		} else {
-			s.sweep = true
+			s.sweep = sweepRequested
 		}
 
 		level.Info(s.logger).Log("msg", msg, "log_group", logGroupName)
 	}
 
 	s.clearAccepted(streams)
-	s.retryTentative()
+	s.retryTentative("CloudWatch log group answered; retrying the log streams excluded while it was in doubt.")
 }
 
 // retryTentative stops excluding the streams a scrape answered nowhere had singled out, now that the
@@ -874,17 +893,13 @@ func (s *scraper) noteAnswered(streams []string) {
 // and excluded on evidence about itself. Waiting for their probes instead would hold every instance
 // behind them back for a TTL and then let them return maxProbesPerScrape at a time, for a fault the
 // group's return has just explained away.
-func (s *scraper) retryTentative() {
+func (s *scraper) retryTentative(msg string) {
 	released := s.missing.releaseTentative()
 	if released == 0 {
 		return
 	}
 
-	level.Info(s.logger).Log(
-		"msg", "CloudWatch log group answered; retrying the log streams excluded while it was in doubt.",
-		"log_group", logGroupName,
-		"log_streams", released,
-	)
+	level.Info(s.logger).Log("msg", msg, "log_group", logGroupName, "log_streams", released)
 }
 
 // clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names

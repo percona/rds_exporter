@@ -24,7 +24,7 @@ const (
 // missingStreams tracks the log streams CloudWatch reported as non-existent. It is only used from
 // the scrape goroutine, so it needs no lock.
 type missingStreams struct {
-	probeAfter map[string]time.Time // log stream name -> earliest time to try it again
+	probeAfter map[string]time.Time
 	// tentative holds the streams excluded by a scrape no request of which was answered. A rejection
 	// names no stream, and a scrape answered nothing anywhere cannot tell a stream that is gone from
 	// a log group that is: only a request the group answers settles that, so these wait for one.
@@ -119,8 +119,4 @@ func (m *missingStreams) due(name string, now time.Time) bool {
 	probeAfter, known := m.probeAfter[name]
 
 	return known && now.After(probeAfter)
-}
-
-func (m *missingStreams) len() int {
-	return len(m.probeAfter)
 }
