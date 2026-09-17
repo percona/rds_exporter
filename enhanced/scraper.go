@@ -602,11 +602,31 @@ func (s *scraper) beginAttribution() {
 	}
 }
 
-// attributeRejections decides what the rejections this scrape collected were about. CloudWatch
-// reports a missing log group and a missing log stream as the same error, and a missing group rejects
-// every request, so a scrape that was answered nothing anywhere and singled out every stream it asked
-// for is evidence about the group. Reading that as streams instead would cost a bisect per scrape,
-// exclude streams that exist, and name instances that are fine.
+// attributeRejections decides what the rejections this scrape collected were about: the log group,
+// or the streams the scrape singled out. CloudWatch reports a missing log group and a missing log
+// stream as the same error, so the two are told apart by what else the scrape was answered, and the
+// charge is worth telling apart: one against the group pauses every instance in the session for a
+// TTL, while one against a stream costs that stream an exclusion. An answer from anywhere settles
+// it for the streams -- a group that answered is not what rejected them -- so it also ends the
+// account the unanswered scrapes before it were keeping.
+func (s *scraper) attributeRejections(mayBlameGroup bool) {
+	if s.evidence.answered {
+		clear(s.unansweredRejections)
+		s.sweepCutShort = false
+	}
+
+	if s.attributeToTheGroup(mayBlameGroup) {
+		return
+	}
+
+	s.attributeToTheStreams()
+}
+
+// attributeToTheGroup charges the rejections to the log group when nothing in the scrape can account
+// for them, and reports whether it did. A scrape that was answered nothing anywhere and singled out
+// every stream it asked for is evidence about the group: reading it as streams instead would cost a
+// bisect per scrape, exclude streams that exist, and name instances that are fine. Short of that the
+// streams keep their own evidence, which is what the caller pays instead.
 //
 // The evidence has to span the scrape and not one batch of it: a missing group would have rejected
 // the other batches too, so one batch of several saying nothing says nothing about the group, only
@@ -632,47 +652,49 @@ func (s *scraper) beginAttribution() {
 // full bisect, and the deadline cuts one that does not fit the interval at the same place every
 // time; read scrape by scrape, the streams it reached would be excluded, the next scrape would be
 // rejected over the rest and short of the fleet, and the sweep it asked for would be cut again, with
-// the group never blamed and the bisect paid every other scrape for good. The streams singled out by
-// a scrape nothing answered are therefore carried until something is, and count towards the fleet
-// alongside what the present scrape was rejected over; the exclusions an answered scrape made never
-// count, since an answer is what makes a rejection the stream's own. Carried rejections are trusted
-// only once a sweep has been cut, though. The first time they add up to the fleet, the scrape that
-// singled them out may have been cut while the group was gone and the rest rejected after it came
-// back, with the rest gone for real; the sweep asks both at once and settles that in one scrape when
-// it fits, and a pause would cost the instances behind the first ones a TTL for a fault the group no
-// longer has. A sweep that was cut cannot settle it, and the carried rejections are what is left.
-func (s *scraper) attributeRejections(mayBlameGroup bool) {
-	if s.evidence.answered {
-		clear(s.unansweredRejections)
-		s.sweepCutShort = false
-	}
-
+// the group never blamed and the bisect paid every other scrape for good. The rejections carried by
+// the scrapes nothing answered therefore count towards the fleet alongside the present scrape's,
+// while the exclusions an answered scrape made never do, since an answer is what makes a rejection
+// the stream's own. Carried rejections are trusted only once a sweep has been cut, though. The first
+// time they add up to the fleet, the scrape that singled them out may have been cut while the group
+// was gone and the rest rejected after it came back, with the rest gone for real; the sweep asks
+// both at once and settles that in one scrape when it fits, and a pause would cost the instances
+// behind the first ones a TTL for a fault the group no longer has. A sweep that was cut cannot
+// settle it, and the carried rejections are what is left.
+func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
 	rejectedEverywhere := mayBlameGroup && !s.evidence.answered && s.evidence.rejectedStreams >= minStreamsToBlameTheGroup &&
 		len(s.evidence.isolated) == s.evidence.rejectedStreams
-
-	if rejectedEverywhere {
-		monitored := s.monitoredStreams()
-
-		heldBack := s.streamsNotRejected(monitored)
-		if heldBack == 0 && (s.evidence.rejectedStreams == len(monitored) || s.sweepCutShort) {
-			s.markGroupMissing()
-
-			return
-		}
-
-		s.sweep = sweepRequested
-
-		level.Info(s.logger).Log(
-			"msg", "CloudWatch rejected every Enhanced Monitoring log stream requested; "+
-				"asking the excluded ones too before blaming the log group.",
-			"log_group", logGroupName,
-			"log_streams_rejected", len(monitored)-heldBack,
-			"log_streams_excluded", heldBack,
-		)
-
-		return
+	if !rejectedEverywhere {
+		return false
 	}
 
+	monitored := s.monitoredStreams()
+
+	heldBack := s.streamsNotRejected(monitored)
+	if heldBack == 0 && (s.evidence.rejectedStreams == len(monitored) || s.sweepCutShort) {
+		s.markGroupMissing()
+
+		return true
+	}
+
+	s.sweep = sweepRequested
+
+	level.Info(s.logger).Log(
+		"msg", "CloudWatch rejected every Enhanced Monitoring log stream requested; "+
+			"asking the excluded ones too before blaming the log group.",
+		"log_group", logGroupName,
+		"log_streams_rejected", len(monitored)-heldBack,
+		"log_streams_excluded", heldBack,
+	)
+
+	return true
+}
+
+// attributeToTheStreams excludes the streams this scrape singled out, on the terms the rest of the
+// scrape earned them.
+func (s *scraper) attributeToTheStreams() {
+	// A scrape nothing answered leaves the group's account open, so what it singled out is kept for
+	// attributeToTheGroup to count once a later scrape is rejected over the rest of the fleet.
 	if !s.evidence.answered {
 		s.sweepCutShort = s.sweepCutShort || s.sweep == sweepUnderWay
 

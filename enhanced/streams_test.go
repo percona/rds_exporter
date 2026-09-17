@@ -278,6 +278,7 @@ func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 	for i := range maxProbesPerScrape + 1 {
 		instances = append(instances, testInstance(fmt.Sprintf("duplicate-%d", i), oldResourceID))
 	}
+
 	instances = append(instances, testInstance("other", missingResourceID))
 	// A stream that answers, so the rejection is attributed to the streams rather than to the group.
 	instances = append(instances, testInstance("healthy", sameResourceID))
@@ -290,6 +291,7 @@ func TestScrapeSpendsOneProbeSlotPerLogStream(t *testing.T) {
 	for _, stream := range []string{oldResourceID, missingResourceID} {
 		scraper.missing.probeAfter[stream] = time.Now().Add(-time.Minute)
 	}
+
 	client.calls = nil
 
 	scraper.scrape(t.Context())
