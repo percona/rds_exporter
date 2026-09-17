@@ -41,7 +41,7 @@ func TestHandleEvent(t *testing.T) { //nolint:funlen
 		client.events[oldResourceID] = append(client.events[oldResourceID], client.events["orphan-resource-id"]...)
 		scraper := scraperWithStreams(client, oldResourceID)
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.Len(t, metrics, 1)
 		assert.NotEmpty(t, metrics[testKey(oldResourceID)])
@@ -73,7 +73,7 @@ func TestHandleEvent(t *testing.T) { //nolint:funlen
 			testInstance(unchangedPrimaryInstance, sameResourceID),
 		})
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
 		assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)],
@@ -98,7 +98,7 @@ func TestHandleEvent(t *testing.T) { //nolint:funlen
 			disabled,
 		})
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
 		assert.Empty(t, metrics[testKey(unchangedPrimaryInstance)])

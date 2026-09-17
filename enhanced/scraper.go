@@ -71,29 +71,21 @@ type instanceMetrics struct {
 
 // eventSink accumulates the metrics parsed out of log events, per instance and event timestamp.
 type eventSink struct {
-	metrics  map[instanceKey]map[time.Time][]prometheus.Metric
-	messages map[instanceKey]map[time.Time]string
+	metrics map[instanceKey]map[time.Time][]prometheus.Metric
 }
 
 func newEventSink() *eventSink {
 	return &eventSink{
-		metrics:  make(map[instanceKey]map[time.Time][]prometheus.Metric),
-		messages: make(map[instanceKey]map[time.Time]string),
+		metrics: make(map[instanceKey]map[time.Time][]prometheus.Metric),
 	}
 }
 
-func (sink *eventSink) add(key instanceKey, timestamp time.Time, metrics []prometheus.Metric, message string) {
+func (sink *eventSink) add(key instanceKey, timestamp time.Time, metrics []prometheus.Metric) {
 	if sink.metrics[key] == nil {
 		sink.metrics[key] = make(map[time.Time][]prometheus.Metric)
 	}
 
 	sink.metrics[key][timestamp] = metrics
-
-	if sink.messages[key] == nil {
-		sink.messages[key] = make(map[time.Time]string)
-	}
-
-	sink.messages[key][timestamp] = message
 }
 
 func (sink *eventSink) times() map[instanceKey][]time.Time {
@@ -108,16 +100,14 @@ func (sink *eventSink) times() map[instanceKey][]time.Time {
 	return res
 }
 
-func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
+func (sink *eventSink) latest(times map[instanceKey]time.Time) map[instanceKey]instanceMetrics {
 	metrics := make(map[instanceKey]instanceMetrics, len(times))
-	messages := make(map[instanceKey]string, len(times))
 
 	for key, timestamp := range times {
 		metrics[key] = instanceMetrics{metrics: sink.metrics[key][timestamp], eventTime: timestamp}
-		messages[key] = sink.messages[key][timestamp]
 	}
 
-	return metrics, messages
+	return metrics
 }
 
 // scrapeEvidence is what one scrape gathers towards attributing its rejections: the streams it
@@ -312,9 +302,7 @@ func (s *scraper) scrapeOnce(ctx context.Context, interval time.Duration) map[in
 	scrapeCtx, cancel := context.WithTimeout(ctx, interval)
 	defer cancel()
 
-	metrics, _ := s.scrape(scrapeCtx)
-
-	return metrics
+	return s.scrape(scrapeCtx)
 }
 
 // send delivers a result unless the scraper is stopping, so shutting down cannot block on a channel
@@ -383,7 +371,7 @@ func (s *scraper) region() string {
 }
 
 // scrape performs a single scrape.
-func (s *scraper) scrape(ctx context.Context) (map[instanceKey]instanceMetrics, map[instanceKey]string) {
+func (s *scraper) scrape(ctx context.Context) map[instanceKey]instanceMetrics {
 	sink := newEventSink()
 
 	err := s.refreshInstanceStates(ctx)
@@ -974,12 +962,7 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
 			osMetrics.Timestamp.UTC(), timestamp))
 
-		sink.add(
-			keyOf(s.session, instance),
-			timestamp,
-			osMetrics.makePrometheusMetrics(instance.Region, instance.Labels),
-			aws.ToString(event.Message),
-		)
+		sink.add(keyOf(s.session, instance), timestamp, osMetrics.makePrometheusMetrics(instance.Region, instance.Labels))
 	}
 }
 

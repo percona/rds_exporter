@@ -108,7 +108,7 @@ func TestScrapeKeepsStartTimeWhenABatchFailedBeforeTimeRanOut(t *testing.T) {
 	scraper := scraperWithStreams(client, streams...)
 	startTime := scraper.nextStartTime
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 3)
 	assert.Len(t, metrics, 1, "the batch that answered must still report")
@@ -145,7 +145,7 @@ func TestScrapeExportsEventsTimestampedInTheFuture(t *testing.T) {
 			}
 			scraper := scraperWithStreams(client, oldResourceID)
 
-			metrics, _ := scraper.scrape(t.Context())
+			metrics := scraper.scrape(t.Context())
 
 			// However wrong the two clocks are about each other, the sample is what the instance is
 			// judged by, so no skew may cost it.
@@ -190,7 +190,7 @@ func TestScrapeFollowsAHostSlightlyBehindAWS(t *testing.T) {
 	}
 	scraper := scraperWithStreams(client, oldResourceID)
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 	require.Equal(t, previous, metrics[testKey(oldResourceID)].eventTime)
 
 	client.events[oldResourceID] = append(client.events[oldResourceID], osMetricsEvent(oldResourceID, latest))
@@ -198,7 +198,7 @@ func TestScrapeFollowsAHostSlightlyBehindAWS(t *testing.T) {
 	// The window is clamped to now, which the latest event stays ahead of, so it is delivered again on
 	// the scrape after the one that first read it.
 	for range 2 {
-		metrics, _ = scraper.scrape(t.Context())
+		metrics = scraper.scrape(t.Context())
 
 		assert.Equal(t, latest, metrics[testKey(oldResourceID)].eventTime,
 			"an instance is judged by its latest event, not by the one before it, for as long as the host trails AWS")
@@ -224,7 +224,7 @@ func TestScrapeKeepsReportingThroughOneFutureDatedEvent(t *testing.T) {
 	}
 	scraper := scraperWithStreams(client, oldResourceID)
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	// A glitched event that wins here becomes both the sample and the window, so the instance would
 	// be judged by a document it published before the events that actually describe it.
@@ -255,14 +255,14 @@ func TestScrapeKeepsReportingAfterAFutureDatedEvent(t *testing.T) {
 
 	// A scrape with nothing but a future dated event to go by, which is what an exporter whose clock
 	// is behind AWS collects.
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 	collector.setMetrics(futureDatedResult(metrics), now)
 
 	// The instance then publishes an event the exporter's own clock agrees with.
 	happened := time.Now().UTC()
 	client.events[oldResourceID] = append(client.events[oldResourceID], osMetricsEvent(oldResourceID, happened))
 
-	metrics, _ = scraper.scrape(t.Context())
+	metrics = scraper.scrape(t.Context())
 	collector.setMetrics(futureDatedResult(metrics), happened)
 
 	samples := collectSamplesAt(t, collector, happened.Add(2*time.Minute))

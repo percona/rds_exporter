@@ -94,6 +94,36 @@ func (c *deadlineClient) FilterLogEvents(
 	return nil, fmt.Errorf("fake CloudWatch Logs client: %w", context.DeadlineExceeded)
 }
 
+// recordingClient keeps the newest raw message of every log stream the client it wraps answers with,
+// for the live test that regenerates the JSON fixtures from what CloudWatch actually returned.
+type recordingClient struct {
+	inner    cloudwatchlogs.FilterLogEventsAPIClient
+	messages map[string]string
+	newest   map[string]int64
+}
+
+// FilterLogEvents implements cloudwatchlogs.FilterLogEventsAPIClient.
+func (c *recordingClient) FilterLogEvents(
+	ctx context.Context,
+	input *cloudwatchlogs.FilterLogEventsInput,
+	opts ...func(*cloudwatchlogs.Options),
+) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+	out, err := c.inner.FilterLogEvents(ctx, input, opts...)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // a recorder must hand the error on untouched
+	}
+
+	for _, event := range out.Events {
+		stream := aws.ToString(event.LogStreamName)
+		if timestamp := aws.ToInt64(event.Timestamp); timestamp >= c.newest[stream] {
+			c.newest[stream] = timestamp
+			c.messages[stream] = aws.ToString(event.Message)
+		}
+	}
+
+	return out, nil
+}
+
 // matchingEvents returns the events of the requested streams that are not older than StartTime.
 func (c *fakeLogsClient) matchingEvents(input *cloudwatchlogs.FilterLogEventsInput) []types.FilteredLogEvent {
 	startTime := aws.ToInt64(input.StartTime)

@@ -73,14 +73,14 @@ func TestScrapeIsolatesMissingLogStream(t *testing.T) {
 	}
 	scraper := scraperWithStreams(client, oldResourceID, missingResourceID, sameResourceID)
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	assert.NotEmpty(t, metrics[testKey(oldResourceID)], "a missing stream must not starve the instances before it")
 	assert.NotEmpty(t, metrics[testKey(sameResourceID)], "a missing stream must not starve the instances after it")
 	assert.Empty(t, metrics[testKey(missingResourceID)])
 
 	client.calls = nil
-	metrics, _ = scraper.scrape(t.Context())
+	metrics = scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1, "a known missing stream must not cost an extra request")
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
@@ -169,7 +169,7 @@ func TestScrapeReprobesMissingStream(t *testing.T) { //nolint:funlen
 		scraper.missing.probeAfter[missingResourceID] = time.Now().Add(-time.Minute)
 		client.calls = nil
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.NotEmpty(t, metrics[testKey(missingResourceID)])
 		assert.Zero(t, scraper.missing.len())
@@ -239,7 +239,7 @@ func TestScrapeStopsExcludingStreamAnsweredBeforeAPageFailed(t *testing.T) {
 		client.pageSize = 1
 		client.errs = []error{nil, throttlingError()}
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.Zero(t, scraper.missing.len(),
 			"a page CloudWatch answered proves the streams it listed exist, whatever a later page does")
@@ -354,7 +354,7 @@ func TestScrapeClearsMissingStreamOnResourceIDChange(t *testing.T) {
 	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 	client.calls = nil
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	assert.Zero(t, scraper.missing.len(), "the retired resource ID must not stay in the missing set")
 	require.Len(t, client.calls, 1)
@@ -389,7 +389,7 @@ func TestScrapeKeepsStreamsOnRecoverableError(t *testing.T) {
 			}
 			scraper := scraperWithStreams(client, oldResourceID)
 
-			metrics, _ := scraper.scrape(t.Context())
+			metrics := scraper.scrape(t.Context())
 
 			assert.Empty(t, metrics)
 			assert.Zero(t, scraper.missing.len(), "only a missing stream may be excluded")
@@ -413,7 +413,7 @@ func TestScrapeKeepsPartialResults(t *testing.T) {
 		}
 		scraper := scraperWithStreams(client, oldResourceID, sameResourceID)
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.NotEmpty(t, metrics[testKey(oldResourceID)], "events already read must survive a later page error")
 	})
@@ -431,7 +431,7 @@ func TestScrapeKeepsPartialResults(t *testing.T) {
 		}
 		scraper := scraperWithStreams(client, streams...)
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		assert.Len(t, client.calls, 2)
 		assert.NotEmpty(t, metrics[testKey(streams[len(streams)-1])], "a failed batch must not skip the batches after it")
@@ -456,7 +456,7 @@ func TestScrapeKeepsIsolatingWhenAHalfFailsForAnotherReason(t *testing.T) {
 	scraper := scraperWithStreams(client, streams...)
 	startTime := scraper.nextStartTime
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	assert.NotEmpty(t, metrics[testKey(healthy)], "a throttled half must not stop the other half from reporting")
 	assert.True(t, scraper.missing.marked(missing))
@@ -569,7 +569,7 @@ func TestMaxIsolationCallsCoversTheProbeRate(t *testing.T) {
 
 			client, scraper, healthy := scraperWithMissingStreams(missing)
 
-			metrics, _ := scraper.scrape(t.Context())
+			metrics := scraper.scrape(t.Context())
 
 			assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
 			assert.Zero(t, scraper.errorCounts[errorKindOther], "the budget must cover the whole probe rate")
@@ -589,7 +589,7 @@ func TestScrapeConvergesWithMoreMissingStreamsThanProbeSlots(t *testing.T) {
 
 	client, scraper, healthy := scraperWithMissingStreams(missing)
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	assert.Equal(t, missing, scraper.missing.len(), "one scrape must attribute more than a probe cycle's worth")
 	assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
@@ -609,7 +609,7 @@ func TestScrapeKeepsHealthyInstancesReportingAcrossProbeCycles(t *testing.T) {
 			scraper.missing.probeAfter[stream] = time.Now().Add(-time.Minute)
 		}
 
-		metrics, _ := scraper.scrape(t.Context())
+		metrics := scraper.scrape(t.Context())
 
 		for _, stream := range healthy {
 			require.NotEmpty(t, metrics[testKey(stream)],
@@ -666,7 +666,7 @@ func TestScrapeStopsOnContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	metrics, _ := scraper.scrape(ctx)
+	metrics := scraper.scrape(ctx)
 
 	assert.Empty(t, metrics)
 	assert.LessOrEqual(t, len(client.calls), 1, "a cancelled scrape must not keep calling AWS")
@@ -691,7 +691,7 @@ func TestScrapeIsolatesEachBatchIndependently(t *testing.T) {
 	}
 	scraper := scraperWithStreams(client, streams...)
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	assert.NotEmpty(t, metrics[testKey(healthy)],
 		"a batch full of missing streams must not spend the recovery budget of unrelated batches")
@@ -732,7 +732,7 @@ func TestScrapeLeavesBatchesForTheNextScrapeWhenTimeRunsOut(t *testing.T) {
 	scraper := scraperWithStreams(client, streams...)
 	startTime := scraper.nextStartTime
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	// The scrape is bounded by its interval, so isolation can run out of time. What it did not
 	// attribute is retried on the next scrape, with the streams it did exclude already left out.

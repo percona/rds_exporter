@@ -66,9 +66,10 @@ func TestScraper(t *testing.T) {
 			cfg := sess.Configs[session]
 			s := newScraper(session, cfg, instances, logger)
 			s.testDisallowUnknownFields = true
-			metrics, messages := s.scrape(t.Context())
+			recorder := &recordingClient{inner: s.svc, messages: make(map[string]string), newest: make(map[string]int64)}
+			s.svc = recorder
+			metrics := s.scrape(t.Context())
 			require.Len(t, metrics, len(instances))
-			require.Len(t, messages, len(instances))
 
 			for _, instance := range instances {
 				// Test that actually received JSON matches expected JSON.
@@ -83,7 +84,8 @@ func TestScraper(t *testing.T) {
 				actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 				if *golden {
-					writeTestDataJSON(t, instanceName, []byte(messages[keyOf(session, instance)]))
+					require.Contains(t, recorder.messages, instance.ResourceID, "the fixture is the newest message of the stream")
+					writeTestDataJSON(t, instanceName, []byte(recorder.messages[instance.ResourceID]))
 				}
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
@@ -212,7 +214,7 @@ func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
 		unmonitored,
 	})
 
-	metrics, _ := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1)
 	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
@@ -331,13 +333,12 @@ func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
 		testInstance(unchangedPrimaryInstance, sameResourceID),
 	})
 
-	metrics, messages := scraper.scrape(t.Context())
+	metrics := scraper.scrape(t.Context())
 
 	require.Len(t, client.calls, 1)
 	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
+	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)], "the sample comes from the stream the instance was requested under")
 	assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)])
-	assert.Contains(t, messages[testKey(blueGreenPrimaryInstance)], oldResourceID)
 }
 
 func TestRefreshResourceIDs(t *testing.T) {
@@ -722,7 +723,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			s := newScraper(session, sess.Configs[session], instances, logger)
 			s.testDisallowUnknownFields = true
-			metrics, _ := s.scrape(t.Context())
+			metrics := s.scrape(t.Context())
 
 			for _, instance := range instances {
 				actualMetrics := helpers.ReadMetrics(metrics[keyOf(session, instance)].metrics)
