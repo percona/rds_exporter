@@ -63,7 +63,8 @@ func keyOf(session string, instance sessions.Instance) instanceKey {
 	return instanceKey{session: session, region: instance.Region, instance: instance.Instance}
 }
 
-// instanceMetrics is one instance's most recent Enhanced Monitoring sample.
+// instanceMetrics is one instance's most recent Enhanced Monitoring sample, as a scrape found it.
+// The collector stores it as a storedSample, which adds the expiry a scrape does not decide.
 type instanceMetrics struct {
 	metrics   []prometheus.Metric
 	eventTime time.Time

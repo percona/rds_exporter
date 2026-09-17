@@ -44,7 +44,10 @@ const (
 	kindLabel     = "kind"
 )
 
-type instanceState struct {
+// storedSample is what the collector keeps for an instance: the sample a scrape handed it, plus the
+// two clocks the scrape has no say in -- when it stops counting as current, and when the entry is
+// dropped. A scrape's own product is an instanceMetrics, which is this without them.
+type storedSample struct {
 	metrics   []prometheus.Metric
 	eventTime time.Time
 	expiresAt time.Time
@@ -66,7 +69,7 @@ type instanceState struct {
 // caught up, and the instance would report itself down meanwhile. A collected sample always carries
 // the timestamp of a real event, so the zero state of an instance that has never reported is never
 // mistaken for a redelivery.
-func (state instanceState) supersededBy(eventTime time.Time) bool {
+func (state storedSample) supersededBy(eventTime time.Time) bool {
 	if eventTime.After(state.eventTime) {
 		return true
 	}
@@ -104,7 +107,7 @@ type Collector struct {
 	// session's last scrape. It is guarded because Enhanced Monitoring can be turned on or off while
 	// the exporter runs, unlike the configured set.
 	monitored map[instanceKey]bool
-	metrics   map[instanceKey]instanceState
+	metrics   map[instanceKey]storedSample
 	errors    map[errorKey]uint64
 	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock.
 	skewed map[string]uint64
@@ -129,7 +132,7 @@ func newCollector(logger log.Logger) *Collector {
 		configured: make(map[instanceKey]prometheus.Labels),
 		rw:         sync.RWMutex{},
 		monitored:  make(map[instanceKey]bool),
-		metrics:    make(map[instanceKey]instanceState),
+		metrics:    make(map[instanceKey]storedSample),
 		errors:     make(map[errorKey]uint64),
 		skewed:     make(map[string]uint64),
 	}
@@ -333,7 +336,7 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 			continue
 		}
 
-		c.metrics[key] = instanceState{
+		c.metrics[key] = storedSample{
 			metrics:    fresh.metrics,
 			eventTime:  fresh.eventTime,
 			expiresAt:  notAfter(fresh.eventTime, now).Add(ttl),

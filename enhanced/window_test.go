@@ -251,7 +251,7 @@ func TestScrapeKeepsReportingAfterAFutureDatedEvent(t *testing.T) {
 		calls:    nil,
 	}
 	scraper := scraperWithStreams(client, oldResourceID)
-	collector := configuredCollector(map[instanceKey]instanceState{}, oldResourceID)
+	collector := configuredCollector(map[instanceKey]storedSample{}, oldResourceID)
 
 	// A scrape with nothing but a future dated event to go by, which is what an exporter whose clock
 	// is behind AWS collects.

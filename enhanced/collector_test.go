@@ -34,7 +34,7 @@ func testKey(instance string) instanceKey {
 	return instanceKey{session: testSession, region: testRegion, instance: instance}
 }
 
-func testCollector(states map[instanceKey]instanceState) *Collector {
+func testCollector(states map[instanceKey]storedSample) *Collector {
 	collector := newCollector(promlog.New(&promlog.Config{}))
 	collector.metrics = states
 
@@ -43,7 +43,7 @@ func testCollector(states map[instanceKey]instanceState) *Collector {
 
 // configuredCollector returns a collector monitoring the named instances, whether or not they have
 // ever delivered a sample.
-func configuredCollector(states map[instanceKey]instanceState, instances ...string) *Collector {
+func configuredCollector(states map[instanceKey]storedSample, instances ...string) *Collector {
 	collector := testCollector(states)
 	for _, instance := range instances {
 		collector.configured[testKey(instance)] = instanceLabels(testRegion, instance, nil)
@@ -54,7 +54,7 @@ func configuredCollector(states map[instanceKey]instanceState, instances ...stri
 
 // monitoredCollector returns a collector whose last scrape reported the given Enhanced Monitoring
 // state per instance, as AWS has it rather than as the config asks for it.
-func monitoredCollector(states map[instanceKey]instanceState, monitored map[string]bool) *Collector {
+func monitoredCollector(states map[instanceKey]storedSample, monitored map[string]bool) *Collector {
 	instances := make([]string, 0, len(monitored))
 	for instance := range monitored {
 		instances = append(instances, instance)
@@ -210,7 +210,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute)
-		collector := testCollector(map[instanceKey]instanceState{
+		collector := testCollector(map[instanceKey]storedSample{
 			testKey("fresh"): {
 				metrics:    sampleMetrics("fresh"),
 				eventTime:  eventTime,
@@ -243,7 +243,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 	t.Run("reports instances that never delivered", func(t *testing.T) {
 		t.Parallel()
 
-		collector := configuredCollector(map[instanceKey]instanceState{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("reporting"): {
 				metrics:    sampleMetrics("reporting"),
 				eventTime:  time.Now().Add(-time.Minute),
@@ -268,7 +268,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute).Truncate(time.Second)
-		collector := testCollector(map[instanceKey]instanceState{
+		collector := testCollector(map[instanceKey]storedSample{
 			testKey("primary"): {
 				metrics:    sampleMetrics("primary"),
 				eventTime:  eventTime,
@@ -310,7 +310,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 		// them, and health reported by region and name alone would be one series for the two.
 		firstKey := instanceKey{session: firstSession, region: testRegion, instance: sharedName}
 		secondKey := instanceKey{session: secondSession, region: testRegion, instance: sharedName}
-		collector := testCollector(map[instanceKey]instanceState{
+		collector := testCollector(map[instanceKey]storedSample{
 			firstKey: {
 				metrics:    sampleMetrics(sharedName),
 				eventTime:  time.Now().Add(-time.Minute),
@@ -342,7 +342,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 	t.Run("counts a wrong clock outside the error metric", func(t *testing.T) {
 		t.Parallel()
 
-		collector := testCollector(map[instanceKey]instanceState{})
+		collector := testCollector(map[instanceKey]storedSample{})
 
 		collector.setMetrics(scrapeResult{
 			metrics:      nil,
@@ -367,7 +367,7 @@ func TestCollect(t *testing.T) { //nolint:funlen
 	t.Run("runs concurrently with the scrapers", func(t *testing.T) {
 		t.Parallel()
 
-		collector := testCollector(map[instanceKey]instanceState{})
+		collector := testCollector(map[instanceKey]storedSample{})
 
 		var waitGroup sync.WaitGroup
 
@@ -409,7 +409,7 @@ func TestCollectSilentInstances(t *testing.T) {
 	t.Run("reports a configured instance that never delivered a sample", func(t *testing.T) {
 		t.Parallel()
 
-		collector := monitoredCollector(map[instanceKey]instanceState{}, map[string]bool{"silent": true})
+		collector := monitoredCollector(map[instanceKey]storedSample{}, map[string]bool{"silent": true})
 
 		up := findMetric(collect(t, collector), upMetricName, "silent")
 
@@ -420,7 +420,7 @@ func TestCollectSilentInstances(t *testing.T) {
 	t.Run("says nothing about an instance AWS has Enhanced Monitoring off for", func(t *testing.T) {
 		t.Parallel()
 
-		collector := monitoredCollector(map[instanceKey]instanceState{}, map[string]bool{"unmonitored": false})
+		collector := monitoredCollector(map[instanceKey]storedSample{}, map[string]bool{"unmonitored": false})
 
 		// enhancedStreams requests no stream for it, so a sample was never due. Asserting down would be
 		// a standing false alarm that no change to the exporter's own config could clear.
@@ -431,7 +431,7 @@ func TestCollectSilentInstances(t *testing.T) {
 		t.Parallel()
 
 		lastEvent := time.Now().Add(-2 * minMetricsTTL)
-		collector := monitoredCollector(map[instanceKey]instanceState{
+		collector := monitoredCollector(map[instanceKey]storedSample{
 			testKey("retired"): {
 				metrics:    nil,
 				eventTime:  lastEvent,
@@ -471,7 +471,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute)
-		collector := testCollector(map[instanceKey]instanceState{})
+		collector := testCollector(map[instanceKey]storedSample{})
 
 		collector.setMetrics(scrapeResult{
 			metrics: map[instanceKey]instanceMetrics{
@@ -493,7 +493,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 
 		now := time.Now()
 		received := now.Add(-staleRetention - time.Minute)
-		collector := configuredCollector(map[instanceKey]instanceState{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("promoted"): {
 				metrics:    nil,
 				eventTime:  received.Add(time.Hour),
@@ -525,7 +525,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 	t.Run("removes long expired instances", func(t *testing.T) {
 		t.Parallel()
 
-		collector := testCollector(map[instanceKey]instanceState{
+		collector := testCollector(map[instanceKey]storedSample{
 			testKey("retired"): {
 				metrics:    sampleMetrics("retired"),
 				eventTime:  time.Now().Add(-staleRetention - time.Minute),
@@ -549,7 +549,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 	t.Run("replaces an instance after a resource ID change", func(t *testing.T) {
 		t.Parallel()
 
-		collector := testCollector(map[instanceKey]instanceState{})
+		collector := testCollector(map[instanceKey]storedSample{})
 		key := testKey("promoted")
 
 		collector.setMetrics(scrapeResult{
@@ -590,7 +590,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		key := testKey("primary")
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		collector.setMetrics(scrapeResult{
 			metrics:      nil,
@@ -624,7 +624,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute)
-		collector := testCollector(map[instanceKey]instanceState{})
+		collector := testCollector(map[instanceKey]storedSample{})
 		result := scrapeResult{
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
@@ -650,7 +650,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		// CloudWatch accepts event timestamps up to two hours ahead, and an exporter whose clock is
 		// behind AWS has nothing else to judge the instance by, so one gets stored.
@@ -674,7 +674,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 		collector.setMetrics(futureResult(now.Add(-time.Minute)), now)
 		stored := collector.metrics[testKey("primary")]
 
@@ -691,7 +691,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		// A host a few seconds behind AWS stores every latest event dated slightly ahead of its clock.
 		// That is ordinary drift, not a future dated event, so the sample is protected like any other.
@@ -707,7 +707,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		// An event dated in the future is re-delivered on every scrape for as long as the account
 		// keeps it: the request names no end time, and the window starts before it.
@@ -737,7 +737,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "primary")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		// Every event of every scrape is dated ahead, which is what a host an hour behind AWS sees.
 		for scrape := range 3 {
@@ -756,7 +756,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 
 		now := time.Now()
 		eventTime := now.Add(90 * time.Minute)
-		collector := configuredCollector(map[instanceKey]instanceState{}, "skewed")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "skewed")
 		result := scrapeResult{
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("skewed"): {metrics: sampleMetrics("skewed"), eventTime: eventTime},
@@ -790,7 +790,7 @@ func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{}, "lagging")
+		collector := configuredCollector(map[instanceKey]storedSample{}, "lagging")
 
 		collector.setMetrics(scrapeResult{
 			metrics: map[instanceKey]instanceMetrics{
@@ -855,7 +855,7 @@ func TestPrune(t *testing.T) {
 		t.Parallel()
 
 		eventTime := time.Now().Add(-staleRetention - time.Minute)
-		collector := configuredCollector(map[instanceKey]instanceState{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("down"): {
 				metrics:    sampleMetrics("down"),
 				eventTime:  eventTime,
@@ -889,7 +889,7 @@ func TestPrune(t *testing.T) {
 		t.Parallel()
 
 		now := time.Now()
-		collector := configuredCollector(map[instanceKey]instanceState{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("borderline"): {
 				metrics:    sampleMetrics("borderline"),
 				eventTime:  now.Add(-staleRetention),
