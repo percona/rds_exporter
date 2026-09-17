@@ -131,6 +131,17 @@ type scraper struct {
 	isolated        []string
 	rejectedStreams int
 	answered        bool
+	// unansweredRejections holds the streams singled out by the scrapes nothing has answered since,
+	// so that what one scrape could not finish saying about the group is not lost to the next. A
+	// bisect the deadline cuts singles out the streams it reached and never gets to say whether the
+	// group rejected them; the next scrape asks the rest, and only with both does the rejection cover
+	// the fleet. Anything answered empties it: from then on a stream rejected is rejected on its own.
+	unansweredRejections map[string]struct{}
+	// sweepCutShort is whether a sweep since anything last answered was cut by the deadline. It is
+	// what lets the rejections carried above stand in for a sweep: a fleet that is all gone and does
+	// not fit the interval can be rejected over in full only across scrapes, but the first time the
+	// pieces add up the group is still owed the one request that could clear it.
+	sweepCutShort bool
 	// sweep is whether the next scrape asks for every monitored stream, exclusions and probe cap
 	// notwithstanding. It is set by the one kind of news that undermines the exclusions all at once:
 	// the group's account has changed, so the evidence they rest on has to be gathered again.
@@ -160,6 +171,8 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		isolated:              nil,
 		rejectedStreams:       0,
 		answered:              false,
+		unansweredRejections:  make(map[string]struct{}),
+		sweepCutShort:         false,
 		sweep:                 false,
 		sweeping:              false,
 		group:                 newLogGroup(),
@@ -596,28 +609,58 @@ func (s *scraper) beginAttribution() {
 // answer or the rejection is finally the group's to take. The streams this scrape singled out are
 // left as they are until then: excluding them now would exclude them on their own evidence when the
 // group may be what rejected them, and the sweep asks them again either way.
+//
+// Spanning the fleet does not mean within one scrape. A sweep of a fleet that is all gone costs a
+// full bisect, and the deadline cuts one that does not fit the interval at the same place every
+// time; read scrape by scrape, the streams it reached would be excluded, the next scrape would be
+// rejected over the rest and short of the fleet, and the sweep it asked for would be cut again, with
+// the group never blamed and the bisect paid every other scrape for good. The streams singled out by
+// a scrape nothing answered are therefore carried until something is, and count towards the fleet
+// alongside what the present scrape was rejected over; the exclusions an answered scrape made never
+// count, since an answer is what makes a rejection the stream's own. Carried rejections are trusted
+// only once a sweep has been cut, though. The first time they add up to the fleet, the scrape that
+// singled them out may have been cut while the group was gone and the rest rejected after it came
+// back, with the rest gone for real; the sweep asks both at once and settles that in one scrape when
+// it fits, and a pause would cost the instances behind the first ones a TTL for a fault the group no
+// longer has. A sweep that was cut cannot settle it, and the carried rejections are what is left.
 func (s *scraper) attributeRejections(mayBlameGroup bool) {
+	if s.answered {
+		clear(s.unansweredRejections)
+		s.sweepCutShort = false
+	}
+
 	rejectedEverywhere := mayBlameGroup && !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup &&
 		len(s.isolated) == s.rejectedStreams
 
-	if rejectedEverywhere && s.rejectedStreams == len(s.monitoredStreams()) {
-		s.markGroupMissing()
-
-		return
-	}
-
 	if rejectedEverywhere {
+		monitored := s.monitoredStreams()
+
+		heldBack := s.streamsNotRejected(monitored)
+		if heldBack == 0 && (s.rejectedStreams == len(monitored) || s.sweepCutShort) {
+			s.markGroupMissing()
+
+			return
+		}
+
 		s.sweep = true
 
 		level.Info(s.logger).Log(
 			"msg", "CloudWatch rejected every Enhanced Monitoring log stream requested; "+
 				"asking the excluded ones too before blaming the log group.",
 			"log_group", logGroupName,
-			"log_streams_rejected", s.rejectedStreams,
-			"log_streams_excluded", len(s.monitoredStreams())-s.rejectedStreams,
+			"log_streams_rejected", len(monitored)-heldBack,
+			"log_streams_excluded", heldBack,
 		)
 
 		return
+	}
+
+	if !s.answered {
+		s.sweepCutShort = s.sweepCutShort || s.sweeping
+
+		for _, stream := range s.isolated {
+			s.unansweredRejections[stream] = struct{}{}
+		}
 	}
 
 	// A scrape that was answered nowhere has the same gap in its evidence about each stream it singled
@@ -636,6 +679,29 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 	for _, stream := range s.isolated {
 		s.markMissing(stream, tentative)
 	}
+}
+
+// streamsNotRejected counts the monitored streams neither this scrape nor the unanswered scrapes
+// before it were rejected over, which is what still stands between the rejection and the group.
+func (s *scraper) streamsNotRejected(monitored []string) int {
+	rejected := make(map[string]struct{}, len(s.isolated)+len(s.unansweredRejections))
+	for _, stream := range s.isolated {
+		rejected[stream] = struct{}{}
+	}
+
+	for stream := range s.unansweredRejections {
+		rejected[stream] = struct{}{}
+	}
+
+	heldBack := 0
+
+	for _, stream := range monitored {
+		if _, ok := rejected[stream]; !ok {
+			heldBack++
+		}
+	}
+
+	return heldBack
 }
 
 // isolateMissing halves a rejected batch until it can attribute the rejection to single log
@@ -714,6 +780,9 @@ func (s *scraper) markMissing(logStreamName string, tentative bool) {
 // gives the pause up in order to test it, and so brings the session back past this every time it
 // finds nothing. Counting those would turn one outage into a rate.
 func (s *scraper) markGroupMissing() {
+	clear(s.unansweredRejections)
+	s.sweepCutShort = false
+
 	if !s.group.blame(time.Now()) {
 		return
 	}

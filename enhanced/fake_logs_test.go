@@ -66,6 +66,34 @@ func (c *fakeLogsClient) FilterLogEvents(
 	return c.page(c.matchingEvents(input), input.NextToken)
 }
 
+// deadlineClient answers like the fake it wraps until a scrape has made callsBeforeCut requests, and
+// then fails every request the way the scrape deadline does, so that a bisect is cut at the same place
+// on every scrape without a clock in the test. The count is the fake's call log, which a test resets
+// between scrapes.
+type deadlineClient struct {
+	*fakeLogsClient
+
+	callsBeforeCut int
+}
+
+// FilterLogEvents implements cloudwatchlogs.FilterLogEventsAPIClient.
+func (c *deadlineClient) FilterLogEvents(
+	ctx context.Context,
+	input *cloudwatchlogs.FilterLogEventsInput,
+	opts ...func(*cloudwatchlogs.Options),
+) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+	if len(c.calls) < c.callsBeforeCut {
+		return c.fakeLogsClient.FilterLogEvents(ctx, input, opts...)
+	}
+
+	c.calls = append(c.calls, logCall{
+		streams:   slices.Clone(input.LogStreamNames),
+		startTime: aws.ToInt64(input.StartTime),
+	})
+
+	return nil, fmt.Errorf("fake CloudWatch Logs client: %w", context.DeadlineExceeded)
+}
+
 // matchingEvents returns the events of the requested streams that are not older than StartTime.
 func (c *fakeLogsClient) matchingEvents(input *cloudwatchlogs.FilterLogEventsInput) []types.FilteredLogEvent {
 	startTime := aws.ToInt64(input.StartTime)

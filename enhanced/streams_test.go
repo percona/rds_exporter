@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ const missingResourceID = "missing-resource-id"
 
 // scraperWithStreams returns a scraper for instances named after their own resource ID, which keeps
 // batch-shape assertions readable.
-func scraperWithStreams(client *fakeLogsClient, resourceIDs ...string) *scraper {
+func scraperWithStreams(client cloudwatchlogs.FilterLogEventsAPIClient, resourceIDs ...string) *scraper {
 	instances := make([]sessions.Instance, 0, len(resourceIDs))
 	for _, resourceID := range resourceIDs {
 		instances = append(instances, testInstance(resourceID, resourceID))

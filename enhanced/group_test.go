@@ -1004,3 +1004,42 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 	assert.True(t, scraper.group.probeAfter.After(time.Now()),
 		"a throttled probe has spent its turn, so the pause backs off rather than repeating every scrape")
 }
+
+// TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts pins a fleet gone all at once whose bisect
+// does not fit the interval. Each scrape is cut at the same place, so no single scrape is ever
+// rejected over the whole fleet; the rejections have to add up across them, or the group is never
+// blamed and the bisect is paid every other scrape for good. They are only trusted to once the sweep
+// they first add up to has been cut as well: a sweep that fits settles the group's account on its own.
+func TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(16)
+	fake := &fakeLogsClient{events: eventsFor(streams...), missing: nil, errs: nil, pageSize: 0, calls: nil}
+	// A full bisect of sixteen missing streams costs thirty requests; twelve single out five of them.
+	client := &deadlineClient{fakeLogsClient: fake, callsBeforeCut: 12}
+	scraper := scraperWithStreams(client, streams...)
+
+	scraper.scrape(t.Context())
+
+	fake.missing = missingSet(streams...)
+
+	scrapes := 0
+	for scrapes < 8 && !scraper.group.paused() {
+		fake.calls = nil
+
+		scraper.scrape(t.Context())
+
+		scrapes++
+	}
+
+	require.True(t, scraper.group.paused(), "the rejections of the cut scrapes must add up to the fleet")
+	assert.Equal(t, 5, scrapes, "two cut scrapes reach ten streams, the third is rejected over the rest and asks for "+
+		"a sweep, the sweep is cut, and the fifth is rejected over the rest again")
+	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+
+	fake.calls = nil
+
+	scraper.scrape(t.Context())
+
+	assert.Empty(t, fake.calls, "a blamed group is paused, not swept again")
+}
