@@ -934,7 +934,8 @@ func TestScrapeRecoversAFirmExclusionTheDeadlineMadeByMistake(t *testing.T) {
 // it hands the session to must ask the whole fleet, not only the streams a probe slot is due for, or
 // the streams beyond the first maxProbesPerScrape in configuration order would never be asked while
 // the first ones are genuinely gone. A firm exclusion is asked too, since it is not due at all, and
-// the pause it would otherwise wait out is one the group has just been cleared of.
+// the pause it would otherwise wait out is one the group has just been cleared of. The answer that
+// clears it must not buy a second sweep: the fallback has asked everything there was to ask.
 func TestScrapeFallsBackOverTheWholeFleet(t *testing.T) {
 	t.Parallel()
 
@@ -970,6 +971,13 @@ func TestScrapeFallsBackOverTheWholeFleet(t *testing.T) {
 			assert.Len(t, metrics, len(alive), "the instances whose streams exist must report once the fallback asks for them")
 			assert.Equal(t, len(gone), scraper.missing.len(), "the streams that are gone are excluded on their own evidence")
 			assert.False(t, scraper.group.paused(), "a group that answered is not blamed")
+
+			client.calls = nil
+
+			scraper.scrape(t.Context())
+
+			require.Len(t, client.calls, 1, "the fallback was the sweep; the streams it found gone are not bisected again")
+			assert.Equal(t, alive, client.calls[0].streams)
 		})
 	}
 }

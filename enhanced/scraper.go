@@ -134,7 +134,10 @@ type scraper struct {
 	// sweep is whether the next scrape asks for every monitored stream, exclusions and probe cap
 	// notwithstanding. It is set by the one kind of news that undermines the exclusions all at once:
 	// the group's account has changed, so the evidence they rest on has to be gathered again.
-	sweep                 bool
+	sweep bool
+	// sweeping is whether the scrape under way is that sweep. A fallback is one, and the news it
+	// brings must not buy the fleet a second.
+	sweeping              bool
 	group                 logGroup
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
@@ -158,6 +161,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		rejectedStreams:       0,
 		answered:              false,
 		sweep:                 false,
+		sweeping:              false,
 		group:                 newLogGroup(),
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
@@ -199,9 +203,7 @@ func (s *scraper) monitoredStreams() []string {
 // probe slot it would otherwise wait for.
 func (s *scraper) enhancedStreams(now time.Time) []string {
 	monitored := s.monitoredStreams()
-	if s.sweep {
-		s.sweep = false
-
+	if s.sweeping {
 		return monitored
 	}
 
@@ -514,7 +516,7 @@ func (s *scraper) probeCandidates() []string {
 // outright, since they were made on the group's account; a firm one is asked again but kept, so that
 // a stream still gone is re-excluded without being counted or warned about a second time.
 func (s *scraper) resumeUnprobed() {
-	s.sweep = true
+	s.sweeping = true
 	retried := s.missing.releaseTentative()
 
 	level.Info(s.logger).Log(
@@ -559,11 +561,14 @@ func (s *scraper) collectBatch(ctx context.Context, streams []string, sink *even
 	return s.isolateMissing(ctx, streams, sink)
 }
 
-// beginAttribution starts the evidence this scrape will be read from.
+// beginAttribution starts the evidence this scrape will be read from, and takes up the sweep the last
+// one asked for.
 func (s *scraper) beginAttribution() {
 	s.isolated = s.isolated[:0]
 	s.rejectedStreams = 0
 	s.answered = false
+	s.sweeping = s.sweep
+	s.sweep = false
 }
 
 // attributeRejections decides what the rejections this scrape collected were about. CloudWatch
@@ -762,17 +767,21 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 // standing were all made or renewed while the group was gone, whatever evidence they rest on: a firm
 // one made before the group was blamed was renewed by every rejected probe and fallback since, and
 // a fleet coming back would otherwise return maxProbesPerScrape streams per scrape, in whatever order
-// their slots came due, for a fault that has just been explained away.
+// their slots came due, for a fault that has just been explained away. A fallback that is answered
+// has asked the fleet already, and the streams it is rejected over are excluded on their own evidence
+// by the end of it; sweeping again would only bisect them a second time.
 func (s *scraper) noteAnswered(streams []string) {
 	s.answered = true
 
 	if s.group.noteAnswered() {
-		s.sweep = true
+		msg := "CloudWatch log group exists again; requesting every Enhanced Monitoring log stream."
+		if s.sweeping {
+			msg = "CloudWatch log group exists again; resuming Enhanced Monitoring requests."
+		} else {
+			s.sweep = true
+		}
 
-		level.Info(s.logger).Log(
-			"msg", "CloudWatch log group exists again; requesting every Enhanced Monitoring log stream.",
-			"log_group", logGroupName,
-		)
+		level.Info(s.logger).Log("msg", msg, "log_group", logGroupName)
 	}
 
 	s.clearAccepted(streams)
