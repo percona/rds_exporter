@@ -210,7 +210,7 @@ func TestCollect(t *testing.T) {
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute)
-		collector := testCollector(map[instanceKey]storedSample{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("fresh"): {
 				metrics:    sampleMetrics("fresh"),
 				eventTime:  eventTime,
@@ -223,7 +223,7 @@ func TestCollect(t *testing.T) {
 				expiresAt:  time.Now().Add(-time.Minute),
 				receivedAt: time.Now(),
 			},
-		})
+		}, "fresh", "expired")
 
 		metrics := collect(t, collector)
 
@@ -268,14 +268,14 @@ func TestCollect(t *testing.T) {
 		t.Parallel()
 
 		eventTime := time.Now().Add(-time.Minute).Truncate(time.Second)
-		collector := testCollector(map[instanceKey]storedSample{
+		collector := configuredCollector(map[instanceKey]storedSample{
 			testKey("primary"): {
 				metrics:    sampleMetrics("primary"),
 				eventTime:  eventTime,
 				expiresAt:  time.Now().Add(time.Minute),
 				receivedAt: time.Now(),
 			},
-		})
+		}, "primary")
 		collector.errors[errorKey{region: testRegion, kind: errorKindThrottling}] = 3
 
 		metrics := collect(t, collector)
@@ -337,6 +337,34 @@ func TestCollect(t *testing.T) {
 		lastEvent := findMetric(metrics, lastEventMetricName, sharedName)
 		require.NotNil(t, lastEvent)
 		assert.Equal(t, firstAccount, lastEvent.Labels[accountLabel])
+	})
+
+	t.Run("reports no health for a sample it was not configured with", func(t *testing.T) {
+		t.Parallel()
+
+		// A key without configured labels cannot be stored, and reporting one under bare labels anyway
+		// would collide with a configured instance of the same name that has no extra labels.
+		collector := configuredCollector(map[instanceKey]storedSample{
+			testKey("configured"): {
+				metrics:    sampleMetrics("configured"),
+				eventTime:  time.Now().Add(-time.Minute),
+				expiresAt:  time.Now().Add(time.Minute),
+				receivedAt: time.Now(),
+			},
+			testKey("stray"): {
+				metrics:    sampleMetrics("stray"),
+				eventTime:  time.Now().Add(-time.Minute),
+				expiresAt:  time.Now().Add(time.Minute),
+				receivedAt: time.Now(),
+			},
+		}, "configured")
+
+		metrics := collect(t, collector)
+
+		require.NotNil(t, findMetric(metrics, upMetricName, "configured"))
+		assert.Nil(t, findMetric(metrics, upMetricName, "stray"))
+		assert.Nil(t, findMetric(metrics, lastEventMetricName, "stray"))
+		assert.Nil(t, findMetric(metrics, osMetricName, "stray"))
 	})
 
 	t.Run("counts a wrong clock outside the error metric", func(t *testing.T) {
@@ -549,7 +577,7 @@ func TestSetMetrics(t *testing.T) {
 	t.Run("replaces an instance after a resource ID change", func(t *testing.T) {
 		t.Parallel()
 
-		collector := testCollector(map[instanceKey]storedSample{})
+		collector := configuredCollector(map[instanceKey]storedSample{}, "promoted")
 		key := testKey("promoted")
 
 		collector.setMetrics(scrapeResult{

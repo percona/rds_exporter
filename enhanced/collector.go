@@ -241,6 +241,14 @@ func (c *Collector) configure(all map[string][]sessions.Instance) map[string][]s
 // contributes no metrics, so an outage renders as a gap rather than a flat line.
 func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) {
 	for key, state := range c.metrics {
+		// Every stored key was configured before its scraper started, and prune drops one that was
+		// not rather than keeping it, so a key without labels here is a bug. Reporting it under
+		// made-up labels would collide with a configured instance's and fail the whole exposition.
+		labels, configured := c.configured[key]
+		if !configured {
+			continue
+		}
+
 		current := now.Before(state.expiresAt)
 		if current {
 			for _, m := range state.metrics {
@@ -249,41 +257,30 @@ func (c *Collector) collectSamples(out chan<- prometheus.Metric, now time.Time) 
 		}
 
 		if current || !c.silenced(key) {
-			c.emitUp(out, key, current)
+			emitUp(out, labels, current)
 		}
 
 		if !state.eventTime.IsZero() {
-			c.emitLastEvent(out, key, state.eventTime)
+			emitLastEvent(out, labels, state.eventTime)
 		}
 	}
 }
 
-func (c *Collector) emitUp(out chan<- prometheus.Metric, key instanceKey, current bool) {
-	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(upMetricName, upMetricHelp, nil, c.labelsOf(key)),
+func emitUp(out chan<- prometheus.Metric, labels prometheus.Labels, current bool) {
+	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(upMetricName, upMetricHelp, nil, labels),
 		prometheus.GaugeValue, boolToFloat(current))
 }
 
-func (c *Collector) emitLastEvent(out chan<- prometheus.Metric, key instanceKey, eventTime time.Time) {
-	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(lastEventMetricName, lastEventMetricHelp, nil, c.labelsOf(key)),
+func emitLastEvent(out chan<- prometheus.Metric, labels prometheus.Labels, eventTime time.Time) {
+	out <- prometheus.MustNewConstMetric(prometheus.NewDesc(lastEventMetricName, lastEventMetricHelp, nil, labels),
 		prometheus.GaugeValue, float64(eventTime.Unix()))
-}
-
-// labelsOf returns the labels an instance's health is reported under. A key the collector was not
-// configured with can only be a sample prune has not released yet, and it is reported by region and
-// name until then rather than dropped.
-func (c *Collector) labelsOf(key instanceKey) prometheus.Labels {
-	if labels, configured := c.configured[key]; configured {
-		return labels
-	}
-
-	return instanceLabels(key.region, key.instance, nil)
 }
 
 // collectSilentInstances reports the instances that have never delivered a sample as down. A log
 // stream that does not exist otherwise leaves an instance with no series at all, which can only be
 // alerted on with absent().
 func (c *Collector) collectSilentInstances(out chan<- prometheus.Metric) {
-	for key := range c.configured {
+	for key, labels := range c.configured {
 		if _, reported := c.metrics[key]; reported {
 			continue
 		}
@@ -292,7 +289,7 @@ func (c *Collector) collectSilentInstances(out chan<- prometheus.Metric) {
 			continue
 		}
 
-		c.emitUp(out, key, false)
+		emitUp(out, labels, false)
 	}
 }
 
