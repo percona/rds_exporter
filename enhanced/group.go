@@ -166,14 +166,15 @@ func (g *logGroup) noteProbeRejected(now time.Time) {
 
 // noteAnswered records that the group exists and is not the suspect any more, so that the next time
 // it is blamed is a new outage whose first fallback is worth paying for again. It reports whether
-// that ended a pause.
+// that cleared the group of blame, which covers ending a pause: a fallback gives the pause up and
+// keeps the blame, and the answer that clears it is news either way.
 func (g *logGroup) noteAnswered() bool {
+	recovered := g.blamed
+
 	g.seen = true
 	g.blamed = false
 	g.unproductiveFallbacks = 0
-
-	resumed := g.paused()
 	g.probeAfter = time.Time{}
 
-	return resumed
+	return recovered
 }

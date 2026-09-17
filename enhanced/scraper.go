@@ -757,12 +757,20 @@ func (s *scraper) collectPages(ctx context.Context, streams []string, sink *even
 
 // noteAnswered records everything an answered request proves: the log group exists, every stream it
 // listed exists, and the batch being bisected has at least one half that is not the problem.
+//
+// A group cleared of blame has the next scrape ask the whole fleet at once. The exclusions still
+// standing were all made or renewed while the group was gone, whatever evidence they rest on: a firm
+// one made before the group was blamed was renewed by every rejected probe and fallback since, and
+// a fleet coming back would otherwise return maxProbesPerScrape streams per scrape, in whatever order
+// their slots came due, for a fault that has just been explained away.
 func (s *scraper) noteAnswered(streams []string) {
 	s.answered = true
 
 	if s.group.noteAnswered() {
+		s.sweep = true
+
 		level.Info(s.logger).Log(
-			"msg", "CloudWatch log group exists again; resuming Enhanced Monitoring requests.",
+			"msg", "CloudWatch log group exists again; requesting every Enhanced Monitoring log stream.",
 			"log_group", logGroupName,
 		)
 	}

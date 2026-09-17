@@ -666,7 +666,9 @@ func TestScrapeProbesTheLogGroupWithAStreamAlreadyExcluded(t *testing.T) {
 // were excluded on their own evidence before the group went dark: those are gone whatever the group
 // is doing, so a probe spent on one buys the whole session another TTL of silence and learns nothing.
 // The rotation must skip them, or a fleet whose first few streams are gone would wait through a
-// rejected probe per gone stream, and then a fallback bisect, to notice a group that is back.
+// rejected probe per gone stream, and then a fallback bisect, to notice a group that is back. The
+// sweep that follows the group's answer asks them all the same, once, since an exclusion renewed
+// through an outage is not the evidence it was.
 func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
 	t.Parallel()
 
@@ -705,9 +707,46 @@ func TestScrapeProbesTheLogGroupPastTheStreamsAlreadyGone(t *testing.T) {
 
 	metrics, _ := scraper.scrape(t.Context())
 
-	assert.Len(t, client.calls, 1, "the next scrape asks the fleet in one request, not a bisect")
+	require.NotEmpty(t, client.calls)
+	assert.Equal(t, streams, client.calls[0].streams, "the next scrape asks the whole fleet, the streams excluded included")
 	assert.Len(t, metrics, len(alive), "the instances whose streams exist report as soon as the pause ends")
 	assert.Equal(t, len(gone), scraper.missing.len(), "the streams gone on their own evidence stay excluded")
+	assert.Zero(t, scraper.errorCounts[errorKindNotFound]-uint64(len(gone)),
+		"a stream excluded before the outage and still gone after it is counted once")
+}
+
+// TestScrapeRetriesEveryExclusionOnceTheLogGroupAnswers covers a fleet coming back from an outage
+// with every stream excluded on its own evidence: waiting for their probe slots would let them
+// return maxProbesPerScrape per scrape, over as many scrapes as it takes, for a fault the group's
+// answer has just explained away.
+func TestScrapeRetriesEveryExclusionOnceTheLogGroupAnswers(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(3 * maxProbesPerScrape)
+	scraper, client := blamedGroupScraper(t, streams...)
+
+	for _, stream := range streams {
+		scraper.missing.mark(stream, time.Now(), false)
+	}
+
+	// The group is back with every stream in it.
+	client.missing = nil
+	client.events = eventsFor(streams...)
+
+	makeProbeDue(scraper)
+
+	scraper.scrape(t.Context())
+
+	require.False(t, scraper.group.paused(), "an answered probe ends the pause")
+
+	client.calls = nil
+
+	metrics, _ := scraper.scrape(t.Context())
+
+	require.Len(t, client.calls, 1, "the whole fleet fits one request")
+	assert.Equal(t, streams, client.calls[0].streams, "every exclusion is retried at once, due or not")
+	assert.Len(t, metrics, len(streams), "every instance reports on the first scrape after the pause")
+	assert.Zero(t, scraper.missing.len())
 }
 
 // TestScrapeAsksTheStreamsHeldBackBeforeBlamingTheLogGroup covers a scrape that asked for the few
