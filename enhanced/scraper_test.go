@@ -156,6 +156,7 @@ func newTestScraperWith(
 		isolated:                  nil,
 		rejectedStreams:           0,
 		answered:                  false,
+		sweep:                     false,
 		group:                     newLogGroup(),
 		errorCounts:               make(map[string]uint64),
 		skewedEvents:              0,

@@ -122,15 +122,19 @@ func (sink *eventSink) latest(times map[instanceKey]time.Time) (map[instanceKey]
 
 // scraper retrieves metrics from several RDS instances sharing a single session.
 type scraper struct {
-	session               string
-	instances             []sessions.Instance
-	svc                   cloudwatchlogs.FilterLogEventsAPIClient
-	stateResolver         instanceStateResolver
-	missing               *missingStreams
-	isolationCalls        int
-	isolated              []string
-	rejectedStreams       int
-	answered              bool
+	session         string
+	instances       []sessions.Instance
+	svc             cloudwatchlogs.FilterLogEventsAPIClient
+	stateResolver   instanceStateResolver
+	missing         *missingStreams
+	isolationCalls  int
+	isolated        []string
+	rejectedStreams int
+	answered        bool
+	// sweep is whether the next scrape asks for every monitored stream, exclusions and probe cap
+	// notwithstanding. It is set by the one kind of news that undermines the exclusions all at once:
+	// the group's account has changed, so the evidence they rest on has to be gathered again.
+	sweep                 bool
 	group                 logGroup
 	errorCounts           map[string]uint64
 	skewedEvents          uint64
@@ -153,6 +157,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		isolated:              nil,
 		rejectedStreams:       0,
 		answered:              false,
+		sweep:                 false,
 		group:                 newLogGroup(),
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
@@ -188,9 +193,18 @@ func (s *scraper) monitoredStreams() []string {
 
 // enhancedStreams returns the log streams to request metrics from: the monitored streams less those
 // CloudWatch already reported as missing, which are left out until their probe is due, because
-// CloudWatch rejects the whole request when any single requested stream does not exist.
+// CloudWatch rejects the whole request when any single requested stream does not exist. A sweep asks
+// for all of them once: the exclusions it overrides were made under a verdict on the group that has
+// since changed, and a stream that is still gone costs the bisect once rather than the TTL and the
+// probe slot it would otherwise wait for.
 func (s *scraper) enhancedStreams(now time.Time) []string {
 	monitored := s.monitoredStreams()
+	if s.sweep {
+		s.sweep = false
+
+		return monitored
+	}
+
 	streams := make([]string, 0, len(monitored))
 	probes := 0
 
@@ -467,8 +481,9 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 // that the rotation cursor keeps advancing over the same list from one scrape to the next. A firm
 // exclusion is left out on trust: one made by mistake, on a stream a bisect the deadline cut singled
 // out before the group was blamed, is indistinguishable from a right one, and the stream it names
-// waits for the fallback instead of a probe. That is one pause of delay for a mistake the pause did
-// not make, against a probe wasted on every stream known to be gone for a mistake it did.
+// waits for the sweep that ends the pause instead of a probe. That is one pause of delay for a
+// mistake the pause did not make, against a probe wasted on every stream known to be gone for a
+// mistake it did.
 func (s *scraper) probeCandidates() []string {
 	monitored := s.monitoredStreams()
 	candidates := make([]string, 0, len(monitored))
@@ -493,11 +508,13 @@ func (s *scraper) probeCandidates() []string {
 // those streams and excludes them, which is what lets the instances behind them recover, or is
 // rejected everywhere and blames the group again for another round of probes.
 //
-// The exclusions made while the group was in doubt are released first, so that the bisect asks the
-// whole fleet. They were made on the group's account, and a fallback is the one request that can
-// settle the group's account: left in place they would keep all but maxProbesPerScrape streams out
-// of it, and a fleet whose first few streams are genuinely gone would never be asked beyond them.
+// The bisect asks the whole fleet, whatever is excluded and whether or not a probe slot is due: a
+// fallback is the one request that can settle the group's account, and every stream left out of it
+// is a stream it cannot speak for. The exclusions made while the group was in doubt are released
+// outright, since they were made on the group's account; a firm one is asked again but kept, so that
+// a stream still gone is re-excluded without being counted or warned about a second time.
 func (s *scraper) resumeUnprobed() {
+	s.sweep = true
 	retried := s.missing.releaseTentative()
 
 	level.Info(s.logger).Log(
@@ -563,10 +580,37 @@ func (s *scraper) beginAttribution() {
 // therefore attributes its streams and leaves the group alone: holding the streams back as well
 // would leave a bisect nothing to show for itself, and the next scrape would pay the same doomed
 // bisect over the same batch for as long as whatever stopped this one lasts.
+//
+// The evidence has to span the fleet as well. A scrape that asked for the few streams a probe slot
+// was due for, and was rejected everywhere, has heard nothing from the streams it held back, and
+// those are exactly the ones that would answer if the group were fine: an exclusion is a stream that
+// was gone, not one that still is. Blaming the group on that would pause every instance for a TTL
+// over the streams known to be gone, and a fleet whose first maxProbesPerScrape exclusions stayed
+// gone would be paused again every time their slots came due, while the streams behind them were
+// never asked. The next scrape asks the whole fleet instead, and either the held-back streams
+// answer or the rejection is finally the group's to take. The streams this scrape singled out are
+// left as they are until then: excluding them now would exclude them on their own evidence when the
+// group may be what rejected them, and the sweep asks them again either way.
 func (s *scraper) attributeRejections(mayBlameGroup bool) {
-	if mayBlameGroup && !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup &&
-		len(s.isolated) == s.rejectedStreams {
+	rejectedEverywhere := mayBlameGroup && !s.answered && s.rejectedStreams >= minStreamsToBlameTheGroup &&
+		len(s.isolated) == s.rejectedStreams
+
+	if rejectedEverywhere && s.rejectedStreams == len(s.monitoredStreams()) {
 		s.markGroupMissing()
+
+		return
+	}
+
+	if rejectedEverywhere {
+		s.sweep = true
+
+		level.Info(s.logger).Log(
+			"msg", "CloudWatch rejected every Enhanced Monitoring log stream requested; "+
+				"asking the excluded ones too before blaming the log group.",
+			"log_group", logGroupName,
+			"log_streams_rejected", s.rejectedStreams,
+			"log_streams_excluded", len(s.monitoredStreams())-s.rejectedStreams,
+		)
 
 		return
 	}
