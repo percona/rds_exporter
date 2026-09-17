@@ -179,7 +179,7 @@ func TestScrapeProbesTheLogGroupWithOneStream(t *testing.T) {
 	require.Len(t, client.calls, 1, "one stream answers for the whole group")
 	assert.Equal(t, streams[:1], client.calls[0].streams)
 	assert.Zero(t, scraper.missing.len(), "a probe rejected for the group says nothing about its stream")
-	assert.True(t, scraper.group.probeAfter.After(time.Now()), "a failed probe must wait another TTL")
+	assert.True(t, scraper.group.probeAfter.After(time.Now()), "a rejected probe must wait for the next turn")
 }
 
 func TestScrapeRecoversWhenTheLogGroupExistsAgain(t *testing.T) {
@@ -397,7 +397,7 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 
 	var metrics map[instanceKey]instanceMetrics
 
-	for range maxRejectedProbes + 1 {
+	for range scraper.group.fallbackThreshold() + 1 {
 		makeProbeDue(scraper)
 
 		metrics, _ = scraper.scrape(t.Context())
@@ -409,10 +409,10 @@ func TestScrapeIsolatesTheStreamsItsProbesKeptLandingOn(t *testing.T) {
 }
 
 // TestScrapeFallsBackForALogGroupThatNeverAnswered covers a session whose group was gone from its
-// first scrape. Its probes rotate one stream per TTL, so a fleet of which only the last stream exists
-// would wait a TTL per stream ahead of it to report; the fallback asks the whole fleet after
-// fallbackThreshold rejected probes, and backs off like a group that went dark, so that a region that
-// never enabled Enhanced Monitoring pays one bisect per two hours for it at most.
+// first scrape. Its probes rotate one stream per scrape, so a fleet of which only the last stream
+// exists would wait a scrape per stream ahead of it to report; the fallback asks the whole fleet
+// after fallbackThreshold rejected probes, and backs off like a group that went dark, so that a
+// region that never enabled Enhanced Monitoring pays one bisect per few hours for it at most.
 func TestScrapeFallsBackForALogGroupThatNeverAnswered(t *testing.T) {
 	t.Parallel()
 
@@ -433,7 +433,7 @@ func TestScrapeFallsBackForALogGroupThatNeverAnswered(t *testing.T) {
 
 		var metrics map[instanceKey]instanceMetrics
 
-		for range maxRejectedProbes + 1 {
+		for range scraper.group.fallbackThreshold() + 1 {
 			makeProbeDue(scraper)
 
 			metrics, _ = scraper.scrape(t.Context())
@@ -454,10 +454,11 @@ func TestScrapeFallsBackForALogGroupThatNeverAnswered(t *testing.T) {
 
 		scraper.scrape(t.Context())
 
-		gaps := fallbackGaps(t, scraper, client, 32)
+		threshold := scraper.group.fallbackThreshold()
+		gaps := fallbackGaps(t, scraper, client, 8*threshold)
 
 		require.GreaterOrEqual(t, len(gaps), 3, "three fallbacks must fit in these scrapes")
-		assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
+		assert.Equal(t, []int{threshold, 2 * threshold, 4 * threshold}, gaps[:3],
 			"a region without Enhanced Monitoring is bisected less and less often")
 		assert.Zero(t, scraper.missing.len(), "a fallback rejected everywhere names no stream")
 		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound], "one group missing is one error")
@@ -469,7 +470,7 @@ func TestScrapeReportsALogGroupOutageOnce(t *testing.T) {
 
 	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
 
-	gaps := fallbackGaps(t, scraper, client, 32)
+	gaps := fallbackGaps(t, scraper, client, 8*scraper.group.fallbackThreshold())
 	require.NotEmpty(t, gaps, "the fallbacks this is about must have happened")
 
 	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
@@ -484,10 +485,11 @@ func TestScrapeStopsPayingForFallbacksThatFindNothing(t *testing.T) {
 
 	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
 
-	gaps := fallbackGaps(t, scraper, client, 32)
+	threshold := scraper.group.fallbackThreshold()
+	gaps := fallbackGaps(t, scraper, client, 8*threshold)
 
 	require.GreaterOrEqual(t, len(gaps), 3, "three fallbacks must fit in these scrapes")
-	assert.Equal(t, []int{maxRejectedProbes, 2 * maxRejectedProbes, 4 * maxRejectedProbes}, gaps[:3],
+	assert.Equal(t, []int{threshold, 2 * threshold, 4 * threshold}, gaps[:3],
 		"a fallback that found nothing makes the next one wait twice as long")
 }
 
@@ -500,7 +502,7 @@ func TestScrapeWarnsAboutAMissingLogStreamOnlyOnceTheLogGroupAnswers(t *testing.
 
 		scraper, client := blamedGroupScraper(t, streams...)
 		scraper.logger = level.NewFilter(log.NewLogfmtLogger(buf), level.AllowDebug())
-		scraper.group.rejectedProbes = maxRejectedProbes
+		scraper.group.rejectedProbes = scraper.group.fallbackThreshold()
 		makeProbeDue(scraper)
 
 		return scraper, client
@@ -554,7 +556,7 @@ func TestScrapeRetriesTheStreamsExcludedWhileTheLogGroupWasInDoubt(t *testing.T)
 		t.Helper()
 
 		scraper, client := blamedGroupScraper(t, streams...)
-		scraper.group.rejectedProbes = maxRejectedProbes
+		scraper.group.rejectedProbes = scraper.group.fallbackThreshold()
 		makeProbeDue(scraper)
 
 		client.errs = []error{nil, nil, nil, nil, context.DeadlineExceeded}
@@ -962,7 +964,7 @@ func TestScrapeFallsBackOverTheWholeFleet(t *testing.T) {
 
 			var metrics map[instanceKey]instanceMetrics
 
-			for range maxRejectedProbes + 1 {
+			for range scraper.group.fallbackThreshold() + 1 {
 				makeProbeDue(scraper)
 
 				metrics, _ = scraper.scrape(t.Context())
@@ -987,7 +989,7 @@ func TestScrapeDoesNotCountAThrottledLogGroupProbe(t *testing.T) {
 
 	scraper, client := blamedGroupScraper(t, resourceIDs(10)...)
 
-	for range maxRejectedProbes + 1 {
+	for range scraper.group.fallbackThreshold() + 1 {
 		makeProbeDue(scraper)
 
 		client.errs = []error{throttlingError()}
@@ -1053,4 +1055,86 @@ func TestScrapeBlamesTheLogGroupAcrossScrapesTheDeadlineCuts(t *testing.T) {
 	scraper.scrape(t.Context())
 
 	assert.Empty(t, fake.calls, "a blamed group is paused, not swept again")
+}
+
+// TestScrapeProbesEveryStreamWithinATTL covers a fleet blamed together, as a blue/green switchover of
+// every instance in a session leaves it while CloudWatch has yet to create the new streams. The
+// streams then appear at their own pace, and one probe per TTL would hold the first of them back a
+// TTL per stream ahead of it in the rotation: the probes are spaced so that the rotation goes round
+// the fleet once per TTL instead.
+func TestScrapeProbesEveryStreamWithinATTL(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(3)
+	scraper, client := blamedGroupScraper(t, streams...)
+
+	spacing := missingStreamTTL / time.Duration(len(streams))
+	assert.WithinDuration(t, time.Now().Add(spacing), scraper.group.probeAfter, time.Second,
+		"the first probe is due a third of a TTL after the blame")
+
+	// The last stream of the rotation is the first to exist again.
+	client.missing = missingSet(streams[:2]...)
+	client.events = eventsFor(streams[2])
+
+	for turn, stream := range streams {
+		makeProbeDue(scraper)
+
+		client.calls = nil
+
+		metrics, _ := scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.Equal(t, []string{stream}, client.calls[0].streams, "the rotation asks the streams in turn")
+
+		if turn < len(streams)-1 {
+			assert.WithinDuration(t, time.Now().Add(spacing), scraper.group.probeAfter, time.Second,
+				"a rejected probe waits a third of a TTL, not a whole one")
+			assert.Empty(t, metrics)
+
+			continue
+		}
+
+		assert.False(t, scraper.group.paused(), "the stream that exists clears the group")
+		assert.NotEmpty(t, metrics[testKey(stream)], "the instance behind it reports on the probe that found it")
+	}
+}
+
+// TestScrapeFallsBackAfterATTLOfRejectedProbes covers a fleet too large for its scrape interval to
+// probe in full within a TTL. The probes come one per scrape, and the pause is given up after a TTL's
+// worth of them rather than after a fixed count, so that the fallback still asks the whole fleet
+// within a TTL of the blame.
+func TestScrapeFallsBackAfterATTLOfRejectedProbes(t *testing.T) {
+	t.Parallel()
+
+	streams := resourceIDs(maxLogStreamsPerRequest)
+	scraper, client := blamedGroupScraper(t, streams...)
+
+	interval := scraper.interval()
+	require.Greater(t, interval*time.Duration(len(streams)), missingStreamTTL,
+		"the fleet must be too large to go round within a TTL for this test to mean anything")
+	assert.WithinDuration(t, time.Now().Add(interval), scraper.group.probeAfter, time.Second,
+		"probes come no more often than scrapes")
+
+	probes := int(missingStreamTTL / interval)
+	require.Equal(t, probes, scraper.group.fallbackThreshold())
+
+	for range probes {
+		makeProbeDue(scraper)
+
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.Len(t, client.calls[0].streams, 1, "a TTL's worth of probes come first")
+	}
+
+	makeProbeDue(scraper)
+
+	client.calls = nil
+
+	scraper.scrape(t.Context())
+
+	require.NotEmpty(t, client.calls)
+	assert.Equal(t, streams, client.calls[0].streams, "a TTL of rejected probes hands the fleet to the bisect")
 }

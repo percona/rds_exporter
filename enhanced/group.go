@@ -13,26 +13,26 @@ const (
 	// so a session that small attributes its streams instead.
 	minStreamsToBlameTheGroup = 3
 
-	// maxRejectedProbes is how many unanswered probes a blamed log group is given before the session
-	// goes back to isolating its streams. A rejected probe cannot say whether the group or the stream
-	// it named is what does not exist, so a rotation that keeps landing on streams that are genuinely
-	// gone would hold the whole session back one TTL at a time for as long as they stay gone. Three
-	// keeps the cheap explanation cheap -- a group that really is missing is asked for one stream
-	// three times before it costs a bisect -- while capping what the expensive one can cost the
-	// instances that are fine.
-	maxRejectedProbes = 3
+	// minProbesBeforeFallback is the fewest rejected probes a blamed log group is given before the
+	// session goes back to isolating its streams. The pause is otherwise given up after a TTL's worth
+	// of them, however many the spacing fits in one, but a fleet of one or two streams is probed no
+	// more often than once a TTL, and giving it up after one rejection would hand a bisect the same
+	// answer the probe had. Three keeps the cheap explanation cheap for the smallest fleets -- a group
+	// that really is missing is asked for one stream three times before it costs a bisect -- while
+	// capping what the expensive one can cost the instances that are fine.
+	minProbesBeforeFallback = 3
 
 	// maxProbeBackoff caps how far the wait between fallbacks is allowed to double. A fallback is
 	// worth its bisect early and worth much less late: the probe rotation recovers a wrongly blamed
 	// group on its own as soon as it lands on a stream that answers, so what a fallback buys is
-	// arriving there sooner, and buying that again every fifteen minutes spends the fleet's whole
-	// request budget on an answer that has not changed since the last one. What the cap sets is how
-	// long a session can take to notice a fleet coming back after everything in it stayed gone: the
-	// fallback is the only thing that asks the whole fleet at once, so nothing else would find the
-	// first stream to return until the rotation reached it. Three doublings stretch the wait from
-	// three pauses to twenty-four, which is two hours at missingStreamTTL, and leave the cost of
-	// staying ready one bisect per two hours rather than one per fifteen minutes.
-	maxProbeBackoff = 3
+	// arriving there sooner, and buying that again every TTL spends the fleet's whole request budget
+	// on an answer that has not changed since the last one. What the cap sets is how long a session
+	// can take to notice a fleet coming back after everything in it stayed gone: the fallback is the
+	// only thing that asks the whole fleet at once, so nothing else would find the first stream to
+	// return until the rotation reached it. Five doublings stretch the wait from one TTL to
+	// thirty-two, which is two hours and forty minutes at missingStreamTTL, and leave the cost of
+	// staying ready one bisect per that rather than one per five minutes.
+	maxProbeBackoff = 5
 )
 
 // logGroup is what a session knows about its RDSOSMetrics log group: whether it has ever answered,
@@ -43,6 +43,10 @@ type logGroup struct {
 	// probeAfter is when the next probe of a paused session is due. Zero while requests are not
 	// paused, which is the ordinary state.
 	probeAfter time.Time
+	// spacing is the wait between the probes of the current pause. The scraper sets it from the
+	// fleet, so that the rotation covers every stream the group could be blamed for within one TTL
+	// when the scrape interval allows, and asks one stream per scrape when it does not.
+	spacing time.Duration
 	// probes is the rotation cursor. It is deliberately never rewound, so that the probes following
 	// a fallback ask streams the earlier ones did not.
 	probes int
@@ -66,6 +70,7 @@ type logGroup struct {
 func newLogGroup() logGroup {
 	return logGroup{
 		probeAfter:            time.Time{},
+		spacing:               0,
 		probes:                0,
 		rejectedProbes:        0,
 		unproductiveFallbacks: 0,
@@ -96,27 +101,38 @@ func (g *logGroup) inDoubt() bool {
 }
 
 // fallbackThreshold is how many rejected probes the current pause is given before it is abandoned
-// for a bisect. It doubles for each fallback of the outage that found nothing, up to maxProbeBackoff.
+// for a bisect: a TTL's worth at the current spacing, and never fewer than minProbesBeforeFallback.
+// It doubles for each fallback of the outage that found nothing, up to maxProbeBackoff.
 func (g *logGroup) fallbackThreshold() int {
-	return maxRejectedProbes << g.unproductiveFallbacks
+	probesPerTTL := 1
+	if g.spacing > 0 {
+		probesPerTTL = int(missingStreamTTL / g.spacing)
+	}
+
+	return max(minProbesBeforeFallback, probesPerTTL) << g.unproductiveFallbacks
 }
 
 // probe decides what a paused session requests: nothing until the probe is due, then the next stream
 // of the rotation. Which stream is asked rotates, because a probe rejected while the group is presumed
 // missing is credited to the group and teaches nothing about the stream it named; asking the same one
-// every time is unrecoverable once that stream is the only thing still gone. Rotating is not enough
-// on its own, because every stream it lands on while they are all still gone buys the pause another
-// TTL, so the pause is given up after fallbackThreshold rejected probes, and the streams are isolated
-// the ordinary way. A group that has never answered falls back like any other: a region that never
-// enabled Enhanced Monitoring pays a bisect for the answer a probe already had, but the backoff makes
-// that one bisect per two hours at most, whereas a fleet of which one stream exists would otherwise
-// wait a TTL per stream ahead of it in the rotation for that one instance to report. A session with
-// no stream to name waits as if the probe were not due: it has nothing to ask, and giving up would
-// hand a bisect nothing either.
-func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision) {
+// every time is unrecoverable once that stream is the only thing still gone. The probes are spaced
+// so that the rotation goes round the fleet once per TTL where the scrape interval allows: a fleet
+// blamed together because its streams were not created yet has each of them asked within a TTL of
+// existing, where one probe per TTL would have held the last of them back a TTL per stream ahead of
+// it. Rotating is not enough on its own, because every stream it lands on while they are all still
+// gone buys the pause more silence, so the pause is given up after fallbackThreshold rejected probes,
+// and the streams are isolated the ordinary way. A group that has never answered falls back like any
+// other: a region that never enabled Enhanced Monitoring pays a bisect for the answer a probe already
+// had, but the backoff makes that one bisect per few hours at most, whereas a fleet too large for
+// its interval to be gone round in a TTL would otherwise wait a scrape per stream ahead of the one
+// that exists for that one instance to report. A session with no stream to name waits as if the
+// probe were not due: it has nothing to ask, and giving up would hand a bisect nothing either.
+func (g *logGroup) probe(streams []string, now time.Time, spacing time.Duration) (string, probeDecision) {
 	if !g.paused() {
 		return "", probeNotPaused
 	}
+
+	g.spacing = spacing
 
 	if now.Before(g.probeAfter) || len(streams) == 0 {
 		return "", probeWaiting
@@ -134,11 +150,12 @@ func (g *logGroup) probe(streams []string, now time.Time) (string, probeDecision
 	return stream, probeDue
 }
 
-// blame pauses requests for a TTL and reports whether that is news. Blame the session already held
-// is not: reaching here twice means a fallback bisected the fleet and found nothing that answers.
-// Only the probes of the new pause count towards abandoning it.
-func (g *logGroup) blame(now time.Time) bool {
-	g.probeAfter = now.Add(missingStreamTTL)
+// blame pauses requests until the first probe is due and reports whether that is news. Blame the
+// session already held is not: reaching here twice means a fallback bisected the fleet and found
+// nothing that answers. Only the probes of the new pause count towards abandoning it.
+func (g *logGroup) blame(now time.Time, spacing time.Duration) bool {
+	g.spacing = spacing
+	g.probeAfter = now.Add(spacing)
 	g.rejectedProbes = 0
 
 	if g.blamed {
@@ -152,14 +169,14 @@ func (g *logGroup) blame(now time.Time) bool {
 	return true
 }
 
-// noteProbeRejected extends the pause by a TTL and counts the rejection against the group, since a
-// rejection over existence is the one answer that may be the group's doing. It is the only failure
-// that moves the pause: a probe that was throttled or cut short by the deadline was not heard from,
-// and holding every instance in the session back a TTL for it would let rate limiting alone stretch
-// an outage. The rotation has moved on, so the next scrape asks the next stream instead, at the one
-// request a probe costs.
+// noteProbeRejected extends the pause to the next probe and counts the rejection against the group,
+// since a rejection over existence is the one answer that may be the group's doing. It is the only
+// failure that moves the pause: a probe that was throttled or cut short by the deadline was not
+// heard from, and holding every instance in the session back for it would let rate limiting alone
+// stretch an outage. The rotation has moved on, so the next scrape asks the next stream instead, at
+// the one request a probe costs.
 func (g *logGroup) noteProbeRejected(now time.Time) {
-	g.probeAfter = now.Add(missingStreamTTL)
+	g.probeAfter = now.Add(g.spacing)
 	g.rejectedProbes++
 }
 

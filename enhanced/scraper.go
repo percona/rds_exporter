@@ -474,7 +474,8 @@ func (s *scraper) batches(now time.Time) [][]string {
 // group answered, so the stream is gone whatever the group is doing, and a probe spent on it costs
 // every instance in the session another TTL of silence to learn nothing.
 func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
-	stream, decision := s.group.probe(s.probeCandidates(), now)
+	candidates := s.probeCandidates()
+	stream, decision := s.group.probe(candidates, now, s.probeSpacing(len(candidates)))
 
 	switch decision {
 	case probeWaiting:
@@ -490,6 +491,18 @@ func (s *scraper) groupProbe(now time.Time) ([][]string, bool) {
 	}
 
 	return nil, false
+}
+
+// probeSpacing is the wait between the probes of a paused session: no shorter than the scrape
+// interval, since a probe is a request and nothing is requested more often than that, and no longer
+// than lets the rotation go round every candidate within one TTL, so that a stream the group is
+// wrongly blamed for waits at most the TTL a stream excluded on its own evidence would.
+func (s *scraper) probeSpacing(candidates int) time.Duration {
+	if candidates == 0 {
+		return missingStreamTTL
+	}
+
+	return max(s.interval(), missingStreamTTL/time.Duration(candidates))
 }
 
 // probeCandidates returns the monitored streams a log group probe may name, in configuration order so
@@ -781,7 +794,7 @@ func (s *scraper) markGroupMissing() {
 	clear(s.unansweredRejections)
 	s.sweepCutShort = false
 
-	if !s.group.blame(time.Now()) {
+	if !s.group.blame(time.Now(), s.probeSpacing(len(s.probeCandidates()))) {
 		return
 	}
 
