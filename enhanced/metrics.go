@@ -465,13 +465,9 @@ func instanceLabels(region, instance string, labels map[string]string) prometheu
 	return res
 }
 
-// metricsPerEvent is about what one Enhanced Monitoring document expands to, so the slice is sized
-// once instead of regrowing on every event.
-const metricsPerEvent = 100
-
 // makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
 func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]string) []prometheus.Metric {
-	res := make([]prometheus.Metric, 0, metricsPerEvent)
+	res := make([]prometheus.Metric, 0, 100)
 
 	constLabels := instanceLabels(region, m.InstanceID, labels)
 
@@ -491,40 +487,56 @@ func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]strin
 
 	// always make both generic and node_exporter-like metrics
 
-	res = append(res, makeGenericMetrics(m.CPUUtilization, "rdsosmetrics_cpuUtilization_", constLabels)...)
-	res = append(res, makeNodeCPUMetrics(&m.CPUUtilization, constLabels)...)
+	metrics := makeGenericMetrics(m.CPUUtilization, "rdsosmetrics_cpuUtilization_", constLabels)
+	res = append(res, metrics...)
+	metrics = makeNodeCPUMetrics(&m.CPUUtilization, constLabels)
+	res = append(res, metrics...)
 
 	for _, disk := range m.DiskIO {
-		res = append(res, makeRDSDiskIOMetrics(&disk, constLabels)...)
-		res = append(res, makeNodeDiskMetrics(&disk, constLabels)...)
+		metrics = makeRDSDiskIOMetrics(&disk, constLabels)
+		res = append(res, metrics...)
+		metrics = makeNodeDiskMetrics(&disk, constLabels)
+		res = append(res, metrics...)
 	}
 
 	for _, fs := range m.FileSys {
-		res = append(res, makeRDSFileSysMetrics(&fs, constLabels)...)
-		res = append(res, makeNodeFilesystemMetrics(&fs, constLabels)...)
+		metrics = makeRDSFileSysMetrics(&fs, constLabels)
+		res = append(res, metrics...)
+		metrics = makeNodeFilesystemMetrics(&fs, constLabels)
+		res = append(res, metrics...)
 	}
 
-	res = append(res, makeGenericMetrics(m.LoadAverageMinute, "rdsosmetrics_loadAverageMinute_", constLabels)...)
-	res = append(res, makeNodeLoadMetrics(&m.LoadAverageMinute, constLabels)...)
+	metrics = makeGenericMetrics(m.LoadAverageMinute, "rdsosmetrics_loadAverageMinute_", constLabels)
+	res = append(res, metrics...)
+	metrics = makeNodeLoadMetrics(&m.LoadAverageMinute, constLabels)
+	res = append(res, metrics...)
 
-	res = append(res, makeGenericMetrics(m.Memory, "rdsosmetrics_memory_", constLabels)...)
-	res = append(res, makeNodeMemoryMetrics(&m.Memory, constLabels)...)
+	metrics = makeGenericMetrics(m.Memory, "rdsosmetrics_memory_", constLabels)
+	res = append(res, metrics...)
+	metrics = makeNodeMemoryMetrics(&m.Memory, constLabels)
+	res = append(res, metrics...)
 
-	// we can't make node_exporter-like metrics: AWS gives us rates, node_exporter - total counters
 	for _, n := range m.Network {
-		res = append(res, makeRDSNetworkMetrics(&n, constLabels)...)
+		metrics = makeRDSNetworkMetrics(&n, constLabels)
+		res = append(res, metrics...)
+		// we can't make node_exporter-like metrics: AWS gives us rates, node_exporter - total counters
 	}
 
-	// no node_exporter-like metrics
 	for _, p := range m.ProcessList {
-		res = append(res, makeRDSProcessListMetrics(&p, constLabels)...)
+		metrics = makeRDSProcessListMetrics(&p, constLabels)
+		res = append(res, metrics...)
+		// no node_exporter-like metrics
 	}
 
-	res = append(res, makeGenericMetrics(m.Swap, "rdsosmetrics_swap_", constLabels)...)
-	res = append(res, makeNodeMemorySwapMetrics(&m.Swap, constLabels)...)
+	metrics = makeGenericMetrics(m.Swap, "rdsosmetrics_swap_", constLabels)
+	res = append(res, metrics...)
+	metrics = makeNodeMemorySwapMetrics(&m.Swap, constLabels)
+	res = append(res, metrics...)
 
-	res = append(res, makeGenericMetrics(m.Tasks, "rdsosmetrics_tasks_", constLabels)...)
-	res = append(res, makeNodeProcsMetrics(&m.Tasks, constLabels)...)
+	metrics = makeGenericMetrics(m.Tasks, "rdsosmetrics_tasks_", constLabels)
+	res = append(res, metrics...)
+	metrics = makeNodeProcsMetrics(&m.Tasks, constLabels)
+	res = append(res, metrics...)
 
 	return res
 }
