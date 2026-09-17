@@ -38,6 +38,13 @@ linters:
       - path: '_test\.go'
         linters:
           - testpackage
+      # A test function holds the cases of one behaviour as subtests, so its length is the number of
+      # cases it covers rather than a complexity to split up: the alternative is a top-level function
+      # per case, which scatters one behaviour over the file, or a nolint on every group.
+      - path: '_test\.go'
+        linters:
+          - funlen
+          - maintidx
       # No package in this repository carries a package comment, so the rule only fires on new files.
       - text: 'package-comments'
         linters:

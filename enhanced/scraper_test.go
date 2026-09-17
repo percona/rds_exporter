@@ -196,55 +196,117 @@ func TestMonitoredInstances(t *testing.T) {
 	}, scraper.result(nil).monitored)
 }
 
-func TestScrapeSkipsInstancesWithoutEnhancedMonitoring(t *testing.T) {
+func TestScrapeCollectsEveryInstance(t *testing.T) {
 	t.Parallel()
 
-	unmonitored := testInstance(unchangedPrimaryInstance, sameResourceID)
-	unmonitored.EnhancedMonitoringInterval = 0
+	t.Run("skips instances without enhanced monitoring", func(t *testing.T) {
+		t.Parallel()
 
-	client := &fakeLogsClient{
-		events:   map[string][]types.FilteredLogEvent{oldResourceID: {osMetricsEvent(oldResourceID, testEventTime())}},
-		missing:  map[string]struct{}{sameResourceID: {}},
-		errs:     nil,
-		pageSize: 0,
-		calls:    nil,
-	}
-	scraper := newTestScraperWithClient(client, []sessions.Instance{
-		testInstance(blueGreenPrimaryInstance, oldResourceID),
-		unmonitored,
+		unmonitored := testInstance(unchangedPrimaryInstance, sameResourceID)
+		unmonitored.EnhancedMonitoringInterval = 0
+
+		client := &fakeLogsClient{
+			events:   map[string][]types.FilteredLogEvent{oldResourceID: {osMetricsEvent(oldResourceID, testEventTime())}},
+			missing:  map[string]struct{}{sameResourceID: {}},
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		}
+		scraper := newTestScraperWithClient(client, []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, oldResourceID),
+			unmonitored,
+		})
+
+		metrics := scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
+		assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
+		assert.Empty(t, metrics[testKey(unchangedPrimaryInstance)])
 	})
 
-	metrics := scraper.scrape(t.Context())
+	t.Run("follows the monitoring interval AWS reports", func(t *testing.T) {
+		t.Parallel()
 
-	require.Len(t, client.calls, 1)
-	assert.Equal(t, []string{oldResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
-	assert.Empty(t, metrics[testKey(unchangedPrimaryInstance)])
-}
+		unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
+		unmonitored.EnhancedMonitoringInterval = 0
 
-func TestScrapeFollowsTheMonitoringIntervalAWSReports(t *testing.T) {
-	t.Parallel()
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 5 * time.Second},
+			},
+			err:   nil,
+			calls: 0,
+		}
+		client := &fakeLogsClient{events: nil, missing: nil, errs: nil, pageSize: 0, calls: nil}
+		scraper := newTestScraperWith(client, resolver, []sessions.Instance{unmonitored}, time.Time{})
 
-	unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
-	unmonitored.EnhancedMonitoringInterval = 0
+		require.Equal(t, maxInterval, scraper.interval(), "a session without Enhanced Monitoring has nothing to follow")
 
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 5 * time.Second},
-		},
-		err:   nil,
-		calls: 0,
-	}
-	client := &fakeLogsClient{events: nil, missing: nil, errs: nil, pageSize: 0, calls: nil}
-	scraper := newTestScraperWith(client, resolver, []sessions.Instance{unmonitored}, time.Time{})
+		scraper.scrape(t.Context())
 
-	require.Equal(t, maxInterval, scraper.interval(), "a session without Enhanced Monitoring has nothing to follow")
+		assert.Equal(t, 5*time.Second, scraper.interval(),
+			"enabling Enhanced Monitoring must speed the scrapes up without a restart")
+		assert.Equal(t, 5*time.Second, scraper.result(nil).interval, "the collector needs the interval to set expiry")
+	})
 
-	scraper.scrape(t.Context())
+	t.Run("collects events for every stream", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Equal(t, 5*time.Second, scraper.interval(),
-		"enabling Enhanced Monitoring must speed the scrapes up without a restart")
-	assert.Equal(t, 5*time.Second, scraper.result(nil).interval, "the collector needs the interval to set expiry")
+		client := &fakeLogsClient{
+			events: map[string][]types.FilteredLogEvent{
+				oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime())},
+				sameResourceID: {osMetricsEvent(sameResourceID, testEventTime())},
+			},
+			missing:  nil,
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		}
+		scraper := newTestScraperWithClient(client, []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, oldResourceID),
+			testInstance(unchangedPrimaryInstance, sameResourceID),
+		})
+
+		metrics := scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
+		assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)], "the sample comes from the stream the instance was requested under")
+		assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)])
+	})
+
+	t.Run("survives a refresh that spent the deadline", func(t *testing.T) {
+		t.Parallel()
+
+		client := &fakeLogsClient{
+			events:   eventsFor(oldResourceID),
+			missing:  nil,
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		}
+		resolver := &blockingStateResolver{calls: 0}
+		scraper := newTestScraperWith(client, resolver,
+			[]sessions.Instance{testInstance(oldResourceID, oldResourceID)}, time.Now().Add(-time.Minute))
+		startTime := scraper.nextStartTime
+
+		metrics := scraper.scrapeOnce(t.Context(), 50*time.Millisecond)
+
+		assert.Empty(t, metrics)
+		assert.Zero(t, scraper.missing.len(), "a scrape out of time must not mistake its own deadline for a missing stream")
+		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
+		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+
+		// The refresh is not due again, and the next scrape gets its own deadline, so the cost of one
+		// unresponsive DescribeDBInstances is a single empty scrape rather than a gap.
+		scraper.errorCounts = make(map[string]uint64)
+
+		metrics = scraper.scrapeOnce(t.Context(), time.Minute)
+
+		assert.Equal(t, 1, resolver.calls)
+		assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+	})
 }
 
 func TestRetune(t *testing.T) {
@@ -260,257 +322,235 @@ func TestRetune(t *testing.T) {
 	assert.Equal(t, time.Minute, scraper.retune(time.Minute, ticker), "an unchanged interval leaves the ticker alone")
 }
 
-func TestRefreshUpdatesMonitoringInterval(t *testing.T) {
+func TestRefresh(t *testing.T) {
 	t.Parallel()
 
-	t.Run("enabled later", func(t *testing.T) {
+	t.Run("follows the monitoring interval the resolver reports", func(t *testing.T) {
 		t.Parallel()
 
-		unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
-		unmonitored.EnhancedMonitoringInterval = 0
-		resolver := &fakeStateResolver{
-			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
-			err:    nil,
-			calls:  0,
-		}
-		scraper := newTestScraperWith(nil, resolver, []sessions.Instance{unmonitored}, time.Time{})
+		t.Run("enabled later", func(t *testing.T) {
+			t.Parallel()
 
-		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+			unmonitored := testInstance(blueGreenPrimaryInstance, oldResourceID)
+			unmonitored.EnhancedMonitoringInterval = 0
+			resolver := &fakeStateResolver{
+				states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+				err:    nil,
+				calls:  0,
+			}
+			scraper := newTestScraperWith(nil, resolver, []sessions.Instance{unmonitored}, time.Time{})
 
-		assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
-		assert.Equal(t, []string{oldResourceID}, scraper.enhancedStreams(time.Now()))
+			require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+			assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
+			assert.Equal(t, []string{oldResourceID}, scraper.enhancedStreams(time.Now()))
+		})
+
+		t.Run("disabled later", func(t *testing.T) {
+			t.Parallel()
+
+			resolver := &fakeStateResolver{
+				states: map[string]sessions.InstanceState{
+					blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 0},
+				},
+				err:   nil,
+				calls: 0,
+			}
+			scraper := newTestScraperWith(nil, resolver, []sessions.Instance{
+				testInstance(blueGreenPrimaryInstance, oldResourceID),
+			}, time.Time{})
+
+			require.NoError(t, scraper.refreshInstanceStates(t.Context()))
+
+			assert.Zero(t, scraper.instances[0].EnhancedMonitoringInterval)
+			assert.Empty(t, scraper.enhancedStreams(time.Now()))
+		})
 	})
 
-	t.Run("disabled later", func(t *testing.T) {
+	t.Run("keeps monitoring interval on resolver error", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
+		scraper := newTestScraper(resolver)
+
+		require.ErrorIs(t, scraper.refreshInstanceStates(t.Context()), errDescribeFailed)
+
+		assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
+		assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
+
+	t.Run("installs the resource IDs the resolver reports", func(t *testing.T) {
 		t.Parallel()
 
 		resolver := &fakeStateResolver{
 			states: map[string]sessions.InstanceState{
-				blueGreenPrimaryInstance: {ResourceID: oldResourceID, MonitoringInterval: 0},
+				blueGreenPrimaryInstance: monitoredState(newResourceID),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
 			},
 			err:   nil,
 			calls: 0,
 		}
-		scraper := newTestScraperWith(nil, resolver, []sessions.Instance{
-			testInstance(blueGreenPrimaryInstance, oldResourceID),
-		}, time.Time{})
+		scraper := newTestScraper(resolver)
 
+		err := scraper.refreshInstanceStates(t.Context())
+
+		require.NoError(t, err)
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
+		assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
+
+	t.Run("returns the resolver's error", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
+		scraper := newTestScraper(resolver)
+
+		err := scraper.refreshInstanceStates(t.Context())
+
+		require.ErrorIs(t, err, errDescribeFailed)
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+		assert.Zero(t, scraper.missing.len(), "a resolver failure says nothing about which streams exist")
+	})
+
+	t.Run("applies partial instance states", func(t *testing.T) {
+		t.Parallel()
+
+		// One page read, the next one throttled.
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(newResourceID),
+			},
+			err:   errDescribeFailed,
+			calls: 0,
+		}
+		scraper := newTestScraper(resolver)
+		scraper.missing.mark(oldResourceID, time.Now(), false)
+
+		err := scraper.refreshInstanceStates(t.Context())
+
+		require.ErrorIs(t, err, errDescribeFailed, "the caller still has to hear that the refresh was partial")
+		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
+			"a resource ID the resolver did read must not wait for the next refresh")
+		assert.False(t, scraper.missing.marked(oldResourceID),
+			"the retired stream must stop being excluded, or the switchover is written off as missing")
+		assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID,
+			"an instance the failed page never reached keeps what it had")
+		assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
+
+	t.Run("retries sooner after a failed refresh", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
+		scraper := newTestScraper(resolver)
+
+		require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+		// The instances the failed paginator never reached still hold whatever they had, so waiting the
+		// whole interval leaves a retired log stream to be written off as missing meanwhile.
+		assert.Equal(t, scraper.interval(), scraper.refreshBackoff,
+			"the first retry is due on the next scrape that asks for one")
+
+		scraper.nextResourceIDRefresh = time.Time{}
+		require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+		assert.Equal(t, 2*scraper.interval(), scraper.refreshBackoff,
+			"a DescribeDBInstances that keeps failing must not be asked once per scrape")
+
+		scraper.refreshBackoff = resourceIDRefreshInterval
+		scraper.nextResourceIDRefresh = time.Time{}
+		require.Error(t, scraper.refreshInstanceStates(t.Context()))
+
+		assert.Equal(t, resourceIDRefreshInterval, scraper.refreshBackoff, "the backoff stops at the refresh interval")
+
+		resolver.err = nil
+		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
+		scraper.nextResourceIDRefresh = time.Time{}
 		require.NoError(t, scraper.refreshInstanceStates(t.Context()))
 
-		assert.Zero(t, scraper.instances[0].EnhancedMonitoringInterval)
-		assert.Empty(t, scraper.enhancedStreams(time.Now()))
-	})
-}
-
-func TestRefreshKeepsMonitoringIntervalOnResolverError(t *testing.T) {
-	t.Parallel()
-
-	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
-	scraper := newTestScraper(resolver)
-
-	require.ErrorIs(t, scraper.refreshInstanceStates(t.Context()), errDescribeFailed)
-
-	assert.Equal(t, time.Minute, scraper.instances[0].EnhancedMonitoringInterval)
-	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-}
-
-func TestScrapeCollectsEventsForEveryStream(t *testing.T) {
-	t.Parallel()
-
-	client := &fakeLogsClient{
-		events: map[string][]types.FilteredLogEvent{
-			oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime())},
-			sameResourceID: {osMetricsEvent(sameResourceID, testEventTime())},
-		},
-		missing:  nil,
-		errs:     nil,
-		pageSize: 0,
-		calls:    nil,
-	}
-	scraper := newTestScraperWithClient(client, []sessions.Instance{
-		testInstance(blueGreenPrimaryInstance, oldResourceID),
-		testInstance(unchangedPrimaryInstance, sameResourceID),
+		assert.Zero(t, scraper.refreshBackoff)
+		assert.InDelta(t, float64(resourceIDRefreshInterval), float64(time.Until(scraper.nextResourceIDRefresh)),
+			float64(time.Second), "a refresh that read everything is not due again until the interval is up")
 	})
 
-	metrics := scraper.scrape(t.Context())
+	t.Run("skips an instance the resolver has no resource ID for", func(t *testing.T) {
+		t.Parallel()
 
-	require.Len(t, client.calls, 1)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, client.calls[0].streams)
-	assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)], "the sample comes from the stream the instance was requested under")
-	assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)])
-}
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(""),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
+			},
+			err:   nil,
+			calls: 0,
+		}
+		scraper := newTestScraper(resolver)
 
-func TestRefreshResourceIDs(t *testing.T) {
-	t.Parallel()
+		err := scraper.refreshInstanceStates(t.Context())
 
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: monitoredState(newResourceID),
-			unchangedPrimaryInstance: monitoredState(sameResourceID),
-		},
-		err:   nil,
-		calls: 0,
-	}
-	scraper := newTestScraper(resolver)
+		require.NoError(t, err)
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
+		assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
 
-	err := scraper.refreshInstanceStates(t.Context())
+	t.Run("leaves the streams alone when no resource ID changed", func(t *testing.T) {
+		t.Parallel()
 
-	require.NoError(t, err)
-	assert.Equal(t, 1, resolver.calls)
-	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-}
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(oldResourceID),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
+			},
+			err:   nil,
+			calls: 0,
+		}
+		scraper := newTestScraper(resolver)
 
-func TestRefreshResourceIDsReturnsResolverError(t *testing.T) {
-	t.Parallel()
+		err := scraper.refreshInstanceStates(t.Context())
 
-	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
-	scraper := newTestScraper(resolver)
+		require.NoError(t, err)
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
+		assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
 
-	err := scraper.refreshInstanceStates(t.Context())
+	t.Run("waits until the next refresh is due", func(t *testing.T) {
+		t.Parallel()
 
-	require.ErrorIs(t, err, errDescribeFailed)
-	assert.Equal(t, 1, resolver.calls)
-	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-	assert.Zero(t, scraper.missing.len(), "a resolver failure says nothing about which streams exist")
-}
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(newResourceID),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
+			},
+			err:   nil,
+			calls: 0,
+		}
+		scraper := newTestScraper(resolver)
+		scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
 
-func TestRefreshAppliesPartialInstanceStates(t *testing.T) {
-	t.Parallel()
+		err := scraper.refreshInstanceStates(t.Context())
 
-	// One page read, the next one throttled.
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: monitoredState(newResourceID),
-		},
-		err:   errDescribeFailed,
-		calls: 0,
-	}
-	scraper := newTestScraper(resolver)
-	scraper.missing.mark(oldResourceID, time.Now(), false)
+		require.NoError(t, err)
+		assert.Equal(t, 0, resolver.calls)
+		assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
 
-	err := scraper.refreshInstanceStates(t.Context())
+		scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 
-	require.ErrorIs(t, err, errDescribeFailed, "the caller still has to hear that the refresh was partial")
-	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
-		"a resource ID the resolver did read must not wait for the next refresh")
-	assert.False(t, scraper.missing.marked(oldResourceID),
-		"the retired stream must stop being excluded, or the switchover is written off as missing")
-	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID,
-		"an instance the failed page never reached keeps what it had")
-	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-}
+		err = scraper.refreshInstanceStates(t.Context())
 
-func TestRefreshRetriesSoonerAfterAFailedRefresh(t *testing.T) {
-	t.Parallel()
-
-	resolver := &fakeStateResolver{states: nil, err: errDescribeFailed, calls: 0}
-	scraper := newTestScraper(resolver)
-
-	require.Error(t, scraper.refreshInstanceStates(t.Context()))
-
-	// The instances the failed paginator never reached still hold whatever they had, so waiting the
-	// whole interval leaves a retired log stream to be written off as missing meanwhile.
-	assert.Equal(t, scraper.interval(), scraper.refreshBackoff,
-		"the first retry is due on the next scrape that asks for one")
-
-	scraper.nextResourceIDRefresh = time.Time{}
-	require.Error(t, scraper.refreshInstanceStates(t.Context()))
-
-	assert.Equal(t, 2*scraper.interval(), scraper.refreshBackoff,
-		"a DescribeDBInstances that keeps failing must not be asked once per scrape")
-
-	scraper.refreshBackoff = resourceIDRefreshInterval
-	scraper.nextResourceIDRefresh = time.Time{}
-	require.Error(t, scraper.refreshInstanceStates(t.Context()))
-
-	assert.Equal(t, resourceIDRefreshInterval, scraper.refreshBackoff, "the backoff stops at the refresh interval")
-
-	resolver.err = nil
-	resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
-	scraper.nextResourceIDRefresh = time.Time{}
-	require.NoError(t, scraper.refreshInstanceStates(t.Context()))
-
-	assert.Zero(t, scraper.refreshBackoff)
-	assert.InDelta(t, float64(resourceIDRefreshInterval), float64(time.Until(scraper.nextResourceIDRefresh)),
-		float64(time.Second), "a refresh that read everything is not due again until the interval is up")
-}
-
-func TestRefreshResourceIDsSkipsMissingResourceID(t *testing.T) {
-	t.Parallel()
-
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: monitoredState(""),
-			unchangedPrimaryInstance: monitoredState(sameResourceID),
-		},
-		err:   nil,
-		calls: 0,
-	}
-	scraper := newTestScraper(resolver)
-
-	err := scraper.refreshInstanceStates(t.Context())
-
-	require.NoError(t, err)
-	assert.Equal(t, 1, resolver.calls)
-	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-}
-
-func TestRefreshResourceIDsNoopWhenUnchanged(t *testing.T) {
-	t.Parallel()
-
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: monitoredState(oldResourceID),
-			unchangedPrimaryInstance: monitoredState(sameResourceID),
-		},
-		err:   nil,
-		calls: 0,
-	}
-	scraper := newTestScraper(resolver)
-
-	err := scraper.refreshInstanceStates(t.Context())
-
-	require.NoError(t, err)
-	assert.Equal(t, 1, resolver.calls)
-	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, sameResourceID, scraper.instances[1].ResourceID)
-	assert.Equal(t, []string{oldResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
-}
-
-func TestRefreshResourceIDsSkipsUntilNextRefresh(t *testing.T) {
-	t.Parallel()
-
-	resolver := &fakeStateResolver{
-		states: map[string]sessions.InstanceState{
-			blueGreenPrimaryInstance: monitoredState(newResourceID),
-			unchangedPrimaryInstance: monitoredState(sameResourceID),
-		},
-		err:   nil,
-		calls: 0,
-	}
-	scraper := newTestScraper(resolver)
-	scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
-
-	err := scraper.refreshInstanceStates(t.Context())
-
-	require.NoError(t, err)
-	assert.Equal(t, 0, resolver.calls)
-	assert.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-
-	scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
-
-	err = scraper.refreshInstanceStates(t.Context())
-
-	require.NoError(t, err)
-	assert.Equal(t, 1, resolver.calls)
-	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
-	assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+		require.NoError(t, err)
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
+		assert.Equal(t, []string{newResourceID, sameResourceID}, scraper.enhancedStreams(time.Now()))
+	})
 }
 
 // blockingStateResolver never answers, so the scrape deadline expires inside the refresh.
@@ -526,39 +566,7 @@ func (r *blockingStateResolver) InstanceStates(ctx context.Context) (map[string]
 	return nil, fmt.Errorf("fake RDS client: %w", ctx.Err())
 }
 
-func TestScrapeOnceSurvivesRefreshSpendingTheDeadline(t *testing.T) {
-	t.Parallel()
-
-	client := &fakeLogsClient{
-		events:   eventsFor(oldResourceID),
-		missing:  nil,
-		errs:     nil,
-		pageSize: 0,
-		calls:    nil,
-	}
-	resolver := &blockingStateResolver{calls: 0}
-	scraper := newTestScraperWith(client, resolver,
-		[]sessions.Instance{testInstance(oldResourceID, oldResourceID)}, time.Now().Add(-time.Minute))
-	startTime := scraper.nextStartTime
-
-	metrics := scraper.scrapeOnce(t.Context(), 50*time.Millisecond)
-
-	assert.Empty(t, metrics)
-	assert.Zero(t, scraper.missing.len(), "a scrape out of time must not mistake its own deadline for a missing stream")
-	assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
-	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
-
-	// The refresh is not due again, and the next scrape gets its own deadline, so the cost of one
-	// unresponsive DescribeDBInstances is a single empty scrape rather than a gap.
-	scraper.errorCounts = make(map[string]uint64)
-
-	metrics = scraper.scrapeOnce(t.Context(), time.Minute)
-
-	assert.Equal(t, 1, resolver.calls)
-	assert.NotEmpty(t, metrics[testKey(oldResourceID)])
-}
-
-func TestNewestEventTimes(t *testing.T) { //nolint:funlen
+func TestNewestEventTimes(t *testing.T) {
 	t.Parallel()
 
 	now := time.Now().UTC().Truncate(time.Second)

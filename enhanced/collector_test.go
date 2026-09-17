@@ -203,7 +203,7 @@ func TestConfigureKeepsTheSameInstanceOfTwoAccountsApart(t *testing.T) {
 	}, collector.configured)
 }
 
-func TestCollect(t *testing.T) { //nolint:funlen
+func TestCollect(t *testing.T) {
 	t.Parallel()
 
 	t.Run("skips expired metrics", func(t *testing.T) {
@@ -464,7 +464,7 @@ func futureResult(eventTime time.Time) scrapeResult {
 }
 
 // TestSetMetrics covers what a stored sample does to the instance it belongs to.
-func TestSetMetrics(t *testing.T) { //nolint:funlen
+func TestSetMetrics(t *testing.T) {
 	t.Parallel()
 
 	t.Run("follows the interval AWS reports", func(t *testing.T) {
@@ -617,7 +617,7 @@ func TestSetMetrics(t *testing.T) { //nolint:funlen
 
 // TestSetMetricsEventTime covers which event timestamp a stored sample is judged by, on a clock
 // the monitored account controls.
-func TestSetMetricsEventTime(t *testing.T) { //nolint:funlen
+func TestSetMetricsEventTime(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ignores a redelivered event", func(t *testing.T) {

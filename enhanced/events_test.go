@@ -24,7 +24,7 @@ func scraperLoggingTo(buf *bytes.Buffer, client *fakeLogsClient, instances []ses
 	return scraper
 }
 
-func TestHandleEvent(t *testing.T) { //nolint:funlen
+func TestHandleEvent(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ignores an event for an unknown stream", func(t *testing.T) {
