@@ -113,3 +113,28 @@ func TestOnlyContextErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestErrorKindRank(t *testing.T) {
+	t.Parallel()
+
+	// Every kind the metric can report, so that a kind added to the label set without a rank fails
+	// here rather than silently losing a join to the least telling leaf.
+	kinds := []string{
+		errorKindContext,
+		errorKindOther,
+		errorKindNotFound,
+		errorKindGroupNotFound,
+		errorKindAuth,
+		errorKindThrottling,
+	}
+
+	for _, kind := range kinds {
+		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
+
+			assert.GreaterOrEqual(t, errorKindRank(kind), 0, "every error kind must be ranked")
+			assert.Greater(t, errorKindRank(kind), errorKindRank(""),
+				"a ranked kind must outrank the absence of one")
+		})
+	}
+}

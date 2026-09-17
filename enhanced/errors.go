@@ -85,11 +85,14 @@ func hasAPIErrorCode(err error, codes ...string) bool {
 // errorKindRank orders the kinds by how much they say about why a scrape failed, most telling last.
 // A bisect joins the errors of its halves, and the deadline cutting a later half short says nothing
 // about the throttle that failed an earlier one, so the leaf with the most to say names the join.
+// Every kind is ranked, including the one only the counter produces: a kind left out ranks below the
+// empty string, so a join carrying it would be named by any other leaf, however little that leaf says.
 func errorKindRank(kind string) int {
 	return slices.Index([]string{
 		errorKindContext,
 		errorKindOther,
 		errorKindNotFound,
+		errorKindGroupNotFound,
 		errorKindAuth,
 		errorKindThrottling,
 	}, kind)
