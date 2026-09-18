@@ -36,7 +36,7 @@ var (
 // rejected. The exception is kept in the text but not wrapped: an error wrapping two is read by
 // errorKind as a join named by its most telling leaf, and the exception would make that not_found.
 func rejectedAfterAnswer(err error) error {
-	return fmt.Errorf("%w: %v", errRejectedAfterAnswer, err)
+	return fmt.Errorf("%w: %v", errRejectedAfterAnswer, err) //nolint:errorlint // not wrapped, see above
 }
 
 // isResourceNotFound reports whether CloudWatch rejected the request because a log stream or the
@@ -132,6 +132,11 @@ func errorKind(err error) string {
 		return kind
 	}
 
+	return leafErrorKind(err)
+}
+
+// leafErrorKind classifies a single error, one that is not a join of others.
+func leafErrorKind(err error) string {
 	switch {
 	case isContextError(err):
 		return errorKindContext

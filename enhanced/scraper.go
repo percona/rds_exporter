@@ -128,6 +128,12 @@ func (e *scrapeEvidence) reset() {
 	e.answered = false
 }
 
+// rejectedEverywhere reports whether the scrape was answered nothing and singled out every stream
+// it was rejected over, which is the shape a rejection has when the log group is what made it.
+func (e *scrapeEvidence) rejectedEverywhere() bool {
+	return !e.answered && e.rejectedStreams > 0 && len(e.isolated) == e.rejectedStreams
+}
+
 // sweepState is where a session stands with the sweep, the one scrape that asks for every monitored
 // stream, exclusions and probe cap notwithstanding. It is requested by the one kind of news that
 // undermines the exclusions all at once -- the group's account has changed, so the evidence they rest
@@ -726,9 +732,7 @@ func (s *scraper) attributeRejections(mayBlameGroup bool) {
 // already: the scrape before this one was rejected everywhere too, and this one had nothing left to
 // ask but the streams that scrape carried. Asking them again cannot close the account; the fleet can.
 func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
-	rejectedEverywhere := mayBlameGroup && !s.evidence.answered && s.evidence.rejectedStreams > 0 &&
-		len(s.evidence.isolated) == s.evidence.rejectedStreams
-	if !rejectedEverywhere {
+	if !mayBlameGroup || !s.evidence.rejectedEverywhere() {
 		return false
 	}
 
@@ -1036,10 +1040,9 @@ func (s *scraper) retryTentative(msg string) {
 // the exclusion, and the rejection carried against the log group's account. Both rest on the same
 // requests, so one outliving the other lets a stream turned off and back on count as already
 // rejected and understate what still stands between the rejection and the group.
-func (s *scraper) forget(stream string) bool {
+func (s *scraper) forget(stream string) {
 	delete(s.unansweredRejections, stream)
-
-	return s.missing.clear(stream)
+	s.missing.clear(stream)
 }
 
 // clearAccepted stops excluding the log streams of a page CloudWatch answered. A rejection names
