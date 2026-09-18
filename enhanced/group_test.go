@@ -1486,6 +1486,80 @@ func TestScrapeExcludesStreamsWhileTheLogGroupIsInDoubt(t *testing.T) {
 			"an instance is named only for an exclusion that rests on evidence about its own stream")
 	})
 
+	// TestScrapeHoldsInDoubtTheExclusionsOfASweepTheDeadlineCut covers a group that goes while one of
+	// its streams is already excluded on its own evidence. The first scrape of the outage is rejected
+	// over everything it asks, and asks for a sweep rather than blaming the group, since the excluded
+	// stream was held back; the sweep is then cut by the deadline before it can say so of the fleet.
+	// What the sweep singled out rests on the same open question as what the scrape before it did, so
+	// the group answering has to release it all at once rather than leave the instances behind it
+	// waiting a TTL for a fault the group no longer has.
+	t.Run("holds in doubt the exclusions of a sweep the deadline cut", func(t *testing.T) {
+		t.Parallel()
+
+		streams := resourceIDs(6)
+		gone, healthy := streams[5], streams[:5]
+
+		client := &deadlineClient{
+			fakeLogsClient: &fakeLogsClient{
+				events:   eventsFor(streams...),
+				missing:  nil,
+				errs:     nil,
+				pageSize: 0,
+				calls:    nil,
+			},
+			callsBeforeCut: math.MaxInt,
+		}
+		scraper := scraperWithStreams(client, streams...)
+
+		scraper.scrape(t.Context())
+
+		// One stream goes on its own while the group answers, so its exclusion is firm.
+		client.events = eventsFor(healthy...)
+		client.missing = missingSet(gone)
+
+		scraper.scrape(t.Context())
+
+		require.True(t, scraper.missing.firm(gone))
+
+		// The group goes: the scrape is rejected over every stream it asks, but the excluded one was
+		// held back, so it asks for a sweep instead of blaming the group.
+		client.events = nil
+		client.missing = missingSet(streams...)
+
+		scraper.scrape(t.Context())
+
+		require.Equal(t, sweepRequested, scraper.sweep)
+
+		// A full bisect of the fleet costs more requests than that; six reach three of its streams.
+		client.calls = nil
+		client.callsBeforeCut = 6
+
+		scraper.scrape(t.Context())
+
+		for _, stream := range healthy[:3] {
+			require.True(t, scraper.missing.marked(stream), "the cut sweep must have singled %s out", stream)
+		}
+
+		assert.Equal(t, 1, firmExclusions(scraper, streams),
+			"a stream a cut sweep singled out rests on the same open question as the rejections before it")
+
+		// The group answers, and the next scrape asks for every healthy stream again.
+		client.calls = nil
+		client.callsBeforeCut = math.MaxInt
+		client.events = eventsFor(healthy...)
+		client.missing = missingSet(gone)
+
+		scraper.scrape(t.Context())
+
+		client.calls = nil
+
+		scraper.scrape(t.Context())
+
+		require.Len(t, client.calls, 1)
+		assert.ElementsMatch(t, healthy, client.calls[0].streams,
+			"an instance that is fine must not wait a TTL on the sweep the deadline cut")
+	})
+
 	// TestScrapeAsksAProbeSlotsWorthOfAFleetCarriedInFull covers the one way leaving the carried streams
 	// out of the request could go quiet: the rejections cover the fleet, so there is nothing left to ask,
 	// but the scrape they covered it on was cut short and could not blame the group with them. Asking

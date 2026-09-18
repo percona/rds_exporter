@@ -753,6 +753,10 @@ func (s *scraper) attributeToTheGroup(mayBlameGroup bool) bool {
 		return true
 	}
 
+	// The streams this scrape singled out are not excluded, but they are still what the scrapes nothing
+	// answered have said about the group, and the sweep that answers for them may itself be cut short.
+	// Read before the request below overwrites the sweep state the account keeps.
+	s.carryRejections()
 	s.sweep = sweepRequested
 
 	level.Info(s.logger).Log(
@@ -773,15 +777,7 @@ func (s *scraper) attributeToTheStreams() {
 	// the scrape before it heard nothing either. Read before this scrape's own rejections join it.
 	outage := len(s.unansweredRejections) > 0
 
-	// A scrape nothing answered leaves the group's account open, so what it singled out is kept for
-	// attributeToTheGroup to count once a later scrape is rejected over the rest of the fleet.
-	if !s.evidence.answered {
-		s.sweepCutShort = s.sweepCutShort || s.sweep == sweepUnderWay
-
-		for _, stream := range s.evidence.isolated {
-			s.unansweredRejections[stream] = struct{}{}
-		}
-	}
+	s.carryRejections()
 
 	// A scrape that was answered nowhere has the same gap in its evidence about each stream it singled
 	// out: the rejection would have looked the same had the group been what rejected it. The stream is
@@ -804,6 +800,22 @@ func (s *scraper) attributeToTheStreams() {
 
 	for _, stream := range s.evidence.isolated {
 		s.markMissing(stream, tentative)
+	}
+}
+
+// carryRejections keeps what a scrape nothing answered singled out on the group's account, for
+// attributeToTheGroup to count once a later scrape is rejected over the rest of the fleet, and notes
+// whether the scrape was the sweep the account is waiting on. Every path that leaves the account
+// open runs it; the one that blames the group closes the account instead, in markGroupMissing.
+func (s *scraper) carryRejections() {
+	if s.evidence.answered {
+		return
+	}
+
+	s.sweepCutShort = s.sweepCutShort || s.sweep == sweepUnderWay
+
+	for _, stream := range s.evidence.isolated {
+		s.unansweredRejections[stream] = struct{}{}
 	}
 }
 
