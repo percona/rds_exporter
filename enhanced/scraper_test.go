@@ -31,7 +31,10 @@ const (
 	testSession              = "us-east-1/AKIATEST"
 )
 
-var errDescribeFailed = errors.New("describe failed")
+var (
+	errDescribeFailed    = errors.New("describe failed")
+	errNoRefreshDeadline = errors.New("fake RDS client: the refresh was given no deadline")
+)
 
 func filterMetrics(metrics []*helpers.Metric) []*helpers.Metric {
 	res := make([]*helpers.Metric, 0, len(metrics))
@@ -243,6 +246,7 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 
 		require.Equal(t, maxInterval, scraper.interval(), "a session without Enhanced Monitoring has nothing to follow")
 
+		scraper.refreshStates(t.Context())
 		scraper.scrape(t.Context())
 
 		assert.Equal(t, 5*time.Second, scraper.interval(),
@@ -276,6 +280,37 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 		assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)])
 	})
 
+	t.Run("leaves the states to a refresh of its own", func(t *testing.T) {
+		t.Parallel()
+
+		client := &fakeLogsClient{
+			events:   eventsFor(oldResourceID),
+			missing:  nil,
+			errs:     nil,
+			pageSize: 0,
+			calls:    nil,
+		}
+		resolver := &deadlineStateResolver{
+			states: map[string]sessions.InstanceState{oldResourceID: monitoredState(newResourceID)},
+			budget: 0,
+			calls:  0,
+		}
+		scraper := newTestScraperWith(client, resolver,
+			[]sessions.Instance{testInstance(oldResourceID, oldResourceID)}, time.Now().Add(-time.Minute))
+
+		metrics := scraper.scrapeOnce(t.Context(), minInterval)
+
+		assert.Zero(t, resolver.calls, "the scrape's budget is for the events")
+		assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+
+		scraper.refreshStates(t.Context())
+
+		require.Equal(t, 1, resolver.calls)
+		assert.Greater(t, resolver.budget, minInterval,
+			"a pagination longer than one scrape interval must still be able to finish")
+		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
+	})
+
 	t.Run("survives a refresh that spent the deadline", func(t *testing.T) {
 		t.Parallel()
 
@@ -289,23 +324,20 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 		resolver := &blockingStateResolver{calls: 0}
 		scraper := newTestScraperWith(client, resolver,
 			[]sessions.Instance{testInstance(oldResourceID, oldResourceID)}, time.Now().Add(-time.Minute))
-		startTime := scraper.nextStartTime
 
-		metrics := scraper.scrapeOnce(t.Context(), 50*time.Millisecond)
+		// The refresh outlives its own budget only when the exporter is stopping, so the deadline the
+		// test cuts it with is the parent's.
+		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+		defer cancel()
 
-		assert.Empty(t, metrics)
-		assert.Zero(t, scraper.missing.len(), "a scrape out of time must not mistake its own deadline for a missing stream")
-		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+		scraper.refreshStates(ctx)
 
-		// The refresh is not due again, and the next scrape gets its own deadline, so the cost of one
-		// unresponsive DescribeDBInstances is a single empty scrape rather than a gap.
-		scraper.errorCounts = make(map[string]uint64)
+		require.Equal(t, 1, resolver.calls)
 
-		metrics = scraper.scrapeOnce(t.Context(), time.Minute)
+		metrics := scraper.scrapeOnce(t.Context(), time.Minute)
 
-		assert.Equal(t, 1, resolver.calls)
-		assert.NotEmpty(t, metrics[testKey(oldResourceID)])
+		assert.Zero(t, scraper.missing.len(), "a refresh out of time must not mistake its own deadline for a missing stream")
+		assert.NotEmpty(t, metrics[testKey(oldResourceID)], "the cost of an unresponsive DescribeDBInstances is not a scrape")
 	})
 }
 
@@ -581,7 +613,7 @@ func TestRefresh(t *testing.T) {
 	})
 }
 
-// blockingStateResolver never answers, so the scrape deadline expires inside the refresh.
+// blockingStateResolver never answers, so the refresh runs out of time.
 type blockingStateResolver struct {
 	calls int
 }
@@ -592,6 +624,27 @@ func (r *blockingStateResolver) InstanceStates(ctx context.Context) (map[string]
 	<-ctx.Done()
 
 	return nil, fmt.Errorf("fake RDS client: %w", ctx.Err())
+}
+
+// deadlineStateResolver reports the budget it was given, which is what decides whether a pagination
+// longer than one scrape interval can reach its last page.
+type deadlineStateResolver struct {
+	states map[string]sessions.InstanceState
+	budget time.Duration
+	calls  int
+}
+
+func (r *deadlineStateResolver) InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error) {
+	r.calls++
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return nil, errNoRefreshDeadline
+	}
+
+	r.budget = time.Until(deadline)
+
+	return r.states, nil
 }
 
 func TestNewestEventTimes(t *testing.T) {

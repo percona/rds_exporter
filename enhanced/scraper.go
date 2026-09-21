@@ -34,6 +34,15 @@ const (
 	// instance whose clock lags that much reports a gap rather than samples.
 	maxLookback = 3 * time.Minute
 
+	// refreshTimeout bounds one DescribeDBInstances pagination. The scrape deadline is no bound at
+	// all: it is one interval and floors at minInterval, so a pagination that needs longer fails at
+	// the same page on every attempt, and because the paginator starts over each time the instances
+	// behind that page keep the resource ID they already had for the life of the process. The
+	// refresh runs before the scrape rather than inside it, so this is also what an unresponsive
+	// DescribeDBInstances costs in scrapes, and it stays below maxLookback so that the scrape after
+	// the wait still reaches back over the events the wait skipped.
+	refreshTimeout = time.Minute
+
 	// refreshBackoffFactor is how much longer each consecutive failed state refresh waits, growing
 	// from one scrape interval up to resourceIDRefreshInterval and back to zero on the first success.
 	refreshBackoffFactor = 2
@@ -328,6 +337,8 @@ func (s *scraper) start(ctx context.Context, results chan<- scrapeResult) {
 			return
 		}
 
+		s.refreshStates(ctx)
+
 		metrics := s.scrapeOnce(ctx, interval)
 
 		if !s.send(ctx, results, s.result(metrics)) {
@@ -416,11 +427,6 @@ func (s *scraper) region() string {
 // scrape performs a single scrape.
 func (s *scraper) scrape(ctx context.Context) map[instanceKey]instanceMetrics {
 	sink := newEventSink()
-
-	err := s.refreshInstanceStates(ctx)
-	if err != nil {
-		level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
-	}
 
 	var scrapeErr error
 
@@ -1147,6 +1153,22 @@ func (s *scraper) instancesFor(logStreamName string) []sessions.Instance {
 	}
 
 	return res
+}
+
+// refreshStates keeps the instance states current on a deadline of its own, before the scrape the
+// states belong to. Taking the scrape's deadline instead capped the refresh at one interval, which
+// no DescribeDBInstances is owed, and spent on the states a budget the events were counting on.
+func (s *scraper) refreshStates(ctx context.Context) {
+	refreshCtx, cancel := context.WithTimeout(ctx, refreshTimeout)
+	defer cancel()
+
+	err := s.refreshInstanceStates(refreshCtx)
+	if err == nil {
+		return
+	}
+
+	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
+	level.Error(s.logger).Log("msg", "Failed to refresh RDS instance states.", "error", err)
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {

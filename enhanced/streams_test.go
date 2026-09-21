@@ -506,6 +506,7 @@ func TestScrapeReleasesTheStreamsThatCameBack(t *testing.T) {
 		}
 		scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 
+		scraper.refreshStates(t.Context())
 		scraper.scrape(t.Context())
 
 		assert.Zero(t, scraper.missing.len(),
@@ -535,6 +536,8 @@ func TestScrapeReleasesTheStreamsThatCameBack(t *testing.T) {
 		}
 		scraper.nextResourceIDRefresh = time.Now().Add(-time.Minute)
 		client.calls = nil
+
+		scraper.refreshStates(t.Context())
 
 		metrics := scraper.scrape(t.Context())
 
