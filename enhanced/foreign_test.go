@@ -405,6 +405,30 @@ func TestForeignEventEpisodes(t *testing.T) {
 			"the regular refresh interval resumes")
 	})
 
+	t.Run("does not warn again on the regular refresh", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
+
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls)
+		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine), "a confirmed episode is reported once")
+	})
+
 	t.Run("starts over when the document names yet another instance", func(t *testing.T) {
 		t.Parallel()
 
