@@ -303,12 +303,13 @@ func TestScrapeFutureDatedEvents(t *testing.T) {
 // futureDatedResult packages a scrape of oldResourceID for the collector.
 func futureDatedResult(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	return scrapeResult{
-		metrics:      metrics,
-		errorCounts:  nil,
-		skewedEvents: 0,
-		monitored:    map[instanceKey]bool{testKey(oldResourceID): true},
-		region:       testRegion,
-		interval:     time.Minute,
+		metrics:       metrics,
+		errorCounts:   nil,
+		skewedEvents:  0,
+		foreignEvents: 0,
+		monitored:     map[instanceKey]bool{testKey(oldResourceID): true},
+		region:        testRegion,
+		interval:      time.Minute,
 	}
 }
 

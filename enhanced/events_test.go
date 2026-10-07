@@ -58,11 +58,16 @@ func TestHandleEvent(t *testing.T) {
 		assert.Empty(t, sink.metrics)
 	})
 
-	t.Run("attributes an event to every instance sharing a resource ID", func(t *testing.T) {
+	t.Run("attributes the events of a shared resource ID to the instances they name", func(t *testing.T) {
 		t.Parallel()
 
 		client := &fakeLogsClient{
-			events:   eventsFor(sameResourceID),
+			events: map[string][]types.FilteredLogEvent{
+				sameResourceID: {
+					osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, testEventTime()),
+					osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime()),
+				},
+			},
 			missing:  nil,
 			errs:     nil,
 			pageSize: 0,
@@ -77,7 +82,7 @@ func TestHandleEvent(t *testing.T) {
 
 		assert.NotEmpty(t, metrics[testKey(blueGreenPrimaryInstance)])
 		assert.NotEmpty(t, metrics[testKey(unchangedPrimaryInstance)],
-			"two instances sharing a resource ID must both get the sample")
+			"two instances sharing a resource ID must both get their sample")
 	})
 
 	t.Run("skips an instance PMM has enhanced metrics disabled for", func(t *testing.T) {
@@ -87,7 +92,10 @@ func TestHandleEvent(t *testing.T) {
 		disabled.DisableEnhancedMetrics = true
 
 		client := &fakeLogsClient{
-			events:   eventsFor(oldResourceID, sameResourceID),
+			events: map[string][]types.FilteredLogEvent{
+				oldResourceID:  {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+				sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
+			},
 			missing:  nil,
 			errs:     nil,
 			pageSize: 0,

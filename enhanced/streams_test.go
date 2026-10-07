@@ -517,7 +517,9 @@ func TestScrapeReleasesTheStreamsThatCameBack(t *testing.T) {
 		t.Parallel()
 
 		client := &fakeLogsClient{
-			events:   eventsFor(newResourceID),
+			events: map[string][]types.FilteredLogEvent{
+				newResourceID: {osMetricsEventFor(newResourceID, blueGreenPrimaryInstance, testEventTime())},
+			},
 			missing:  map[string]struct{}{oldResourceID: {}},
 			errs:     nil,
 			pageSize: 0,

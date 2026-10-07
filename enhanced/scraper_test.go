@@ -165,6 +165,7 @@ func newTestScraperWith(
 		group:                     newLogGroup(),
 		errorCounts:               make(map[string]uint64),
 		skewedEvents:              0,
+		foreignEvents:             0,
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		refreshBackoff:            0,
 		nextStartTime:             testEventTime().Add(-time.Minute),
@@ -210,7 +211,9 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 		unmonitored.EnhancedMonitoringInterval = 0
 
 		client := &fakeLogsClient{
-			events:   map[string][]types.FilteredLogEvent{oldResourceID: {osMetricsEvent(oldResourceID, testEventTime())}},
+			events: map[string][]types.FilteredLogEvent{
+				oldResourceID: {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+			},
 			missing:  map[string]struct{}{sameResourceID: {}},
 			errs:     nil,
 			pageSize: 0,
@@ -260,8 +263,8 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 
 		client := &fakeLogsClient{
 			events: map[string][]types.FilteredLogEvent{
-				oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime())},
-				sameResourceID: {osMetricsEvent(sameResourceID, testEventTime())},
+				oldResourceID:  {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+				sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
 			},
 			missing:  nil,
 			errs:     nil,

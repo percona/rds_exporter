@@ -32,12 +32,13 @@ const (
 	// feed, without holding a sample long enough to hide an outage.
 	ttlIntervals = 3
 
-	upMetricName           = "rds_exporter_enhanced_up"
-	upMetricHelp           = "Whether Enhanced Monitoring metrics for this instance are current (1) or stale (0)."
-	lastEventMetricName    = "rds_exporter_enhanced_last_event_timestamp_seconds"
-	lastEventMetricHelp    = "Timestamp of the most recent Enhanced Monitoring event received for this instance."
-	scrapeErrorsMetricName = "rds_exporter_enhanced_scrape_errors_total"
-	clockSkewMetricName    = "rds_exporter_enhanced_clock_skew_events_total"
+	upMetricName            = "rds_exporter_enhanced_up"
+	upMetricHelp            = "Whether Enhanced Monitoring metrics for this instance are current (1) or stale (0)."
+	lastEventMetricName     = "rds_exporter_enhanced_last_event_timestamp_seconds"
+	lastEventMetricHelp     = "Timestamp of the most recent Enhanced Monitoring event received for this instance."
+	scrapeErrorsMetricName  = "rds_exporter_enhanced_scrape_errors_total"
+	clockSkewMetricName     = "rds_exporter_enhanced_clock_skew_events_total"
+	foreignEventsMetricName = "rds_exporter_enhanced_foreign_events_total"
 
 	regionLabel   = "region"
 	instanceLabel = "instance"
@@ -90,8 +91,9 @@ type errorKey struct {
 type Collector struct {
 	logger log.Logger
 
-	errorsDesc *prometheus.Desc
-	skewDesc   *prometheus.Desc
+	errorsDesc  *prometheus.Desc
+	skewDesc    *prometheus.Desc
+	foreignDesc *prometheus.Desc
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -111,6 +113,9 @@ type Collector struct {
 	errors    map[errorKey]uint64
 	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock.
 	skewed map[string]uint64
+	// foreign is how many events a region delivered for an instance other than the one configured
+	// for their log stream.
+	foreign map[string]uint64
 }
 
 func metricsTTL(interval time.Duration) time.Duration {
@@ -127,6 +132,9 @@ func newCollector(logger log.Logger) *Collector {
 		skewDesc: prometheus.NewDesc(clockSkewMetricName,
 			"Enhanced Monitoring events timestamped ahead of the exporter's clock; their samples are exported regardless.",
 			[]string{regionLabel}, nil),
+		foreignDesc: prometheus.NewDesc(foreignEventsMetricName,
+			"Enhanced Monitoring events dropped because they name an instance other than the one configured for their log stream.",
+			[]string{regionLabel}, nil),
 		cancel:     nil,
 		wg:         sync.WaitGroup{},
 		configured: make(map[instanceKey]prometheus.Labels),
@@ -135,6 +143,7 @@ func newCollector(logger log.Logger) *Collector {
 		metrics:    make(map[instanceKey]storedSample),
 		errors:     make(map[errorKey]uint64),
 		skewed:     make(map[string]uint64),
+		foreign:    make(map[string]uint64),
 	}
 }
 
@@ -209,6 +218,7 @@ func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.collectSilentInstances(out)
 	c.collectErrors(out)
 	c.collectClockSkew(out)
+	c.collectForeignEvents(out)
 }
 
 // configure records every instance the collector monitors and returns them grouped by session. The
@@ -312,6 +322,15 @@ func (c *Collector) collectClockSkew(out chan<- prometheus.Metric) {
 	}
 }
 
+// collectForeignEvents reports how many events a region delivered naming an instance other than the
+// configured one. It is labelled by region alone because the name the event carries is AWS input and
+// may not reach a label.
+func (c *Collector) collectForeignEvents(out chan<- prometheus.Metric) {
+	for region, count := range c.foreign {
+		out <- prometheus.MustNewConstMetric(c.foreignDesc, prometheus.CounterValue, float64(count), region)
+	}
+}
+
 func (c *Collector) collectErrors(out chan<- prometheus.Metric) {
 	for key, count := range c.errors {
 		out <- prometheus.MustNewConstMetric(c.errorsDesc, prometheus.CounterValue, float64(count),
@@ -348,6 +367,7 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 	// Assigned even when nothing was skewed, so the counter starts from a zero the region publishes
 	// rather than appearing only once a clock has already drifted.
 	c.skewed[result.region] += result.skewedEvents
+	c.foreign[result.region] += result.foreignEvents
 
 	c.prune(now)
 }

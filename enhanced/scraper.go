@@ -191,8 +191,9 @@ type scraper struct {
 	refreshBackoff        time.Duration
 
 	// What the scrape reports about itself.
-	errorCounts  map[string]uint64
-	skewedEvents uint64
+	errorCounts   map[string]uint64
+	skewedEvents  uint64
+	foreignEvents uint64
 
 	testDisallowUnknownFields bool // for tests only
 }
@@ -211,6 +212,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		group:                 newLogGroup(),
 		errorCounts:           make(map[string]uint64),
 		skewedEvents:          0,
+		foreignEvents:         0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		refreshBackoff:        0,
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
@@ -300,12 +302,13 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 }
 
 type scrapeResult struct {
-	metrics      map[instanceKey]instanceMetrics
-	errorCounts  map[string]uint64
-	skewedEvents uint64
-	monitored    map[instanceKey]bool
-	region       string
-	interval     time.Duration
+	metrics       map[instanceKey]instanceMetrics
+	errorCounts   map[string]uint64
+	skewedEvents  uint64
+	foreignEvents uint64
+	monitored     map[instanceKey]bool
+	region        string
+	interval      time.Duration
 }
 
 // interval returns how often to scrape, following the shortest Enhanced Monitoring interval AWS
@@ -390,14 +393,17 @@ func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	s.errorCounts = make(map[string]uint64)
 	skewed := s.skewedEvents
 	s.skewedEvents = 0
+	foreign := s.foreignEvents
+	s.foreignEvents = 0
 
 	return scrapeResult{
-		metrics:      metrics,
-		errorCounts:  counts,
-		skewedEvents: skewed,
-		monitored:    s.monitoredInstances(),
-		region:       s.region(),
-		interval:     s.interval(),
+		metrics:       metrics,
+		errorCounts:   counts,
+		skewedEvents:  skewed,
+		foreignEvents: foreign,
+		monitored:     s.monitoredInstances(),
+		region:        s.region(),
+		interval:      s.interval(),
 	}
 }
 
@@ -1120,6 +1126,10 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		}
 
 		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
+		if !s.ownsEvent(instance, osMetrics.InstanceID, instanceLogger) {
+			continue
+		}
+
 		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
 			osMetrics.Timestamp.UTC(), timestamp))
 
