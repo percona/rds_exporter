@@ -168,6 +168,7 @@ func newTestScraperWith(
 		foreignEvents:             0,
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		refreshBackoff:            0,
+		foreign:                   make(map[instanceKey]foreignEpisode),
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
 		testDisallowUnknownFields: false,

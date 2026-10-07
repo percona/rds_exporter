@@ -190,6 +190,9 @@ type scraper struct {
 	nextResourceIDRefresh time.Time
 	refreshBackoff        time.Duration
 
+	// foreign is, per configured instance, the episode of events naming another instance it is in.
+	foreign map[instanceKey]foreignEpisode
+
 	// What the scrape reports about itself.
 	errorCounts   map[string]uint64
 	skewedEvents  uint64
@@ -215,6 +218,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		foreignEvents:         0,
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		refreshBackoff:        0,
+		foreign:               make(map[instanceKey]foreignEpisode),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
 		logger:                log.With(logger, "component", "enhanced"),
 	}
@@ -1183,14 +1187,27 @@ func (s *scraper) refreshStates(ctx context.Context) {
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {
-	if time.Now().Before(s.nextResourceIDRefresh) {
+	if !s.refreshDue(time.Now()) {
 		return nil
 	}
+
+	s.markForeignEpisodesAsked()
 
 	err := s.updateInstanceStates(ctx)
 	s.scheduleNextRefresh(err != nil)
 
 	return err
+}
+
+// refreshDue reports whether the instance states are to be resolved now. An episode of foreign
+// events brings the refresh forward, but never inside the backoff of a failed one, which would turn
+// a DescribeDBInstances that keeps failing into one per scrape.
+func (s *scraper) refreshDue(now time.Time) bool {
+	if !now.Before(s.nextResourceIDRefresh) {
+		return true
+	}
+
+	return s.refreshBackoff == 0 && s.foreignRefreshWanted()
 }
 
 // scheduleNextRefresh decides when the instance states are worth asking AWS for again. A failed
@@ -1230,6 +1247,8 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		s.updateMonitoringInterval(instanceIndex, state.MonitoringInterval)
 
 		if state.ResourceID == instance.ResourceID {
+			s.settleForeignEpisode(instance)
+
 			continue
 		}
 
@@ -1243,6 +1262,7 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		// The retired resource ID will never come back, and the new one deserves a fresh attempt.
 		s.forget(instance.ResourceID)
 		s.instances[instanceIndex].ResourceID = state.ResourceID
+		s.settleForeignEpisode(s.instances[instanceIndex])
 	}
 
 	if err != nil {
