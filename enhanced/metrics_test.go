@@ -84,7 +84,7 @@ func TestMakePrometheusMetrics(t *testing.T) {
 }
 
 func TestParseUptime(t *testing.T) {
-	t.Skip("TODO Parse uptime https://jira.percona.com/browse/PMM-2131")
+	t.Skip("uptime is not parsed yet")
 
 	_ = "01:45:58"
 	_ = "1 day, 07:11:58"
