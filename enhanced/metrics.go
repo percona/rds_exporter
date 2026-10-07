@@ -470,11 +470,13 @@ func instanceLabels(region, instance string, labels map[string]string) prometheu
 // rather than with anything the exporter controls, so it is a starting size and not a bound.
 const metricsPerEvent = 100
 
-// makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
-func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]string) []prometheus.Metric {
+// makePrometheusMetrics returns all Prometheus metrics for given osMetrics, labelled as the configured
+// instance. The document's own instanceID is not used: AWS renames a box on a blue/green switchover,
+// and the name PMM added the instance with is what every other series for it carries.
+func (m *osMetrics) makePrometheusMetrics(region, instance string, labels map[string]string) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, metricsPerEvent)
 
-	constLabels := instanceLabels(region, m.InstanceID, labels)
+	constLabels := instanceLabels(region, instance, labels)
 
 	res = append(res, prometheus.MustNewConstMetric(
 		prometheus.NewDesc("rdsosmetrics_timestamp", "Metrics timestamp (UNIX seconds).", nil, constLabels),

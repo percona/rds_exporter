@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 			m, err := parseOSMetrics(readTestDataJSON(t, data.instance), true)
 			require.NoError(t, err)
 
-			actualMetrics := helpers.ReadMetrics(m.makePrometheusMetrics(data.region, nil))
+			actualMetrics := helpers.ReadMetrics(m.makePrometheusMetrics(data.region, data.instance, nil))
 			sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
 			actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
@@ -40,6 +40,45 @@ func TestParse(t *testing.T) {
 			// compare both to try to avoid go-difflib bug
 			assert.Equal(t, expectedLines, actualLines)
 			assert.Equal(t, expectedMetrics, actualMetrics)
+		})
+	}
+}
+
+func TestMakePrometheusMetrics(t *testing.T) {
+	t.Parallel()
+
+	const configured = "prod-db"
+
+	for _, testCase := range []struct {
+		name     string
+		payload  string
+		labels   map[string]string
+		instance string
+		labelled bool
+	}{
+		{name: "names the instance from the configuration, not a renamed box", payload: configured + "-old1",
+			labels: nil, instance: configured, labelled: true},
+		{name: "names the instance when the document names none", payload: "",
+			labels: nil, instance: configured, labelled: true},
+		{name: "lets a configured label override the name", payload: configured + "-old1",
+			labels: map[string]string{instanceLabel: "custom"}, instance: "custom", labelled: true},
+		{name: "lets an empty configured label drop the name", payload: configured + "-old1",
+			labels: map[string]string{instanceLabel: ""}, instance: "", labelled: false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			m, err := parseOSMetrics([]byte(osMetricsDocument(oldResourceID, testCase.payload, testEventTime())), true)
+			require.NoError(t, err)
+
+			metrics := m.makePrometheusMetrics(testRegion, configured, testCase.labels)
+			require.NotEmpty(t, metrics)
+
+			for _, metric := range helpers.ReadMetrics(metrics) {
+				instance, labelled := metric.Labels[instanceLabel]
+				assert.Equal(t, testCase.labelled, labelled, "%s", metric.Name)
+				assert.Equal(t, testCase.instance, instance, "%s", metric.Name)
+			}
 		})
 	}
 }

@@ -93,7 +93,8 @@ func TestScraper(t *testing.T) {
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
 				require.NoError(t, err)
-				expectedMetrics := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, nil))
+
+				expectedMetrics := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, instance.Instance, nil))
 				sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
 				expectedMetrics = filterMetrics(expectedMetrics)
 				expectedLines := helpers.Format(helpers.WriteMetrics(expectedMetrics))

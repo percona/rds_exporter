@@ -1123,7 +1123,8 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
 			osMetrics.Timestamp.UTC(), timestamp))
 
-		sink.add(keyOf(s.session, instance), timestamp, osMetrics.makePrometheusMetrics(instance.Region, instance.Labels))
+		metrics := osMetrics.makePrometheusMetrics(instance.Region, instance.Instance, instance.Labels)
+		sink.add(keyOf(s.session, instance), timestamp, metrics)
 	}
 }
 

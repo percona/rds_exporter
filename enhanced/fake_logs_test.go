@@ -2,6 +2,7 @@ package enhanced
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"sort"
@@ -197,13 +198,16 @@ func testInstance(name, resourceID string) sessions.Instance {
 	}
 }
 
-// osMetricsEvent returns a log event carrying the smallest OS metrics document that parses.
+// osMetricsEvent returns a log event carrying the smallest OS metrics document that parses, naming the
+// instance after its resource ID.
 func osMetricsEvent(resourceID string, timestamp time.Time) types.FilteredLogEvent {
-	message := fmt.Sprintf(
-		`{"engine":"MySQL","instanceID":"%s","instanceResourceID":"%s","numVCPUs":2,`+
-			`"timestamp":"%s","uptime":"1:00:00","version":1,"cpuUtilization":{"total":10}}`,
-		resourceID, resourceID, timestamp.UTC().Format(time.RFC3339),
-	)
+	return osMetricsEventFor(resourceID, resourceID, timestamp)
+}
+
+// osMetricsEventFor returns a log event whose document names instanceID, which AWS changes on a
+// blue/green switchover while the log stream keeps its name.
+func osMetricsEventFor(resourceID, instanceID string, timestamp time.Time) types.FilteredLogEvent {
+	message := osMetricsDocument(resourceID, instanceID, timestamp)
 
 	return types.FilteredLogEvent{
 		EventId:       aws.String(resourceID + "-" + timestamp.UTC().Format(time.RFC3339)),
@@ -212,4 +216,23 @@ func osMetricsEvent(resourceID string, timestamp time.Time) types.FilteredLogEve
 		IngestionTime: aws.Int64(timestamp.Add(10 * time.Second).UnixMilli()),
 		Message:       aws.String(message),
 	}
+}
+
+// osMetricsDocument returns the smallest OS metrics document that parses. The names are JSON-encoded
+// so that a test can put any bytes AWS might send into them.
+func osMetricsDocument(resourceID, instanceID string, timestamp time.Time) string {
+	return fmt.Sprintf(
+		`{"engine":"MySQL","instanceID":%s,"instanceResourceID":%s,"numVCPUs":2,`+
+			`"timestamp":"%s","uptime":"1:00:00","version":1,"cpuUtilization":{"total":10}}`,
+		jsonString(instanceID), jsonString(resourceID), timestamp.UTC().Format(time.RFC3339),
+	)
+}
+
+func jsonString(s string) string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
 }
