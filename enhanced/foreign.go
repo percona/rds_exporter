@@ -7,8 +7,8 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-// maxLoggedPayloadName caps how much of the instance name an event carries is kept and logged. The
-// name is AWS input and is never exported.
+// maxLoggedPayloadName caps how much of the instance name an event carries is logged. The name is
+// AWS input and is never exported.
 const maxLoggedPayloadName = 64
 
 // foreignEpisode is a run of events naming another instance than the configured one, on one log
@@ -39,18 +39,28 @@ func (s *scraper) ownsEvent(instance sessions.Instance, payloadName string, logg
 	}
 
 	s.foreignEvents++
-	name := truncate(payloadName, maxLoggedPayloadName)
+	loggedName := truncate(payloadName, maxLoggedPayloadName)
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event names another instance; dropped.",
-		"payload_instance", name)
+		"payload_instance", loggedName)
 
 	episode, known := s.foreign[key]
-	if known && episode.resourceID == instance.ResourceID && episode.payloadName == name {
+	if known && episode.resourceID == instance.ResourceID && episode.payloadName == payloadName {
 		return false
 	}
 
-	s.foreign[key] = foreignEpisode{resourceID: instance.ResourceID, payloadName: name, asked: false, confirmed: false}
+	s.foreign[key] = foreignEpisode{
+		resourceID: instance.ResourceID, payloadName: payloadName, asked: false, confirmed: false,
+	}
+
+	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
+	level.Info(logger).Log(
+		"msg", "Enhanced Monitoring events name another instance than the one configured for their log stream; "+
+			"dropping them.",
+		"resource_id", instance.ResourceID,
+		"payload_instance", loggedName,
+	)
 
 	return false
 }
@@ -68,22 +78,12 @@ func (s *scraper) foreignRefreshWanted() bool {
 
 // markForeignEpisodesAsked records that a refresh has run for every episode open at its start,
 // whatever it returns: an instance the refresh did not return or could not read is left to the
-// regular refresh. An episode is reported here rather than when it opens, because the instance's own
-// event often closes it within the same scrape, as when the lookback re-reads the promoted box.
+// regular refresh.
 func (s *scraper) markForeignEpisodesAsked() {
 	for key, episode := range s.foreign {
 		if episode.asked {
 			continue
 		}
-
-		//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
-		level.Info(s.logger).Log(
-			"msg", "Enhanced Monitoring events name another instance; refreshing the instance states.",
-			"region", key.region,
-			"instance", key.instance,
-			"resource_id", episode.resourceID,
-			"payload_instance", episode.payloadName,
-		)
 
 		episode.asked = true
 		s.foreign[key] = episode
@@ -121,7 +121,7 @@ func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 		"region", instance.Region,
 		"instance", instance.Instance,
 		"resource_id", instance.ResourceID,
-		"payload_instance", episode.payloadName,
+		"payload_instance", truncate(episode.payloadName, maxLoggedPayloadName),
 	)
 }
 

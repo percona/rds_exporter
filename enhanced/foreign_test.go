@@ -304,8 +304,8 @@ func TestTruncate(t *testing.T) {
 }
 
 const (
-	refreshingLine = "refreshing the instance states"
-	renamedLine    = "renamed in AWS"
+	openedLine  = "dropping them"
+	renamedLine = "renamed in AWS"
 )
 
 // tick runs one round of the scraper's loop: the refresh, then the scrape.
@@ -370,7 +370,8 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
 		assert.Equal(t, ownEvent, collector.metrics[testKey(blueGreenPrimaryInstance)].eventTime)
 		assert.Empty(t, scraper.foreign, "the repoint ends the episode")
-		assert.Equal(t, 1, strings.Count(buf.String(), refreshingLine))
+		assert.Equal(t, 2, strings.Count(buf.String(), openedLine),
+			"the promoted box's name from before the switchover is an episode of its own")
 		assert.NotContains(t, buf.String(), renamedLine)
 
 		for _, metric := range collect(t, collector) {
@@ -398,7 +399,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		}
 
 		assert.Equal(t, 1, resolver.calls, "a confirmed episode waits for the regular refresh")
-		assert.Equal(t, 1, strings.Count(buf.String(), refreshingLine))
+		assert.Equal(t, 1, strings.Count(buf.String(), openedLine))
 		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine))
 		assert.Contains(t, buf.String(), "level=warn")
 		assert.False(t, scraper.nextResourceIDRefresh.Before(time.Now().Add(resourceIDRefreshInterval-time.Minute)),
@@ -511,6 +512,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 1, resolver.calls, "a foreign event must not turn a failing refresh into one per scrape")
+		assert.Equal(t, 2, strings.Count(buf.String(), openedLine), "an episode is reported when it opens")
 		assert.NotContains(t, buf.String(), renamedLine, "a failed refresh confirms nothing")
 
 		resolver.err = nil
@@ -581,6 +583,38 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		assert.Zero(t, resolver.calls)
 		assert.Empty(t, scraper.foreign)
+		assert.Equal(t, 1, strings.Count(buf.String(), openedLine), "an episode is reported even when no refresh follows")
+	})
+
+	t.Run("tells apart names that differ beyond the logged length", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+		prefix := strings.Repeat("x", maxLoggedPayloadName)
+
+		var buf bytes.Buffer
+
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEventFor(oldResourceID, prefix+"-a", testEventTime())},
+		})
+		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+		tick(t, scraper)
+		require.Equal(t, 1, resolver.calls)
+
+		client.events[oldResourceID] = []types.FilteredLogEvent{
+			osMetricsEventFor(oldResourceID, prefix+"-b", testEventTime()),
+		}
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls, "another name is another episode, however long the names")
 	})
 
 	t.Run("ends a confirmed episode when the regular refresh repoints the instance", func(t *testing.T) {
