@@ -19,11 +19,6 @@ import (
 
 const renamedInstance = blueGreenPrimaryInstance + "-old1"
 
-// eventsClient returns a client whose streams deliver the given events.
-func eventsClient(events map[string][]types.FilteredLogEvent) *fakeLogsClient {
-	return &fakeLogsClient{events: events, missing: nil, errs: nil, pageSize: 0, calls: nil}
-}
-
 // payloadInstancePattern matches the payload_instance value of a logfmt line, quoted or bare.
 var payloadInstancePattern = regexp.MustCompile(`payload_instance=("(?:[^"\\]|\\.)*"|\S*)`)
 
@@ -65,7 +60,7 @@ func TestForeignEvents(t *testing.T) {
 		metrics := scraper.scrape(t.Context())
 
 		assert.Empty(t, metrics, "the box AWS renamed is not the instance PMM was configured with")
-		assert.Equal(t, uint64(1), scraper.foreignEvents)
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
 	})
 
 	t.Run("keeps the sample of the instance when a newer event names another", func(t *testing.T) {
@@ -87,7 +82,7 @@ func TestForeignEvents(t *testing.T) {
 		require.Contains(t, metrics, testKey(blueGreenPrimaryInstance))
 		assert.Equal(t, own, metrics[testKey(blueGreenPrimaryInstance)].eventTime,
 			"a foreign event may not supersede the instance's own")
-		assert.Equal(t, uint64(1), scraper.foreignEvents)
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
 	})
 
 	t.Run("drops an event whose document names no instance", func(t *testing.T) {
@@ -101,7 +96,7 @@ func TestForeignEvents(t *testing.T) {
 		})
 
 		assert.Empty(t, scraper.scrape(t.Context()))
-		assert.Equal(t, uint64(1), scraper.foreignEvents)
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
 	})
 
 	t.Run("compares the names byte for byte", func(t *testing.T) {
@@ -133,7 +128,7 @@ func TestForeignEvents(t *testing.T) {
 
 		assert.NotContains(t, metrics, testKey(blueGreenPrimaryInstance))
 		assert.Contains(t, metrics, testKey(unchangedPrimaryInstance))
-		assert.Equal(t, uint64(1), scraper.foreignEvents)
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
 	})
 
 	t.Run("counts the request as answered", func(t *testing.T) {
@@ -151,7 +146,7 @@ func TestForeignEvents(t *testing.T) {
 		assert.True(t, scraper.evidence.answered)
 		assert.Zero(t, scraper.missing.len(), "a stream that answered is not missing, whoever its events name")
 		assert.False(t, scraper.group.blamed)
-		assert.Empty(t, scraper.errorCounts, "a foreign event is not a collection error")
+		assert.Empty(t, scraper.counts.errors, "a foreign event is not a collection error")
 	})
 
 	t.Run("does not move the request window", func(t *testing.T) {
@@ -243,8 +238,8 @@ func TestForeignEvents(t *testing.T) {
 		first := scraper.result(scraper.scrape(t.Context()))
 		second := scraper.result(map[instanceKey]instanceMetrics{})
 
-		assert.Equal(t, uint64(1), first.foreignEvents)
-		assert.Zero(t, second.foreignEvents)
+		assert.Equal(t, uint64(1), first.counts.foreign)
+		assert.Zero(t, second.counts.foreign)
 	})
 
 	t.Run("logs a bounded and escaped name", func(t *testing.T) {
@@ -369,7 +364,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.Equal(t, 1, resolver.calls, "the first foreign event makes the refresh due at the next scrape")
 		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
 		assert.Equal(t, ownEvent, collector.metrics[testKey(blueGreenPrimaryInstance)].eventTime)
-		assert.Empty(t, scraper.foreign, "the repoint ends the episode")
+		assert.Empty(t, scraper.foreignEpisodes, "the repoint ends the episode")
 		assert.Equal(t, 2, strings.Count(buf.String(), openedLine),
 			"the promoted box's name from before the switchover is an episode of its own")
 		assert.NotContains(t, buf.String(), renamedLine)
@@ -582,7 +577,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Zero(t, resolver.calls)
-		assert.Empty(t, scraper.foreign)
+		assert.Empty(t, scraper.foreignEpisodes)
 		assert.Equal(t, 1, strings.Count(buf.String(), openedLine), "an episode is reported even when no refresh follows")
 	})
 
@@ -632,13 +627,13 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		tick(t, scraper)
 		tick(t, scraper)
-		require.Len(t, scraper.foreign, 1)
+		require.Len(t, scraper.foreignEpisodes, 1)
 
 		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
 		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
 
 		tick(t, scraper)
 
-		assert.Empty(t, scraper.foreign)
+		assert.Empty(t, scraper.foreignEpisodes)
 	})
 }

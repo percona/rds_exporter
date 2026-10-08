@@ -111,11 +111,14 @@ type Collector struct {
 	monitored map[instanceKey]bool
 	metrics   map[instanceKey]storedSample
 	errors    map[errorKey]uint64
-	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock.
+	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock. It is
+	// deliberately not one of the error kinds: the samples are exported either way, so counting it
+	// there would make a host whose clock drifts look like collection failing.
 	skewed map[string]uint64
-	// foreign is how many events a region delivered for an instance other than the one configured
-	// for their log stream.
-	foreign map[string]uint64
+	// foreignEvents is how many events a region delivered for an instance other than the one
+	// configured for their log stream. It is labelled by region alone because the name the event
+	// carries is AWS input and may not reach a label.
+	foreignEvents map[string]uint64
 }
 
 func metricsTTL(interval time.Duration) time.Duration {
@@ -135,15 +138,15 @@ func newCollector(logger log.Logger) *Collector {
 		foreignDesc: prometheus.NewDesc(foreignEventsMetricName,
 			"Enhanced Monitoring events dropped because they name an instance other than the one configured for their log stream.",
 			[]string{regionLabel}, nil),
-		cancel:     nil,
-		wg:         sync.WaitGroup{},
-		configured: make(map[instanceKey]prometheus.Labels),
-		rw:         sync.RWMutex{},
-		monitored:  make(map[instanceKey]bool),
-		metrics:    make(map[instanceKey]storedSample),
-		errors:     make(map[errorKey]uint64),
-		skewed:     make(map[string]uint64),
-		foreign:    make(map[string]uint64),
+		cancel:        nil,
+		wg:            sync.WaitGroup{},
+		configured:    make(map[instanceKey]prometheus.Labels),
+		rw:            sync.RWMutex{},
+		monitored:     make(map[instanceKey]bool),
+		metrics:       make(map[instanceKey]storedSample),
+		errors:        make(map[errorKey]uint64),
+		skewed:        make(map[string]uint64),
+		foreignEvents: make(map[string]uint64),
 	}
 }
 
@@ -217,8 +220,8 @@ func (c *Collector) Collect(out chan<- prometheus.Metric) {
 	c.collectSamples(out, time.Now())
 	c.collectSilentInstances(out)
 	c.collectErrors(out)
-	c.collectClockSkew(out)
-	c.collectForeignEvents(out)
+	collectRegionCounts(out, c.skewDesc, c.skewed)
+	collectRegionCounts(out, c.foreignDesc, c.foreignEvents)
 }
 
 // configure records every instance the collector monitors and returns them grouped by session. The
@@ -313,21 +316,9 @@ func (c *Collector) silenced(key instanceKey) bool {
 	return known && !monitored
 }
 
-// collectClockSkew reports how many events a region delivered dated ahead of the exporter's clock.
-// It is deliberately not one of the error kinds: the samples are exported either way, so counting it
-// there would make a host whose clock drifts look like collection failing.
-func (c *Collector) collectClockSkew(out chan<- prometheus.Metric) {
-	for region, count := range c.skewed {
-		out <- prometheus.MustNewConstMetric(c.skewDesc, prometheus.CounterValue, float64(count), region)
-	}
-}
-
-// collectForeignEvents reports how many events a region delivered naming an instance other than the
-// configured one. It is labelled by region alone because the name the event carries is AWS input and
-// may not reach a label.
-func (c *Collector) collectForeignEvents(out chan<- prometheus.Metric) {
-	for region, count := range c.foreign {
-		out <- prometheus.MustNewConstMetric(c.foreignDesc, prometheus.CounterValue, float64(count), region)
+func collectRegionCounts(out chan<- prometheus.Metric, desc *prometheus.Desc, counts map[string]uint64) {
+	for region, count := range counts {
+		out <- prometheus.MustNewConstMetric(desc, prometheus.CounterValue, float64(count), region)
 	}
 }
 
@@ -360,14 +351,14 @@ func (c *Collector) setMetrics(result scrapeResult, now time.Time) {
 		}
 	}
 
-	for kind, count := range result.errorCounts {
+	for kind, count := range result.counts.errors {
 		c.errors[errorKey{region: result.region, kind: kind}] += count
 	}
 
 	// Assigned even when nothing was skewed, so the counter starts from a zero the region publishes
 	// rather than appearing only once a clock has already drifted.
-	c.skewed[result.region] += result.skewedEvents
-	c.foreign[result.region] += result.foreignEvents
+	c.skewed[result.region] += result.counts.skewed
+	c.foreignEvents[result.region] += result.counts.foreign
 
 	c.prune(now)
 }

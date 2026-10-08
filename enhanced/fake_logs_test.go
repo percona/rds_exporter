@@ -198,6 +198,11 @@ func testInstance(name, resourceID string) sessions.Instance {
 	}
 }
 
+// eventsClient returns a client whose streams deliver the given events.
+func eventsClient(events map[string][]types.FilteredLogEvent) *fakeLogsClient {
+	return &fakeLogsClient{events: events, missing: nil, errs: nil, pageSize: 0, calls: nil}
+}
+
 // osMetricsEvent returns a log event carrying the smallest OS metrics document that parses, naming the
 // instance after its resource ID.
 func osMetricsEvent(resourceID string, timestamp time.Time) types.FilteredLogEvent {

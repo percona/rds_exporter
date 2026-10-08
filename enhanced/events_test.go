@@ -61,18 +61,12 @@ func TestHandleEvent(t *testing.T) {
 	t.Run("attributes the events of a shared resource ID to the instances they name", func(t *testing.T) {
 		t.Parallel()
 
-		client := &fakeLogsClient{
-			events: map[string][]types.FilteredLogEvent{
-				sameResourceID: {
-					osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, testEventTime()),
-					osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime()),
-				},
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			sameResourceID: {
+				osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, testEventTime()),
+				osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime()),
 			},
-			missing:  nil,
-			errs:     nil,
-			pageSize: 0,
-			calls:    nil,
-		}
+		})
 		scraper := newTestScraperWithClient(client, []sessions.Instance{
 			testInstance(blueGreenPrimaryInstance, sameResourceID),
 			testInstance(unchangedPrimaryInstance, sameResourceID),
@@ -91,16 +85,10 @@ func TestHandleEvent(t *testing.T) {
 		disabled := testInstance(unchangedPrimaryInstance, sameResourceID)
 		disabled.DisableEnhancedMetrics = true
 
-		client := &fakeLogsClient{
-			events: map[string][]types.FilteredLogEvent{
-				oldResourceID:  {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
-				sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
-			},
-			missing:  nil,
-			errs:     nil,
-			pageSize: 0,
-			calls:    nil,
-		}
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID:  {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+			sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
+		})
 		scraper := newTestScraperWithClient(client, []sessions.Instance{
 			testInstance(blueGreenPrimaryInstance, oldResourceID),
 			disabled,
@@ -222,5 +210,5 @@ func TestScrapeOnce(t *testing.T) {
 	metrics := scraper.scrapeOnce(t.Context(), time.Nanosecond)
 
 	assert.Empty(t, metrics, "a scrape must not outlive the interval it belongs to")
-	assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+	assert.Equal(t, uint64(1), scraper.counts.errors[errorKindContext])
 }

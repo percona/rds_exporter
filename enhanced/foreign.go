@@ -11,47 +11,59 @@ import (
 // AWS input and is never exported.
 const maxLoggedPayloadName = 64
 
+// episodeStage is how far the early refresh of a foreign event episode has got.
+type episodeStage int
+
+const (
+	// episodeOpen waits for its early refresh.
+	episodeOpen episodeStage = iota
+	// episodeAsked has had a refresh that could not settle it, and is not asked for again on every
+	// scrape.
+	episodeAsked
+	// episodeConfirmed has had a refresh return the same resource ID, which leaves a rename in AWS or a
+	// stale configuration as the cause, and nothing an early refresh can fix.
+	episodeConfirmed
+)
+
 // foreignEpisode is a run of events naming another instance than the configured one, on one log
 // stream and under one name. The first event of an episode asks for the instance states to be
 // refreshed early, since a blue/green switchover is the usual cause and the refresh is what repoints
-// the instance; asked keeps a refresh that could not settle the episode from being asked for again
-// on every scrape. confirmed is a refresh having returned the same resource ID, which leaves a rename
-// in AWS or a stale configuration as the cause, and nothing an early refresh can fix.
+// the instance.
 type foreignEpisode struct {
 	resourceID  string
 	payloadName string
-	asked       bool
-	confirmed   bool
+	stage       episodeStage
 }
 
-// ownsEvent reports whether an event is the configured instance's own. The log stream alone does not
+// claimEvent reports whether an event is the configured instance's own, and accounts for it when it is
+// not. The log stream alone does not
 // say so: after a blue/green switchover the stream is read until the next refresh repoints it, while
 // AWS has already renamed the box behind it, and the lookback after the repoint re-reads the promoted
 // box's events from before it took the name. Neither describes the instance PMM was configured with.
 // The request still counts as answered, so a foreign event never reads as a missing stream.
-func (s *scraper) ownsEvent(instance sessions.Instance, payloadName string, logger log.Logger) bool {
+func (s *scraper) claimEvent(instance sessions.Instance, payloadName string, logger log.Logger) bool {
 	key := keyOf(s.session, instance)
 
 	if payloadName == instance.Instance {
-		delete(s.foreign, key)
+		delete(s.foreignEpisodes, key)
 
 		return true
 	}
 
-	s.foreignEvents++
+	s.counts.foreign++
 	loggedName := truncate(payloadName, maxLoggedPayloadName)
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event names another instance; dropped.",
 		"payload_instance", loggedName)
 
-	episode, known := s.foreign[key]
+	episode, known := s.foreignEpisodes[key]
 	if known && episode.resourceID == instance.ResourceID && episode.payloadName == payloadName {
 		return false
 	}
 
-	s.foreign[key] = foreignEpisode{
-		resourceID: instance.ResourceID, payloadName: payloadName, asked: false, confirmed: false,
+	s.foreignEpisodes[key] = foreignEpisode{
+		resourceID: instance.ResourceID, payloadName: payloadName, stage: episodeOpen,
 	}
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
@@ -67,8 +79,8 @@ func (s *scraper) ownsEvent(instance sessions.Instance, payloadName string, logg
 
 // foreignRefreshWanted reports whether an episode is still waiting for its early refresh.
 func (s *scraper) foreignRefreshWanted() bool {
-	for _, episode := range s.foreign {
-		if !episode.asked {
+	for _, episode := range s.foreignEpisodes {
+		if episode.stage == episodeOpen {
 			return true
 		}
 	}
@@ -80,13 +92,13 @@ func (s *scraper) foreignRefreshWanted() bool {
 // whatever it returns: an instance the refresh did not return or could not read is left to the
 // regular refresh.
 func (s *scraper) markForeignEpisodesAsked() {
-	for key, episode := range s.foreign {
-		if episode.asked {
+	for key, episode := range s.foreignEpisodes {
+		if episode.stage != episodeOpen {
 			continue
 		}
 
-		episode.asked = true
-		s.foreign[key] = episode
+		episode.stage = episodeAsked
+		s.foreignEpisodes[key] = episode
 	}
 }
 
@@ -96,23 +108,23 @@ func (s *scraper) markForeignEpisodesAsked() {
 func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 	key := keyOf(s.session, instance)
 
-	episode, known := s.foreign[key]
+	episode, known := s.foreignEpisodes[key]
 	if !known {
 		return
 	}
 
 	if episode.resourceID != instance.ResourceID {
-		delete(s.foreign, key)
+		delete(s.foreignEpisodes, key)
 
 		return
 	}
 
-	if episode.confirmed {
+	if episode.stage == episodeConfirmed {
 		return
 	}
 
-	episode.confirmed = true
-	s.foreign[key] = episode
+	episode.stage = episodeConfirmed
+	s.foreignEpisodes[key] = episode
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
 	level.Warn(s.logger).Log(

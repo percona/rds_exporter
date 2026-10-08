@@ -180,7 +180,7 @@ func TestScrapeFutureDatedEvents(t *testing.T) {
 					skewed = 1
 				}
 
-				assert.Equal(t, skewed, scraper.skewedEvents)
+				assert.Equal(t, skewed, scraper.counts.skewed)
 
 				if testCase.follows {
 					assert.Equal(t, eventTime, scraper.nextStartTime,
@@ -226,7 +226,7 @@ func TestScrapeFutureDatedEvents(t *testing.T) {
 
 			assert.Equal(t, latest, metrics[testKey(oldResourceID)].eventTime,
 				"an instance is judged by its latest event, not by the one before it, for as long as the host trails AWS")
-			assert.Zero(t, scraper.skewedEvents, "drift within the threshold is not skew")
+			assert.Zero(t, scraper.counts.skewed, "drift within the threshold is not skew")
 			assert.False(t, scraper.nextStartTime.After(time.Now()),
 				"the window must not run ahead of events still to arrive")
 		}
@@ -256,7 +256,7 @@ func TestScrapeFutureDatedEvents(t *testing.T) {
 			"an instance is judged by its newest event that has actually happened")
 		assert.Equal(t, happened, scraper.nextStartTime,
 			"the window must keep following the events the instance really published")
-		assert.Equal(t, uint64(1), scraper.skewedEvents,
+		assert.Equal(t, uint64(1), scraper.counts.skewed,
 			"the glitch is still worth reporting, it just decides nothing")
 	})
 
@@ -303,13 +303,11 @@ func TestScrapeFutureDatedEvents(t *testing.T) {
 // futureDatedResult packages a scrape of oldResourceID for the collector.
 func futureDatedResult(metrics map[instanceKey]instanceMetrics) scrapeResult {
 	return scrapeResult{
-		metrics:       metrics,
-		errorCounts:   nil,
-		skewedEvents:  0,
-		foreignEvents: 0,
-		monitored:     map[instanceKey]bool{testKey(oldResourceID): true},
-		region:        testRegion,
-		interval:      time.Minute,
+		metrics:   metrics,
+		counts:    newScrapeCounts(),
+		monitored: map[instanceKey]bool{testKey(oldResourceID): true},
+		region:    testRegion,
+		interval:  time.Minute,
 	}
 }
 
