@@ -1,6 +1,8 @@
 package enhanced
 
 import (
+	"time"
+
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
@@ -20,34 +22,51 @@ const (
 	// episodeAsked has had a refresh that could not settle it, and is not asked for again on every
 	// scrape.
 	episodeAsked
-	// episodeConfirmed has had a refresh return the same resource ID, which leaves a rename in AWS or a
-	// stale configuration as the cause, and nothing an early refresh can fix.
+	// episodeConfirmed has had a refresh return the same resource ID for the configured name, so AWS
+	// and the events disagree on what the stream belongs to, and no early refresh can fix that.
 	episodeConfirmed
 )
 
 // foreignEpisode is a run of events naming another instance than the configured one, on one log
 // stream and under one name. The first event of an episode asks for the instance states to be
 // refreshed early, since a blue/green switchover is the usual cause and the refresh is what repoints
-// the instance.
+// the instance. ownLast is the instance's own event having come after the episode's newest one, as
+// when the lookback after a repoint re-reads the promoted box's events from before it took the name;
+// the stream reports the instance after all, so it is neither refreshed for nor reported.
 type foreignEpisode struct {
 	resourceID  string
 	payloadName string
+	newest      time.Time
+	ownLast     bool
 	stage       episodeStage
 }
 
-// claimEvent reports whether an event is the configured instance's own, and accounts for it when it is
-// not. The log stream alone does not
-// say so: after a blue/green switchover the stream is read until the next refresh repoints it, while
-// AWS has already renamed the box behind it, and the lookback after the repoint re-reads the promoted
-// box's events from before it took the name. Neither describes the instance PMM was configured with.
-// The request still counts as answered, so a foreign event never reads as a missing stream.
-func (s *scraper) claimEvent(instance sessions.Instance, payloadName string, logger log.Logger) bool {
+// claimEvent reports whether an event is the configured instance's own, and accounts for it when it
+// is not. The log stream alone does not say so: after a blue/green switchover the stream is read until
+// the next refresh repoints it, while AWS has already renamed the box behind it. The request still
+// counts as answered, so a foreign event never reads as a missing stream. A dropped event does not
+// move the request window, so it is read again until the window passes it; only an event newer than
+// the episode's newest is counted and logged.
+func (s *scraper) claimEvent(
+	instance sessions.Instance, payloadName string, timestamp time.Time, logger log.Logger,
+) bool {
 	key := keyOf(s.session, instance)
 
+	episode, known := s.foreignEpisodes[key]
+	known = known && episode.resourceID == instance.ResourceID
+	fresh := !known || timestamp.After(episode.newest)
+
 	if payloadName == instance.Instance {
-		delete(s.foreignEpisodes, key)
+		if known && fresh {
+			episode.ownLast = true
+			s.foreignEpisodes[key] = episode
+		}
 
 		return true
+	}
+
+	if !fresh {
+		return false
 	}
 
 	s.counts.foreign++
@@ -57,13 +76,20 @@ func (s *scraper) claimEvent(instance sessions.Instance, payloadName string, log
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event names another instance; dropped.",
 		"payload_instance", loggedName)
 
-	episode, known := s.foreignEpisodes[key]
-	if known && episode.resourceID == instance.ResourceID && episode.payloadName == payloadName {
+	if known && episode.payloadName == payloadName {
+		episode.newest = timestamp
+		episode.ownLast = false
+		s.foreignEpisodes[key] = episode
+
 		return false
 	}
 
 	s.foreignEpisodes[key] = foreignEpisode{
-		resourceID: instance.ResourceID, payloadName: payloadName, stage: episodeOpen,
+		resourceID:  instance.ResourceID,
+		payloadName: payloadName,
+		newest:      timestamp,
+		ownLast:     false,
+		stage:       episodeOpen,
 	}
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
@@ -77,10 +103,15 @@ func (s *scraper) claimEvent(instance sessions.Instance, payloadName string, log
 	return false
 }
 
+// wantsRefresh reports whether the episode still waits for its early refresh.
+func (e foreignEpisode) wantsRefresh() bool {
+	return e.stage == episodeOpen && !e.ownLast
+}
+
 // foreignRefreshWanted reports whether an episode is still waiting for its early refresh.
 func (s *scraper) foreignRefreshWanted() bool {
 	for _, episode := range s.foreignEpisodes {
-		if episode.stage == episodeOpen {
+		if episode.wantsRefresh() {
 			return true
 		}
 	}
@@ -88,12 +119,12 @@ func (s *scraper) foreignRefreshWanted() bool {
 	return false
 }
 
-// markForeignEpisodesAsked records that a refresh has run for every episode open at its start,
+// markForeignEpisodesAsked records that a refresh has run for every episode waiting at its start,
 // whatever it returns: an instance the refresh did not return or could not read is left to the
 // regular refresh.
 func (s *scraper) markForeignEpisodesAsked() {
 	for key, episode := range s.foreignEpisodes {
-		if episode.stage != episodeOpen {
+		if !episode.wantsRefresh() {
 			continue
 		}
 
@@ -103,8 +134,8 @@ func (s *scraper) markForeignEpisodesAsked() {
 }
 
 // settleForeignEpisode closes the episode of an instance a refresh has returned the state of. A new
-// resource ID ends it; the same one confirms that the instance is named differently in AWS than in
-// PMM, which is reported once.
+// resource ID ends it. The same one, while the stream's newest events still name another instance,
+// confirms that AWS and the events disagree, which is reported once.
 func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 	key := keyOf(s.session, instance)
 
@@ -119,7 +150,7 @@ func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 		return
 	}
 
-	if episode.stage == episodeConfirmed {
+	if episode.ownLast || episode.stage == episodeConfirmed {
 		return
 	}
 
@@ -128,8 +159,8 @@ func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 
 	//nolint:errcheck // a log line that cannot be written has nowhere to be reported, as elsewhere here.
 	level.Warn(s.logger).Log(
-		"msg", "Enhanced Monitoring events name another instance than the one configured for their log stream; "+
-			"it may have been renamed in AWS without PMM being updated.",
+		"msg", "AWS reports this log stream for the configured instance, but its Enhanced Monitoring events "+
+			"name another instance; they are dropped.",
 		"region", instance.Region,
 		"instance", instance.Instance,
 		"resource_id", instance.ResourceID,

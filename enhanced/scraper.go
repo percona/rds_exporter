@@ -190,6 +190,11 @@ type scraper struct {
 	nextResourceIDRefresh time.Time
 	refreshBackoff        time.Duration
 
+	// nextEarlyRefresh is when a foreign event may next bring the refresh forward. DescribeDBInstances
+	// lists every instance in the region, so a stream whose events keep changing name may not turn it
+	// into a call per scrape.
+	nextEarlyRefresh time.Time
+
 	// foreignEpisodes is, per configured instance, the episode of events naming another instance it is
 	// in.
 	foreignEpisodes map[instanceKey]foreignEpisode
@@ -215,6 +220,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		counts:                newScrapeCounts(),
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		refreshBackoff:        0,
+		nextEarlyRefresh:      time.Time{},
 		foreignEpisodes:       make(map[instanceKey]foreignEpisode),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
 		logger:                log.With(logger, "component", "enhanced"),
@@ -1130,7 +1136,7 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		}
 
 		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
-		if !s.claimEvent(instance, osMetrics.InstanceID, instanceLogger) {
+		if !s.claimEvent(instance, osMetrics.InstanceID, timestamp, instanceLogger) {
 			continue
 		}
 
@@ -1187,8 +1193,13 @@ func (s *scraper) refreshStates(ctx context.Context) {
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {
-	if !s.refreshDue(time.Now()) {
+	now := time.Now()
+	if !s.refreshDue(now) {
 		return nil
+	}
+
+	if now.Before(s.nextResourceIDRefresh) {
+		s.nextEarlyRefresh = now.Add(resourceIDRefreshInterval).Round(0)
 	}
 
 	s.markForeignEpisodesAsked()
@@ -1207,7 +1218,7 @@ func (s *scraper) refreshDue(now time.Time) bool {
 		return true
 	}
 
-	return s.refreshBackoff == 0 && s.foreignRefreshWanted()
+	return s.refreshBackoff == 0 && !now.Before(s.nextEarlyRefresh) && s.foreignRefreshWanted()
 }
 
 // scheduleNextRefresh decides when the instance states are worth asking AWS for again. A failed

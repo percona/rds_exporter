@@ -2,6 +2,7 @@ package enhanced
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -242,6 +243,23 @@ func TestForeignEvents(t *testing.T) {
 		assert.Zero(t, second.counts.foreign)
 	})
 
+	t.Run("counts an event read again once", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		scraper := scraperLoggingTo(&buf, renamedBoxClient(), []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, oldResourceID),
+		})
+
+		first := scraper.result(scraper.scrape(t.Context()))
+		again := scraper.result(scraper.scrape(t.Context()))
+
+		require.Equal(t, uint64(1), first.counts.foreign)
+		assert.Zero(t, again.counts.foreign, "the request window does not move past a dropped event, so it is read again")
+		assert.Len(t, loggedPayloadInstances(t, &buf), 2, "one debug and one info line, both from the first read")
+	})
+
 	t.Run("logs a bounded and escaped name", func(t *testing.T) {
 		t.Parallel()
 
@@ -299,8 +317,8 @@ func TestTruncate(t *testing.T) {
 }
 
 const (
-	openedLine  = "dropping them"
-	renamedLine = "renamed in AWS"
+	openedLine    = "dropping them"
+	confirmedLine = "AWS reports this log stream for the configured instance"
 )
 
 // tick runs one round of the scraper's loop: the refresh, then the scrape.
@@ -364,10 +382,11 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.Equal(t, 1, resolver.calls, "the first foreign event makes the refresh due at the next scrape")
 		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
 		assert.Equal(t, ownEvent, collector.metrics[testKey(blueGreenPrimaryInstance)].eventTime)
-		assert.Empty(t, scraper.foreignEpisodes, "the repoint ends the episode")
+		assert.Equal(t, newResourceID, scraper.foreignEpisodes[testKey(blueGreenPrimaryInstance)].resourceID,
+			"the repoint ends the old box's episode")
 		assert.Equal(t, 2, strings.Count(buf.String(), openedLine),
 			"the promoted box's name from before the switchover is an episode of its own")
-		assert.NotContains(t, buf.String(), renamedLine)
+		assert.NotContains(t, buf.String(), confirmedLine)
 
 		for _, metric := range collect(t, collector) {
 			if instance, ok := metric.Labels[instanceLabel]; ok {
@@ -395,7 +414,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		assert.Equal(t, 1, resolver.calls, "a confirmed episode waits for the regular refresh")
 		assert.Equal(t, 1, strings.Count(buf.String(), openedLine))
-		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine))
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine))
 		assert.Contains(t, buf.String(), "level=warn")
 		assert.False(t, scraper.nextResourceIDRefresh.Before(time.Now().Add(resourceIDRefreshInterval-time.Minute)),
 			"the regular refresh interval resumes")
@@ -422,7 +441,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 2, resolver.calls)
-		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine), "a confirmed episode is reported once")
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine), "a confirmed episode is reported once")
 	})
 
 	t.Run("starts over when the document names yet another instance", func(t *testing.T) {
@@ -444,15 +463,16 @@ func TestForeignEventEpisodes(t *testing.T) {
 		require.Equal(t, 1, resolver.calls)
 
 		client.events[oldResourceID] = []types.FilteredLogEvent{
-			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime()),
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime().Add(time.Second)),
 		}
+		scraper.nextEarlyRefresh = time.Time{}
 
 		tick(t, scraper)
 		tick(t, scraper)
 		tick(t, scraper)
 
 		assert.Equal(t, 2, resolver.calls)
-		assert.Equal(t, 2, strings.Count(buf.String(), renamedLine))
+		assert.Equal(t, 2, strings.Count(buf.String(), confirmedLine))
 	})
 
 	t.Run("asks once for every instance a scrape found foreign events for", func(t *testing.T) {
@@ -480,7 +500,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 1, resolver.calls)
-		assert.Equal(t, len(streams), strings.Count(buf.String(), renamedLine))
+		assert.Equal(t, len(streams), strings.Count(buf.String(), confirmedLine))
 	})
 
 	t.Run("keeps the backoff of a failed refresh", func(t *testing.T) {
@@ -500,15 +520,16 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		// A new episode inside the backoff may not cut it short either.
 		client.events[oldResourceID] = []types.FilteredLogEvent{
-			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime()),
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime().Add(time.Second)),
 		}
+		scraper.nextEarlyRefresh = time.Time{}
 
 		tick(t, scraper)
 		tick(t, scraper)
 
 		assert.Equal(t, 1, resolver.calls, "a foreign event must not turn a failing refresh into one per scrape")
 		assert.Equal(t, 2, strings.Count(buf.String(), openedLine), "an episode is reported when it opens")
-		assert.NotContains(t, buf.String(), renamedLine, "a failed refresh confirms nothing")
+		assert.NotContains(t, buf.String(), confirmedLine, "a failed refresh confirms nothing")
 
 		resolver.err = nil
 		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)}
@@ -517,7 +538,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 2, resolver.calls)
-		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine), "the backed-off refresh settles the episode")
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine), "the backed-off refresh settles the episode")
 	})
 
 	t.Run("settles what a partial refresh returned", func(t *testing.T) {
@@ -537,7 +558,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 1, resolver.calls)
-		assert.Equal(t, 1, strings.Count(buf.String(), renamedLine),
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine),
 			"a page that was read is authoritative for the instances on it")
 	})
 
@@ -555,10 +576,10 @@ func TestForeignEventEpisodes(t *testing.T) {
 		}
 
 		assert.Equal(t, 1, resolver.calls)
-		assert.NotContains(t, buf.String(), renamedLine)
+		assert.NotContains(t, buf.String(), confirmedLine)
 	})
 
-	t.Run("does not refresh for an episode the instance's own event ended", func(t *testing.T) {
+	t.Run("does not refresh while the instance's own event comes last", func(t *testing.T) {
 		t.Parallel()
 
 		resolver := &fakeStateResolver{states: nil, err: nil, calls: 0}
@@ -577,8 +598,88 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Zero(t, resolver.calls)
-		assert.Empty(t, scraper.foreignEpisodes)
 		assert.Equal(t, 1, strings.Count(buf.String(), openedLine), "an episode is reported even when no refresh follows")
+
+		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)}
+		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
+
+		tick(t, scraper)
+
+		assert.Equal(t, 1, resolver.calls)
+		assert.NotContains(t, buf.String(), confirmedLine, "the stream reports the instance after all")
+	})
+
+	t.Run("reports instances whose stream interleaves their events once", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(sameResourceID),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
+			},
+			err:   nil,
+			calls: 0,
+		}
+		client := eventsClient(map[string][]types.FilteredLogEvent{})
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver,
+			testInstance(blueGreenPrimaryInstance, sameResourceID),
+			testInstance(unchangedPrimaryInstance, sameResourceID),
+		)
+
+		for scrape := range 10 {
+			newest := testEventTime().Add(time.Duration(scrape) * 3 * time.Second)
+			client.events[sameResourceID] = []types.FilteredLogEvent{
+				osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, newest.Add(-2*time.Second)),
+				osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, newest.Add(-time.Second)),
+				osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, newest),
+			}
+
+			tick(t, scraper)
+		}
+
+		assert.Equal(t, 1, resolver.calls, "a settled episode is not asked for again")
+		assert.Equal(t, 2, strings.Count(buf.String(), openedLine), "one episode per instance")
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine),
+			"only the instance whose stream ends on another name is reported")
+	})
+
+	t.Run("caps the early refreshes of a name that keeps changing", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+		client := eventsClient(map[string][]types.FilteredLogEvent{})
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		for scrape := range 10 {
+			name := fmt.Sprintf("%s-old%d", blueGreenPrimaryInstance, scrape%2+1)
+			client.events[oldResourceID] = []types.FilteredLogEvent{
+				osMetricsEventFor(oldResourceID, name, testEventTime().Add(time.Duration(scrape)*time.Second)),
+			}
+
+			tick(t, scraper)
+		}
+
+		assert.Equal(t, 1, resolver.calls, "DescribeDBInstances lists the whole region, so it may not run every scrape")
+
+		scraper.nextEarlyRefresh = time.Now().Add(-time.Second)
+		client.events[oldResourceID] = []types.FilteredLogEvent{
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old3", testEventTime().Add(time.Minute)),
+		}
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls, "the cap lifts after a refresh interval")
 	})
 
 	t.Run("tells apart names that differ beyond the logged length", func(t *testing.T) {
@@ -603,8 +704,9 @@ func TestForeignEventEpisodes(t *testing.T) {
 		require.Equal(t, 1, resolver.calls)
 
 		client.events[oldResourceID] = []types.FilteredLogEvent{
-			osMetricsEventFor(oldResourceID, prefix+"-b", testEventTime()),
+			osMetricsEventFor(oldResourceID, prefix+"-b", testEventTime().Add(time.Second)),
 		}
+		scraper.nextEarlyRefresh = time.Time{}
 
 		tick(t, scraper)
 		tick(t, scraper)
