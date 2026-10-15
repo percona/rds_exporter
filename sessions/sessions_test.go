@@ -55,28 +55,35 @@ func TestSession(t *testing.T) {
 		assert.Fail(t, "no-such-instance does not exist")
 	}
 
+	// AWS issues a new resource ID whenever it recreates an instance, so the exact value is not
+	// something this test can pin — only its shape.
+	for _, instance := range []*Instance{am57i, p13i, m84i, ap16i} {
+		require.NotNil(t, instance)
+		assert.Regexp(t, `^db-[A-Z0-9]+$`, instance.ResourceID)
+	}
+
 	am57iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora3-mysql-instance-1",
-		ResourceID:                 "db-XI52OXEYO3ANQECF54M7WS46EA",
+		ResourceID:                 am57i.ResourceID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	p13iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora-postgres-13-5-instance-1",
-		ResourceID:                 "db-ZUYAKAIMBFOPJOW3I5YKUI3XXY",
+		ResourceID:                 p13i.ResourceID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	m84iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-rds-mysql-8-4",
-		ResourceID:                 "db-POWENXD5M5PQ34OZFZKSUPNX64",
+		ResourceID:                 m84i.ResourceID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	ap16iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-pgsql-16",
-		ResourceID:                 "db-H5NM4CLYE5MF4DSEIZAX2BSWNE",
+		ResourceID:                 ap16i.ResourceID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 

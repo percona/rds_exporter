@@ -45,45 +45,54 @@ type Sessions struct {
 	Configs  map[string]aws.Config
 }
 
-// ResourceIDResolver resolves the current RDS resource ID for a DB instance.
-type ResourceIDResolver struct {
-	svc *rds.Client
+// InstanceState is the AWS-side state of a single DB instance.
+type InstanceState struct {
+	ResourceID string
+	// MonitoringInterval is zero when Enhanced Monitoring is disabled, in which case AWS publishes
+	// no RDSOSMetrics log stream for the instance at all.
+	MonitoringInterval time.Duration
 }
 
-// NewResourceIDResolver creates a resolver using the given AWS config.
-func NewResourceIDResolver(cfg aws.Config) *ResourceIDResolver {
-	return &ResourceIDResolver{
+// InstanceStateResolver resolves the current AWS state of DB instances.
+type InstanceStateResolver struct {
+	svc rds.DescribeDBInstancesAPIClient
+}
+
+// NewInstanceStateResolver creates a resolver using the given AWS config.
+func NewInstanceStateResolver(cfg aws.Config) *InstanceStateResolver {
+	return &InstanceStateResolver{
 		svc: rds.NewFromConfig(cfg),
 	}
 }
 
-// ResourceIDs returns current RDS resource IDs keyed by DB instance identifier.
-func (r *ResourceIDResolver) ResourceIDs(ctx context.Context) (map[string]string, error) {
-	resourceIDs := make(map[string]string)
+// InstanceStates returns the current AWS state of every DB instance, keyed by DB instance identifier.
+// An error is returned with the states of the pages that were read, because an instance missing from
+// the result loses its monitoring: dropping them all over one failed page is the worse outcome.
+func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]InstanceState, error) {
+	states := make(map[string]InstanceState)
 
-	var marker *string
-	for {
-		output, err := r.svc.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{ //nolint:exhaustruct
-			Marker: marker,
-		})
+	paginator := rds.NewDescribeDBInstancesPaginator(r.svc, &rds.DescribeDBInstancesInput{}) //nolint:exhaustruct
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to describe DB instances: %w", err)
+			return states, fmt.Errorf("failed to describe DB instances: %w", err)
 		}
 
 		for _, dbInstance := range output.DBInstances {
 			instanceID := aws.ToString(dbInstance.DBInstanceIdentifier)
 			resourceID := aws.ToString(dbInstance.DbiResourceId)
-			if instanceID != "" && resourceID != "" {
-				resourceIDs[instanceID] = resourceID
+			if instanceID == "" || resourceID == "" {
+				continue
 			}
-		}
 
-		if marker = output.Marker; marker == nil {
-			break
+			states[instanceID] = InstanceState{
+				ResourceID:         resourceID,
+				MonitoringInterval: time.Duration(aws.ToInt32(dbInstance.MonitoringInterval)) * time.Second,
+			}
 		}
 	}
 
-	return resourceIDs, nil
+	return states, nil
 }
 
 // New creates a new sessions pool for given configuration.
@@ -124,34 +133,20 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 		})
 	}
 
-	// add resource ID to all instances
 	for key, cfg := range res.Configs {
-		svc := rds.NewFromConfig(cfg)
-		var marker *string
-		for {
-			output, err := svc.DescribeDBInstances(context.Background(), &rds.DescribeDBInstancesInput{
-				Marker: marker,
-			})
-			if err != nil {
-				level.Error(logger).Log("msg", "Failed to get resource IDs.", "error", err)
-				break
+		states, err := NewInstanceStateResolver(cfg).InstanceStates(context.Background())
+		if err != nil {
+			level.Error(logger).Log("msg", "Failed to get instance states.", "error", err)
+		}
+
+		for idx, instance := range res.sessions[key] {
+			state, ok := states[instance.Instance]
+			if !ok {
+				continue
 			}
 
-			for _, dbInstance := range output.DBInstances {
-				for i, instance := range res.sessions[key] {
-					if dbInstance.DBInstanceIdentifier != nil && *dbInstance.DBInstanceIdentifier == instance.Instance {
-						if dbInstance.DbiResourceId != nil {
-							res.sessions[key][i].ResourceID = *dbInstance.DbiResourceId
-						}
-						if dbInstance.MonitoringInterval != nil {
-							res.sessions[key][i].EnhancedMonitoringInterval = time.Duration(*dbInstance.MonitoringInterval) * time.Second
-						}
-					}
-				}
-			}
-			if marker = output.Marker; marker == nil {
-				break
-			}
+			res.sessions[key][idx].ResourceID = state.ResourceID
+			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
 		}
 	}
 

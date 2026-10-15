@@ -11,9 +11,18 @@ output:
 linters:
   default: all
   disable:
+    # Configured with no allow list, depguard rejects every import outside the standard library,
+    # including the AWS SDK this exporter is built on. gomodguard, which polices the same thing at
+    # module level, is off for the same reason.
+    - depguard
     - gomodguard
+    # Deprecated in golangci-lint v2 in favour of wsl_v5, which stays enabled.
     - wsl
   settings:
+    exhaustruct:
+      exclude:
+        # Its zero value is the documented way to ask for the default logger, used as such everywhere.
+        - '^github\.com/prometheus/common/promlog\.Config$'
     lll:
       line-length: 140
       tab-width: 4
@@ -25,6 +34,21 @@ linters:
       - text: 'G104'
         linters:
           - gosec
+      # The tests cover unexported identifiers, so they belong to the package they test.
+      - path: '_test\.go'
+        linters:
+          - testpackage
+      # A test function holds the cases of one behaviour as subtests, so its length is the number of
+      # cases it covers rather than a complexity to split up: the alternative is a top-level function
+      # per case, which scatters one behaviour over the file, or a nolint on every group.
+      - path: '_test\.go'
+        linters:
+          - funlen
+          - maintidx
+      # No package in this repository carries a package comment, so the rule only fires on new files.
+      - text: 'package-comments'
+        linters:
+          - revive
 
 formatters:
   enable:
