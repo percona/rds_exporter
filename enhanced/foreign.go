@@ -44,20 +44,23 @@ type foreignEpisode struct {
 // claimEvent reports whether an event is the configured instance's own, and accounts for it when it
 // is not. The log stream alone does not say so: after a blue/green switchover the stream is read until
 // the next refresh repoints it, while AWS has already renamed the box behind it. The request still
-// counts as answered, so a foreign event never reads as a missing stream. A dropped event does not
-// move the request window, so it is read again until the window passes it; only an event newer than
-// the episode's newest is counted and logged.
+// counts as answered, so a foreign event never reads as a missing stream.
+//
+// A dropped event does not move the request window, so it is read again until the window passes it;
+// it is counted and logged the first time only. Only an event newer than the episode's newest moves
+// the episode on: CloudWatch can ingest an event after a newer one, and the order the stream reports
+// the names in is what the episode is about.
 func (s *scraper) claimEvent(
-	instance sessions.Instance, payloadName string, timestamp time.Time, logger log.Logger,
+	instance sessions.Instance, payloadName, eventID string, timestamp time.Time, logger log.Logger,
 ) bool {
 	key := keyOf(s.session, instance)
 
 	episode, known := s.foreignEpisodes[key]
 	known = known && episode.resourceID == instance.ResourceID
-	fresh := !known || timestamp.After(episode.newest)
+	newer := !known || timestamp.After(episode.newest)
 
 	if payloadName == instance.Instance {
-		if known && fresh {
+		if known && newer {
 			episode.ownLast = true
 			s.foreignEpisodes[key] = episode
 		}
@@ -65,7 +68,7 @@ func (s *scraper) claimEvent(
 		return true
 	}
 
-	if !fresh {
+	if !s.firstForeignRead(key, eventID, timestamp) {
 		return false
 	}
 
@@ -76,8 +79,16 @@ func (s *scraper) claimEvent(
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event names another instance; dropped.",
 		"payload_instance", loggedName)
 
+	if !newer {
+		return false
+	}
+
+	// An event dated beyond the skew threshold says more about the clocks than about the order of the
+	// events, and taken at its word it would hold the episode until the clock caught up with it.
+	newest := notAfter(timestamp, time.Now().Add(clockSkewReportThreshold))
+
 	if known && episode.payloadName == payloadName {
-		episode.newest = timestamp
+		episode.newest = newest
 		episode.ownLast = false
 		s.foreignEpisodes[key] = episode
 
@@ -87,7 +98,7 @@ func (s *scraper) claimEvent(
 	s.foreignEpisodes[key] = foreignEpisode{
 		resourceID:  instance.ResourceID,
 		payloadName: payloadName,
-		newest:      timestamp,
+		newest:      newest,
 		ownLast:     false,
 		stage:       episodeOpen,
 	}
@@ -101,6 +112,44 @@ func (s *scraper) claimEvent(
 	)
 
 	return false
+}
+
+// firstForeignRead records a foreign event and reports whether it had not been read before. An event
+// without an ID cannot be told apart from another, so it is taken as new every time.
+func (s *scraper) firstForeignRead(key instanceKey, eventID string, timestamp time.Time) bool {
+	if eventID == "" {
+		return true
+	}
+
+	reads, ok := s.foreignReads[key]
+	if !ok {
+		reads = make(map[string]time.Time)
+		s.foreignReads[key] = reads
+	}
+
+	if _, read := reads[eventID]; read {
+		return false
+	}
+
+	reads[eventID] = timestamp
+
+	return true
+}
+
+// forgetForeignReads drops the foreign events the request window starting at start can no longer
+// return. FilterLogEvents treats the start as inclusive, so an event dated exactly at it is kept.
+func (s *scraper) forgetForeignReads(start time.Time) {
+	for key, reads := range s.foreignReads {
+		for eventID, timestamp := range reads {
+			if timestamp.Before(start) {
+				delete(reads, eventID)
+			}
+		}
+
+		if len(reads) == 0 {
+			delete(s.foreignReads, key)
+		}
+	}
 }
 
 // wantsRefresh reports whether the episode still waits for its early refresh.

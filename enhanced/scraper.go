@@ -198,6 +198,10 @@ type scraper struct {
 	// foreignEpisodes is, per configured instance, the episode of events naming another instance it is
 	// in.
 	foreignEpisodes map[instanceKey]foreignEpisode
+	// foreignReads is, per configured instance, the timestamp of every foreign event read that the
+	// request window may still return. A dropped event does not move the window, so the lookback
+	// returns it again, and only its ID tells it apart from another event with the same timestamp.
+	foreignReads map[instanceKey]map[string]time.Time
 
 	// What the scrape reports about itself.
 	counts scrapeCounts
@@ -222,6 +226,7 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		refreshBackoff:        0,
 		nextEarlyRefresh:      time.Time{},
 		foreignEpisodes:       make(map[instanceKey]foreignEpisode),
+		foreignReads:          make(map[instanceKey]map[string]time.Time),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
 		logger:                log.With(logger, "component", "enhanced"),
 	}
@@ -481,6 +486,7 @@ func (s *scraper) scrape(ctx context.Context) map[instanceKey]instanceMetrics {
 
 	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
 	s.advanceStartTime(oldestNewest, collected && windowMayAdvance(scrapeErr))
+	s.forgetForeignReads(s.nextStartTime)
 
 	return sink.latest(times)
 }
@@ -1136,7 +1142,7 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		}
 
 		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
-		if !s.claimEvent(instance, osMetrics.InstanceID, timestamp, instanceLogger) {
+		if !s.claimEvent(instance, osMetrics.InstanceID, aws.ToString(event.EventId), timestamp, instanceLogger) {
 			continue
 		}
 

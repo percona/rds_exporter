@@ -136,7 +136,8 @@ func newCollector(logger log.Logger) *Collector {
 			"Enhanced Monitoring events timestamped ahead of the exporter's clock; their samples are exported regardless.",
 			[]string{regionLabel}, nil),
 		foreignDesc: prometheus.NewDesc(foreignEventsMetricName,
-			"Enhanced Monitoring events dropped because they name an instance other than the one configured for their log stream.",
+			"Enhanced Monitoring events dropped, per configured instance, because they name an instance other than the one "+
+				"configured for their log stream.",
 			[]string{regionLabel}, nil),
 		cancel:        nil,
 		wg:            sync.WaitGroup{},

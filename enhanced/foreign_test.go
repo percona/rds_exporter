@@ -10,8 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -258,6 +260,119 @@ func TestForeignEvents(t *testing.T) {
 		require.Equal(t, uint64(1), first.counts.foreign)
 		assert.Zero(t, again.counts.foreign, "the request window does not move past a dropped event, so it is read again")
 		assert.Len(t, loggedPayloadInstances(t, &buf), 2, "one debug and one info line, both from the first read")
+	})
+
+	t.Run("counts distinct events that share a timestamp", func(t *testing.T) {
+		t.Parallel()
+
+		first := osMetricsEventFor(oldResourceID, renamedInstance, testEventTime())
+		second := osMetricsEventFor(oldResourceID, renamedInstance, testEventTime())
+		second.EventId = aws.String("another-event")
+		scraper := newTestScraperWithClient(eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {first, second},
+		}), []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)})
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(2), scraper.counts.foreign)
+	})
+
+	t.Run("counts an event without an ID every time it is read", func(t *testing.T) {
+		t.Parallel()
+
+		client := renamedBoxClient()
+		client.events[oldResourceID][0].EventId = nil
+		scraper := newTestScraperWithClient(client, []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)})
+
+		scraper.scrape(t.Context())
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(2), scraper.counts.foreign, "an overcount is safer than suppressing distinct events")
+		assert.Empty(t, scraper.foreignReads)
+	})
+
+	t.Run("counts an event that arrives after a newer one", func(t *testing.T) {
+		t.Parallel()
+
+		client := renamedBoxClient()
+		scraper := newTestScraperWithClient(client, []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)})
+
+		first := scraper.result(scraper.scrape(t.Context()))
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, renamedInstance, testEventTime().Add(-10*time.Second)))
+		late := scraper.result(scraper.scrape(t.Context()))
+
+		assert.Equal(t, uint64(1), first.counts.foreign)
+		assert.Equal(t, uint64(1), late.counts.foreign, "CloudWatch can ingest an event after a newer one")
+	})
+
+	t.Run("counts every instance sharing the stream that the event is not for", func(t *testing.T) {
+		t.Parallel()
+
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			sameResourceID: {osMetricsEventFor(sameResourceID, renamedInstance, testEventTime())},
+		})
+		scraper := newTestScraperWithClient(client, []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, sameResourceID),
+			testInstance(unchangedPrimaryInstance, sameResourceID),
+		})
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(2), scraper.counts.foreign, "each configured instance drops the event on its own")
+	})
+
+	t.Run("leaves out an instance with enhanced metrics disabled", func(t *testing.T) {
+		t.Parallel()
+
+		disabled := testInstance(unchangedPrimaryInstance, sameResourceID)
+		disabled.DisableEnhancedMetrics = true
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			sameResourceID: {osMetricsEventFor(sameResourceID, renamedInstance, testEventTime())},
+		})
+		scraper := newTestScraperWithClient(client, []sessions.Instance{
+			testInstance(blueGreenPrimaryInstance, sameResourceID),
+			disabled,
+		})
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
+		assert.Contains(t, scraper.foreignEpisodes, testKey(blueGreenPrimaryInstance))
+		assert.NotContains(t, scraper.foreignEpisodes, testKey(unchangedPrimaryInstance))
+	})
+
+	t.Run("forgets the events the request window has passed", func(t *testing.T) {
+		t.Parallel()
+
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {
+				osMetricsEventFor(oldResourceID, renamedInstance, testEventTime().Add(-time.Minute)),
+				osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime()),
+			},
+		})
+		scraper := newTestScraperWithClient(client, []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)})
+
+		scraper.scrape(t.Context())
+
+		require.Equal(t, uint64(1), scraper.counts.foreign)
+		assert.Empty(t, scraper.foreignReads, "an event behind the request window is never read again")
+	})
+
+	t.Run("drops a foreign event on a scraper built for production", func(t *testing.T) {
+		t.Parallel()
+
+		instances := []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)}
+		cfg := aws.NewConfig()
+		cfg.Region = testRegion
+		scraper := newScraper(testSession, *cfg, instances, promlog.New(&promlog.Config{}))
+		scraper.svc = renamedBoxClient()
+		scraper.stateResolver = &fakeStateResolver{states: nil, err: nil, calls: 0}
+
+		assert.Empty(t, scraper.scrape(t.Context()))
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
+		assert.True(t, scraper.refreshDue(time.Now()), "the episode brings the refresh forward")
 	})
 
 	t.Run("logs a bounded and escaped name", func(t *testing.T) {
@@ -712,6 +827,90 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 
 		assert.Equal(t, 2, resolver.calls, "another name is another episode, however long the names")
+	})
+
+	t.Run("lets the instance's own event follow one dated far ahead", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{states: nil, err: nil, calls: 0}
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEventFor(oldResourceID, renamedInstance, time.Now().Add(90*time.Minute))},
+		})
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		scraper.scrape(t.Context())
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, time.Now().Add(2*clockSkewReportThreshold)))
+
+		scraper.scrape(t.Context())
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		assert.Zero(t, resolver.calls, "a timestamp beyond the clock skew threshold says more about the clocks")
+	})
+
+	t.Run("opens an episode for another name after one dated far ahead", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEventFor(oldResourceID, renamedInstance, time.Now().Add(90*time.Minute))},
+		})
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+		tick(t, scraper)
+		require.Equal(t, 1, resolver.calls)
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", time.Now().Add(2*clockSkewReportThreshold)))
+		scraper.nextEarlyRefresh = time.Time{}
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls)
+		assert.Equal(t, 2, strings.Count(buf.String(), openedLine))
+		assert.Equal(t, uint64(2), scraper.counts.foreign, "the event dated ahead is read again but counted once")
+	})
+
+	t.Run("does not reopen an episode for a late event naming an earlier name", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		client := renamedBoxClient()
+		scraper := foreignScraper(&buf, client, &fakeStateResolver{states: nil, err: nil, calls: 0},
+			testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		scraper.scrape(t.Context())
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime().Add(time.Second)))
+
+		scraper.scrape(t.Context())
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, renamedInstance, testEventTime().Add(-10*time.Second)))
+
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, 2, strings.Count(buf.String(), openedLine))
+		assert.Equal(t, blueGreenPrimaryInstance+"-old2",
+			scraper.foreignEpisodes[testKey(blueGreenPrimaryInstance)].payloadName)
+		assert.Equal(t, uint64(3), scraper.counts.foreign)
 	})
 
 	t.Run("ends a confirmed episode when the regular refresh repoints the instance", func(t *testing.T) {

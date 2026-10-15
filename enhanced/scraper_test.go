@@ -168,6 +168,7 @@ func newTestScraperWith(
 		refreshBackoff:            0,
 		nextEarlyRefresh:          time.Time{},
 		foreignEpisodes:           make(map[instanceKey]foreignEpisode),
+		foreignReads:              make(map[instanceKey]map[string]time.Time),
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
 		testDisallowUnknownFields: false,
