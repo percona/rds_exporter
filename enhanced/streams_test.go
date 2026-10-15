@@ -106,13 +106,13 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 
 		scraper.scrape(t.Context())
 
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound],
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindNotFound],
 			"a missing stream must be visible as an error, not silently swallowed")
 
-		scraper.errorCounts = make(map[string]uint64)
+		scraper.counts.errors = make(map[string]uint64)
 		scraper.scrape(t.Context())
 
-		assert.Zero(t, scraper.errorCounts[errorKindNotFound],
+		assert.Zero(t, scraper.counts.errors[errorKindNotFound],
 			"an already excluded stream must not inflate the counter on every scrape")
 	})
 
@@ -173,8 +173,8 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 		assert.True(t, scraper.missing.marked(missing))
 		assert.Equal(t, 1, scraper.missing.len(),
 			"only a rejection may exclude a stream, so a throttled half stays in the request")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindThrottling])
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindThrottling])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindNotFound])
 		assert.Equal(t, startTime, scraper.nextStartTime, "the half that was throttled must be read again")
 
 		client.calls = nil
@@ -239,7 +239,7 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 			// the same starved batch, on every scrape from here on: the budget does not grow.
 			assert.True(t, scraper.missing.marked(streams[0]),
 				"a request that named one stream and was rejected is evidence about that stream")
-			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
+			assert.Equal(t, uint64(1), scraper.counts.errors[errorKindNotFound])
 		})
 
 		t.Run("leaves the log group alone", func(t *testing.T) {
@@ -262,7 +262,7 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 			// Blaming the group needs every stream accounted for, and a scrape cut short never asked the
 			// batches a missing group would have rejected too.
 			assert.False(t, scraper.group.paused())
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 			assert.Equal(t, 2, scraper.missing.len(), "only the streams the bisect reached are excluded")
 		})
 	})
@@ -292,7 +292,7 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 		}
 
 		assert.Empty(t, metrics[testKey(healthy)])
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindContext])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindContext])
 		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
 	})
 
@@ -322,8 +322,8 @@ func TestScrapeExcludesTheMissingStreams(t *testing.T) {
 		metrics := scraper.scrape(t.Context())
 
 		assert.Zero(t, scraper.missing.len(), "the answered page proved the stream exists")
-		assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a rejection after an answer is not a missing stream")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindOther], "the request still failed")
+		assert.Zero(t, scraper.counts.errors[errorKindNotFound], "a rejection after an answer is not a missing stream")
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindOther], "the request still failed")
 		assert.NotEmpty(t, metrics[testKey(oldResourceID)], "the events the answered page carried are kept")
 		assert.Equal(t, startTime, scraper.nextStartTime, "the events left unread must not be skipped")
 	})
@@ -368,12 +368,12 @@ func TestScrapeReleasesTheStreamsThatCameBack(t *testing.T) {
 			scraper.scrape(t.Context())
 
 			scraper.missing.probeAfter[missingResourceID] = time.Now().Add(-time.Minute)
-			scraper.errorCounts = make(map[string]uint64)
+			scraper.counts.errors = make(map[string]uint64)
 
 			scraper.scrape(t.Context())
 
 			assert.Equal(t, 1, scraper.missing.len(), "a stream that is still missing stays excluded")
-			assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a stream already excluded must not be reported again")
+			assert.Zero(t, scraper.counts.errors[errorKindNotFound], "a stream already excluded must not be reported again")
 			assert.True(t, scraper.missing.probeAfter[missingResourceID].After(time.Now()),
 				"a failed probe must wait another TTL")
 		})
@@ -517,7 +517,9 @@ func TestScrapeReleasesTheStreamsThatCameBack(t *testing.T) {
 		t.Parallel()
 
 		client := &fakeLogsClient{
-			events:   eventsFor(newResourceID),
+			events: map[string][]types.FilteredLogEvent{
+				newResourceID: {osMetricsEventFor(newResourceID, blueGreenPrimaryInstance, testEventTime())},
+			},
 			missing:  map[string]struct{}{oldResourceID: {}},
 			errs:     nil,
 			pageSize: 0,
@@ -859,7 +861,7 @@ func TestMaxIsolationCalls(t *testing.T) {
 				metrics := scraper.scrape(t.Context())
 
 				assert.LessOrEqual(t, len(client.calls), maxIsolationCalls+1)
-				assert.Zero(t, scraper.errorCounts[errorKindOther], "the budget must cover the whole probe rate")
+				assert.Zero(t, scraper.counts.errors[errorKindOther], "the budget must cover the whole probe rate")
 				assert.Equal(t, missing, scraper.missing.len())
 
 				for _, stream := range healthy {
