@@ -38,7 +38,7 @@ type osMetrics struct {
 	Swap              swap              `json:"swap"`
 	Tasks             tasks             `json:"tasks"`
 
-	// TODO Handle this: https://jira.percona.com/browse/PMM-3835
+	// Not exported yet: parsed only so that the tests, which reject unknown fields, accept it.
 	PhysicalDeviceIO []diskIO `json:"physicalDeviceIO"`
 }
 
@@ -137,7 +137,7 @@ type processList struct {
 	TGID         int     `json:"tgid"         help:"The thread group identifier, which is a number representing the process ID to which a thread belongs. This identifier is used to group threads from the same process."`
 	VSS          int     `json:"vss"          help:"The amount of virtual memory allocated to the process, in kilobytes."`
 
-	// TODO Handle this: https://jira.percona.com/browse/PMM-5150
+	// Not exported yet: parsed only so that the tests, which reject unknown fields, accept it.
 	VMLimit interface{} `json:"vmlimit" help:"-"`
 }
 
@@ -470,11 +470,13 @@ func instanceLabels(region, instance string, labels map[string]string) prometheu
 // rather than with anything the exporter controls, so it is a starting size and not a bound.
 const metricsPerEvent = 100
 
-// makePrometheusMetrics returns all Prometheus metrics for given osMetrics.
-func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]string) []prometheus.Metric {
+// makePrometheusMetrics returns all Prometheus metrics for given osMetrics, labelled as the configured
+// instance. The document's own instanceID is not used: AWS renames a box on a blue/green switchover,
+// and the name PMM added the instance with is what every other series for it carries.
+func (m *osMetrics) makePrometheusMetrics(region, instance string, labels map[string]string) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, metricsPerEvent)
 
-	constLabels := instanceLabels(region, m.InstanceID, labels)
+	constLabels := instanceLabels(region, instance, labels)
 
 	res = append(res, prometheus.MustNewConstMetric(
 		prometheus.NewDesc("rdsosmetrics_timestamp", "Metrics timestamp (UNIX seconds).", nil, constLabels),
@@ -482,7 +484,7 @@ func (m *osMetrics) makePrometheusMetrics(region string, labels map[string]strin
 		float64(m.Timestamp.Unix()),
 	))
 
-	// TODO Parse uptime: https://jira.percona.com/browse/PMM-2131
+	// Uptime is not exported: AWS reports it as text such as "1 day, 07:11:58".
 
 	res = append(res, prometheus.MustNewConstMetric(
 		prometheus.NewDesc("rdsosmetrics_General_numVCPUs", "The number of virtual CPUs for the DB instance.", nil, constLabels),

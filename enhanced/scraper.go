@@ -190,9 +190,21 @@ type scraper struct {
 	nextResourceIDRefresh time.Time
 	refreshBackoff        time.Duration
 
+	// nextEarlyRefresh is when a foreign event may next bring the refresh forward. DescribeDBInstances
+	// lists every instance in the region, so a stream whose events keep changing name may not turn it
+	// into a call per scrape.
+	nextEarlyRefresh time.Time
+
+	// foreignEpisodes is, per configured instance, the episode of events naming another instance it is
+	// in.
+	foreignEpisodes map[instanceKey]foreignEpisode
+	// foreignReads is, per configured instance, the timestamp of every foreign event read that the
+	// request window may still return. A dropped event does not move the window, so the lookback
+	// returns it again, and only its ID tells it apart from another event with the same timestamp.
+	foreignReads map[instanceKey]map[string]time.Time
+
 	// What the scrape reports about itself.
-	errorCounts  map[string]uint64
-	skewedEvents uint64
+	counts scrapeCounts
 
 	testDisallowUnknownFields bool // for tests only
 }
@@ -209,10 +221,12 @@ func newScraper(session string, cfg aws.Config, instances []sessions.Instance, l
 		sweepCutShort:         false,
 		sweep:                 sweepNone,
 		group:                 newLogGroup(),
-		errorCounts:           make(map[string]uint64),
-		skewedEvents:          0,
+		counts:                newScrapeCounts(),
 		nextResourceIDRefresh: time.Now().Add(resourceIDRefreshInterval).Round(0),
 		refreshBackoff:        0,
+		nextEarlyRefresh:      time.Time{},
+		foreignEpisodes:       make(map[instanceKey]foreignEpisode),
+		foreignReads:          make(map[instanceKey]map[string]time.Time),
 		nextStartTime:         time.Now().Add(-maxLookback).Round(0),
 		logger:                log.With(logger, "component", "enhanced"),
 	}
@@ -299,13 +313,23 @@ func (s *scraper) enhancedStreams(now time.Time) []string {
 	return streams
 }
 
+// scrapeCounts is what a scrape counts about itself for the collector to accumulate.
+type scrapeCounts struct {
+	errors  map[string]uint64
+	skewed  uint64
+	foreign uint64
+}
+
+func newScrapeCounts() scrapeCounts {
+	return scrapeCounts{errors: make(map[string]uint64), skewed: 0, foreign: 0}
+}
+
 type scrapeResult struct {
-	metrics      map[instanceKey]instanceMetrics
-	errorCounts  map[string]uint64
-	skewedEvents uint64
-	monitored    map[instanceKey]bool
-	region       string
-	interval     time.Duration
+	metrics   map[instanceKey]instanceMetrics
+	counts    scrapeCounts
+	monitored map[instanceKey]bool
+	region    string
+	interval  time.Duration
 }
 
 // interval returns how often to scrape, following the shortest Enhanced Monitoring interval AWS
@@ -386,18 +410,15 @@ func (s *scraper) retune(interval time.Duration, ticker *time.Ticker) time.Durat
 
 // result packages a scrape for the collector and resets the error counters.
 func (s *scraper) result(metrics map[instanceKey]instanceMetrics) scrapeResult {
-	counts := s.errorCounts
-	s.errorCounts = make(map[string]uint64)
-	skewed := s.skewedEvents
-	s.skewedEvents = 0
+	counts := s.counts
+	s.counts = newScrapeCounts()
 
 	return scrapeResult{
-		metrics:      metrics,
-		errorCounts:  counts,
-		skewedEvents: skewed,
-		monitored:    s.monitoredInstances(),
-		region:       s.region(),
-		interval:     s.interval(),
+		metrics:   metrics,
+		counts:    counts,
+		monitored: s.monitoredInstances(),
+		region:    s.region(),
+		interval:  s.interval(),
 	}
 }
 
@@ -440,7 +461,7 @@ func (s *scraper) scrape(ctx context.Context) map[instanceKey]instanceMetrics {
 
 		scrapeErr = errors.Join(scrapeErr, batchErr)
 		kind := errorKind(batchErr)
-		s.errorCounts[kind]++
+		s.counts.errors[kind]++
 
 		level.Error(s.logger).Log("msg", "Failed to collect enhanced metrics.",
 			"error", batchErr, "kind", kind, "batch_size", len(streams))
@@ -458,13 +479,14 @@ func (s *scraper) scrape(ctx context.Context) map[instanceKey]instanceMetrics {
 	s.attributeRejections(scrapeErr == nil)
 
 	// result resets the count as it hands the scrape over, so this is what this scrape saw.
-	if s.skewedEvents > 0 {
+	if s.counts.skewed > 0 {
 		level.Warn(s.logger).Log("msg", "Enhanced Monitoring events are timestamped in the future; "+
-			"check the clock of this host against AWS.", "events", s.skewedEvents)
+			"check the clock of this host against AWS.", "events", s.counts.skewed)
 	}
 
 	times, oldestNewest, collected := newestEventTimes(sink.times(), time.Now())
 	s.advanceStartTime(oldestNewest, collected && windowMayAdvance(scrapeErr))
+	s.forgetForeignReads(s.nextStartTime)
 
 	return sink.latest(times)
 }
@@ -915,7 +937,7 @@ func (s *scraper) markMissing(logStreamName string, tentative bool) {
 
 	// A stream confirmed gone was counted when it was first excluded; only its evidence changed.
 	if outcome != markConfirmedFirm {
-		s.errorCounts[errorKindNotFound]++
+		s.counts.errors[errorKindNotFound]++
 	}
 
 	keyvals := []any{
@@ -953,7 +975,7 @@ func (s *scraper) markGroupMissing() {
 		return
 	}
 
-	s.errorCounts[errorKindGroupNotFound]++
+	s.counts.errors[errorKindGroupNotFound]++
 
 	level.Warn(s.logger).Log(
 		"msg", "CloudWatch log group does not exist; pausing Enhanced Monitoring requests.",
@@ -1120,10 +1142,15 @@ func (s *scraper) handleEvent(event types.FilteredLogEvent, sink *eventSink) {
 		}
 
 		instanceLogger := log.With(logger, "region", instance.Region, "instance", instance.Instance)
+		if !s.claimEvent(instance, osMetrics.InstanceID, aws.ToString(event.EventId), timestamp, instanceLogger) {
+			continue
+		}
+
 		level.Debug(instanceLogger).Log("msg", fmt.Sprintf("Timestamp from message: %s; from event: %s.",
 			osMetrics.Timestamp.UTC(), timestamp))
 
-		sink.add(keyOf(s.session, instance), timestamp, osMetrics.makePrometheusMetrics(instance.Region, instance.Labels))
+		metrics := osMetrics.makePrometheusMetrics(instance.Region, instance.Instance, instance.Labels)
+		sink.add(keyOf(s.session, instance), timestamp, metrics)
 	}
 }
 
@@ -1138,7 +1165,7 @@ func (s *scraper) reportClockSkew(timestamp time.Time, logger log.Logger) {
 		return
 	}
 
-	s.skewedEvents++
+	s.counts.skewed++
 
 	level.Debug(logger).Log("msg", "Enhanced Monitoring event is timestamped in the future.")
 }
@@ -1172,14 +1199,32 @@ func (s *scraper) refreshStates(ctx context.Context) {
 }
 
 func (s *scraper) refreshInstanceStates(ctx context.Context) error {
-	if time.Now().Before(s.nextResourceIDRefresh) {
+	now := time.Now()
+	if !s.refreshDue(now) {
 		return nil
 	}
+
+	if now.Before(s.nextResourceIDRefresh) {
+		s.nextEarlyRefresh = now.Add(resourceIDRefreshInterval).Round(0)
+	}
+
+	s.markForeignEpisodesAsked()
 
 	err := s.updateInstanceStates(ctx)
 	s.scheduleNextRefresh(err != nil)
 
 	return err
+}
+
+// refreshDue reports whether the instance states are to be resolved now. An episode of foreign
+// events brings the refresh forward, but never inside the backoff of a failed one, which would turn
+// a DescribeDBInstances that keeps failing into one per scrape.
+func (s *scraper) refreshDue(now time.Time) bool {
+	if !now.Before(s.nextResourceIDRefresh) {
+		return true
+	}
+
+	return s.refreshBackoff == 0 && !now.Before(s.nextEarlyRefresh) && s.foreignRefreshWanted()
 }
 
 // scheduleNextRefresh decides when the instance states are worth asking AWS for again. A failed
@@ -1219,6 +1264,8 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		s.updateMonitoringInterval(instanceIndex, state.MonitoringInterval)
 
 		if state.ResourceID == instance.ResourceID {
+			s.settleForeignEpisode(instance)
+
 			continue
 		}
 
@@ -1232,6 +1279,7 @@ func (s *scraper) updateInstanceStates(ctx context.Context) error {
 		// The retired resource ID will never come back, and the new one deserves a fresh attempt.
 		s.forget(instance.ResourceID)
 		s.instances[instanceIndex].ResourceID = state.ResourceID
+		s.settleForeignEpisode(s.instances[instanceIndex])
 	}
 
 	if err != nil {
