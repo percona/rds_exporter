@@ -137,11 +137,14 @@ func (s *scraper) firstForeignRead(key instanceKey, eventID string, timestamp ti
 }
 
 // forgetForeignReads drops the foreign events the request window starting at start can no longer
-// return. FilterLogEvents treats the start as inclusive, so an event dated exactly at it is kept.
+// return. FilterLogEvents treats the start as inclusive and takes it in whole milliseconds, so an event
+// dated in the start's millisecond is still returned and is kept.
 func (s *scraper) forgetForeignReads(start time.Time) {
+	requested := time.UnixMilli(start.UnixMilli())
+
 	for key, reads := range s.foreignReads {
 		for eventID, timestamp := range reads {
-			if timestamp.Before(start) {
+			if timestamp.Before(requested) {
 				delete(reads, eventID)
 			}
 		}

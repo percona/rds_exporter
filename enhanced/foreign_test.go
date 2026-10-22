@@ -360,6 +360,21 @@ func TestForeignEvents(t *testing.T) {
 		assert.Empty(t, scraper.foreignReads, "an event behind the request window is never read again")
 	})
 
+	t.Run("counts an event in the millisecond the request window starts in once", func(t *testing.T) {
+		t.Parallel()
+
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID: {osMetricsEventFor(oldResourceID, renamedInstance, testEventTime())},
+		})
+		scraper := newTestScraperWithClient(client, []sessions.Instance{testInstance(blueGreenPrimaryInstance, oldResourceID)})
+		scraper.nextStartTime = testEventTime().Add(500 * time.Microsecond)
+
+		scraper.scrape(t.Context())
+		scraper.scrape(t.Context())
+
+		assert.Equal(t, uint64(1), scraper.counts.foreign)
+	})
+
 	t.Run("drops a foreign event on a scraper built for production", func(t *testing.T) {
 		t.Parallel()
 
