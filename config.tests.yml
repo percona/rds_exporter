@@ -2,13 +2,13 @@
 # Shared configuration for all tests.
 
 instances:
-  - region: us-east-1
-    instance: autotest-aurora-mysql-56
-  - region: us-east-1
-    instance: autotest-psql-10
-  - region: us-west-2
-    instance: autotest-mysql-57
-  - region: us-west-2
-    instance: autotest-aurora-psql-11
-  - region: us-west-2
+  - region: us-east-2
+    instance: pmm-qa-aurora3-mysql-instance-1
+  - region: us-east-2
+    instance: pmm-qa-aurora-postgres-13-5-instance-1
+  - region: us-east-2
+    instance: pmm-qa-rds-mysql-8-4
+  - region: us-east-2
+    instance: pmm-qa-pgsql-16
+  - region: us-east-2
     instance: no-such-instance

@@ -6,3 +6,4 @@ rds_exporter
 config.yml
 bin/
 coverage.txt
+CLAUDE.md

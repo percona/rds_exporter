@@ -1,0 +1,512 @@
+# HELP node_cpu_average The percentage of CPU utilization.
+# TYPE node_cpu_average gauge
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="guest",region="us-east-2"} 0
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="idle",region="us-east-2"} 96.7
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="irq",region="us-east-2"} 0
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="nice",region="us-east-2"} 0.2
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="steal",region="us-east-2"} 0.5
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="system",region="us-east-2"} 1.2
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="total",region="us-east-2"} 3.3
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="user",region="us-east-2"} 1.2
+node_cpu_average{cpu="All",instance="pmm-qa-rds-mysql-8-4",mode="wait",region="us-east-2"} 0.2
+# HELP node_disk_read_bytes_total The total number of bytes read successfully.
+# TYPE node_disk_read_bytes_total counter
+node_disk_read_bytes_total{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+node_disk_read_bytes_total{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_disk_written_bytes_total The total number of bytes written successfully.
+# TYPE node_disk_written_bytes_total counter
+node_disk_written_bytes_total{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.244032e+06
+node_disk_written_bytes_total{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 208896
+# HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
+# TYPE node_filesystem_avail_bytes gauge
+node_filesystem_avail_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
+node_filesystem_avail_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
+# HELP node_filesystem_files Filesystem total file nodes.
+# TYPE node_filesystem_files gauge
+node_filesystem_files{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.34152192e+09
+node_filesystem_files{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.7108864e+08
+# HELP node_filesystem_files_free Filesystem total free file nodes.
+# TYPE node_filesystem_files_free gauge
+node_filesystem_files_free{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.341223936e+09
+node_filesystem_files_free{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.27545088e+08
+# HELP node_filesystem_free_bytes Filesystem free space in bytes.
+# TYPE node_filesystem_free_bytes gauge
+node_filesystem_free_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
+node_filesystem_free_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
+# HELP node_filesystem_size_bytes Filesystem size in bytes.
+# TYPE node_filesystem_size_bytes gauge
+node_filesystem_size_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 2.097266688e+10
+node_filesystem_size_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 1.04761344e+10
+# HELP node_load1 The number of processes requesting CPU time over the last minute.
+# TYPE node_load1 gauge
+node_load1{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.01
+# HELP node_memory_Active_bytes Memory information field Active_bytes.
+# TYPE node_memory_Active_bytes gauge
+node_memory_Active_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 4.83753984e+08
+# HELP node_memory_Buffers_bytes Memory information field Buffers_bytes.
+# TYPE node_memory_Buffers_bytes gauge
+node_memory_Buffers_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.445888e+08
+# HELP node_memory_Cached_bytes Memory information field Cached_bytes.
+# TYPE node_memory_Cached_bytes gauge
+node_memory_Cached_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 6.16443904e+08
+# HELP node_memory_Dirty_bytes Memory information field Dirty_bytes.
+# TYPE node_memory_Dirty_bytes gauge
+node_memory_Dirty_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 688128
+# HELP node_memory_HugePages_Free Memory information field HugePages_Free.
+# TYPE node_memory_HugePages_Free gauge
+node_memory_HugePages_Free{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_memory_HugePages_Rsvd Memory information field HugePages_Rsvd.
+# TYPE node_memory_HugePages_Rsvd gauge
+node_memory_HugePages_Rsvd{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_memory_HugePages_Surp Memory information field HugePages_Surp.
+# TYPE node_memory_HugePages_Surp gauge
+node_memory_HugePages_Surp{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_memory_HugePages_Total Memory information field HugePages_Total.
+# TYPE node_memory_HugePages_Total gauge
+node_memory_HugePages_Total{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_memory_Hugepagesize_bytes Memory information field Hugepagesize_bytes.
+# TYPE node_memory_Hugepagesize_bytes gauge
+node_memory_Hugepagesize_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 2.097152e+06
+# HELP node_memory_Inactive_bytes Memory information field Inactive_bytes.
+# TYPE node_memory_Inactive_bytes gauge
+node_memory_Inactive_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.235492864e+09
+# HELP node_memory_Mapped_bytes Memory information field Mapped_bytes.
+# TYPE node_memory_Mapped_bytes gauge
+node_memory_Mapped_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.04411136e+08
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.11202304e+08
+# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 2.017734656e+09
+# HELP node_memory_PageTables_bytes Memory information field PageTables_bytes.
+# TYPE node_memory_PageTables_bytes gauge
+node_memory_PageTables_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 9.199616e+06
+# HELP node_memory_Slab_bytes Memory information field Slab_bytes.
+# TYPE node_memory_Slab_bytes gauge
+node_memory_Slab_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.00564992e+08
+# HELP node_memory_SwapCached_bytes Memory information field SwapCached.
+# TYPE node_memory_SwapCached_bytes gauge
+node_memory_SwapCached_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 692224
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.921670144e+09
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 4.293914624e+09
+# HELP node_memory_Writeback_bytes Memory information field Writeback_bytes.
+# TYPE node_memory_Writeback_bytes gauge
+node_memory_Writeback_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_procs_blocked Number of processes blocked waiting for I/O to complete.
+# TYPE node_procs_blocked gauge
+node_procs_blocked{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_procs_running Number of processes in runnable state.
+# TYPE node_procs_running gauge
+node_procs_running{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_vmstat_pswpin /proc/vmstat information field pswpin
+# TYPE node_vmstat_pswpin gauge
+node_vmstat_pswpin{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP node_vmstat_pswpout /proc/vmstat information field pswpout
+# TYPE node_vmstat_pswpout gauge
+node_vmstat_pswpout{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_General_numVCPUs The number of virtual CPUs for the DB instance.
+# TYPE rdsosmetrics_General_numVCPUs gauge
+rdsosmetrics_General_numVCPUs{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 2
+# HELP rdsosmetrics_cpuUtilization_guest The percentage of CPU in use by guest programs.
+# TYPE rdsosmetrics_cpuUtilization_guest gauge
+rdsosmetrics_cpuUtilization_guest{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_cpuUtilization_idle The percentage of CPU that is idle.
+# TYPE rdsosmetrics_cpuUtilization_idle gauge
+rdsosmetrics_cpuUtilization_idle{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 96.7
+# HELP rdsosmetrics_cpuUtilization_irq The percentage of CPU in use by software interrupts.
+# TYPE rdsosmetrics_cpuUtilization_irq gauge
+rdsosmetrics_cpuUtilization_irq{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_cpuUtilization_nice The percentage of CPU in use by programs running at lowest priority.
+# TYPE rdsosmetrics_cpuUtilization_nice gauge
+rdsosmetrics_cpuUtilization_nice{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.2
+# HELP rdsosmetrics_cpuUtilization_steal The percentage of CPU in use by other virtual machines.
+# TYPE rdsosmetrics_cpuUtilization_steal gauge
+rdsosmetrics_cpuUtilization_steal{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.5
+# HELP rdsosmetrics_cpuUtilization_system The percentage of CPU in use by the kernel.
+# TYPE rdsosmetrics_cpuUtilization_system gauge
+rdsosmetrics_cpuUtilization_system{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.2
+# HELP rdsosmetrics_cpuUtilization_total The total percentage of the CPU in use. This value includes the nice value.
+# TYPE rdsosmetrics_cpuUtilization_total gauge
+rdsosmetrics_cpuUtilization_total{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.3
+# HELP rdsosmetrics_cpuUtilization_user The percentage of CPU in use by user programs.
+# TYPE rdsosmetrics_cpuUtilization_user gauge
+rdsosmetrics_cpuUtilization_user{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.2
+# HELP rdsosmetrics_cpuUtilization_wait The percentage of CPU unused while waiting for I/O access.
+# TYPE rdsosmetrics_cpuUtilization_wait gauge
+rdsosmetrics_cpuUtilization_wait{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.2
+# HELP rdsosmetrics_diskIO_avgQueueLen The number of requests waiting in the I/O device's queue.
+# TYPE rdsosmetrics_diskIO_avgQueueLen gauge
+rdsosmetrics_diskIO_avgQueueLen{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.01
+rdsosmetrics_diskIO_avgQueueLen{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_avgReqSz The average request size, in kilobytes.
+# TYPE rdsosmetrics_diskIO_avgReqSz gauge
+rdsosmetrics_diskIO_avgReqSz{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 16.76
+rdsosmetrics_diskIO_avgReqSz{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 15.11
+# HELP rdsosmetrics_diskIO_await The number of milliseconds required to respond to requests, including queue time and service time.
+# TYPE rdsosmetrics_diskIO_await gauge
+rdsosmetrics_diskIO_await{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.02
+rdsosmetrics_diskIO_await{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.89
+# HELP rdsosmetrics_diskIO_readIOsPS The number of read operations per second.
+# TYPE rdsosmetrics_diskIO_readIOsPS gauge
+rdsosmetrics_diskIO_readIOsPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+rdsosmetrics_diskIO_readIOsPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readKb The total number of kilobytes read.
+# TYPE rdsosmetrics_diskIO_readKb gauge
+rdsosmetrics_diskIO_readKb{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+rdsosmetrics_diskIO_readKb{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_readKbPS The number of kilobytes read per second.
+# TYPE rdsosmetrics_diskIO_readKbPS gauge
+rdsosmetrics_diskIO_readKbPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+rdsosmetrics_diskIO_readKbPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_rrqmPS The number of merged read requests queued per second.
+# TYPE rdsosmetrics_diskIO_rrqmPS gauge
+rdsosmetrics_diskIO_rrqmPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+rdsosmetrics_diskIO_rrqmPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_diskIO_tps The number of I/O transactions per second.
+# TYPE rdsosmetrics_diskIO_tps gauge
+rdsosmetrics_diskIO_tps{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 6.3
+rdsosmetrics_diskIO_tps{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.45
+# HELP rdsosmetrics_diskIO_util The percentage of CPU time during which requests were issued.
+# TYPE rdsosmetrics_diskIO_util gauge
+rdsosmetrics_diskIO_util{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.5
+rdsosmetrics_diskIO_util{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.07
+# HELP rdsosmetrics_diskIO_writeIOsPS The number of write operations per second.
+# TYPE rdsosmetrics_diskIO_writeIOsPS gauge
+rdsosmetrics_diskIO_writeIOsPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 6.3
+rdsosmetrics_diskIO_writeIOsPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.45
+# HELP rdsosmetrics_diskIO_writeKb The total number of kilobytes written.
+# TYPE rdsosmetrics_diskIO_writeKb gauge
+rdsosmetrics_diskIO_writeKb{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3168
+rdsosmetrics_diskIO_writeKb{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 204
+# HELP rdsosmetrics_diskIO_writeKbPS The number of kilobytes written per second.
+# TYPE rdsosmetrics_diskIO_writeKbPS gauge
+rdsosmetrics_diskIO_writeKbPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 52.8
+rdsosmetrics_diskIO_writeKbPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.4
+# HELP rdsosmetrics_diskIO_wrqmPS The number of merged write requests queued per second.
+# TYPE rdsosmetrics_diskIO_wrqmPS gauge
+rdsosmetrics_diskIO_wrqmPS{device="filesystem",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.38
+rdsosmetrics_diskIO_wrqmPS{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_fileSys_maxFiles The maximum number of files that can be created for the file system.
+# TYPE rdsosmetrics_fileSys_maxFiles gauge
+rdsosmetrics_fileSys_maxFiles{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 655360
+rdsosmetrics_fileSys_maxFiles{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 1.31008e+06
+# HELP rdsosmetrics_fileSys_total The total number of disk space available for the file system, in kilobytes.
+# TYPE rdsosmetrics_fileSys_total gauge
+rdsosmetrics_fileSys_total{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 1.02306e+07
+rdsosmetrics_fileSys_total{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 2.048112e+07
+# HELP rdsosmetrics_fileSys_used The amount of disk space used by files in the file system, in kilobytes.
+# TYPE rdsosmetrics_fileSys_used gauge
+rdsosmetrics_fileSys_used{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 6.182868e+06
+rdsosmetrics_fileSys_used{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 1.168576e+06
+# HELP rdsosmetrics_fileSys_usedFilePercent The percentage of available files in use.
+# TYPE rdsosmetrics_fileSys_usedFilePercent gauge
+rdsosmetrics_fileSys_usedFilePercent{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 6.49
+rdsosmetrics_fileSys_usedFilePercent{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 0.02
+# HELP rdsosmetrics_fileSys_usedFiles The number of files in the file system.
+# TYPE rdsosmetrics_fileSys_usedFiles gauge
+rdsosmetrics_fileSys_usedFiles{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 42523
+rdsosmetrics_fileSys_usedFiles{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 291
+# HELP rdsosmetrics_fileSys_usedPercent The percentage of the file-system disk space in use.
+# TYPE rdsosmetrics_fileSys_usedPercent gauge
+rdsosmetrics_fileSys_usedPercent{instance="pmm-qa-rds-mysql-8-4",mount_point="/",name="rootfilesys",region="us-east-2"} 60.44
+rdsosmetrics_fileSys_usedPercent{instance="pmm-qa-rds-mysql-8-4",mount_point="/rdsdbdata",name="rdsfilesys",region="us-east-2"} 5.71
+# HELP rdsosmetrics_loadAverageMinute_fifteen The number of processes requesting CPU time over the last 15 minutes.
+# TYPE rdsosmetrics_loadAverageMinute_fifteen gauge
+rdsosmetrics_loadAverageMinute_fifteen{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.13
+# HELP rdsosmetrics_loadAverageMinute_five The number of processes requesting CPU time over the last 5 minutes.
+# TYPE rdsosmetrics_loadAverageMinute_five gauge
+rdsosmetrics_loadAverageMinute_five{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.15
+# HELP rdsosmetrics_loadAverageMinute_one The number of processes requesting CPU time over the last minute.
+# TYPE rdsosmetrics_loadAverageMinute_one gauge
+rdsosmetrics_loadAverageMinute_one{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.01
+# HELP rdsosmetrics_memory_active The amount of assigned memory, in kilobytes.
+# TYPE rdsosmetrics_memory_active gauge
+rdsosmetrics_memory_active{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 472416
+# HELP rdsosmetrics_memory_buffers The amount of memory used for buffering I/O requests prior to writing to the storage device, in kilobytes.
+# TYPE rdsosmetrics_memory_buffers gauge
+rdsosmetrics_memory_buffers{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 141200
+# HELP rdsosmetrics_memory_cached The amount of memory used for caching file system–based I/O.
+# TYPE rdsosmetrics_memory_cached gauge
+rdsosmetrics_memory_cached{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 601996
+# HELP rdsosmetrics_memory_dirty The amount of memory pages in RAM that have been modified but not written to their related data block in storage, in kilobytes.
+# TYPE rdsosmetrics_memory_dirty gauge
+rdsosmetrics_memory_dirty{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 672
+# HELP rdsosmetrics_memory_free The amount of unassigned memory, in kilobytes.
+# TYPE rdsosmetrics_memory_free gauge
+rdsosmetrics_memory_free{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 108596
+# HELP rdsosmetrics_memory_hugePagesFree The number of free huge pages. Huge pages are a feature of the Linux kernel.
+# TYPE rdsosmetrics_memory_hugePagesFree gauge
+rdsosmetrics_memory_hugePagesFree{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_memory_hugePagesRsvd The number of committed huge pages.
+# TYPE rdsosmetrics_memory_hugePagesRsvd gauge
+rdsosmetrics_memory_hugePagesRsvd{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_memory_hugePagesSize The size for each huge pages unit, in kilobytes.
+# TYPE rdsosmetrics_memory_hugePagesSize gauge
+rdsosmetrics_memory_hugePagesSize{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 2048
+# HELP rdsosmetrics_memory_hugePagesSurp The number of available surplus huge pages over the total.
+# TYPE rdsosmetrics_memory_hugePagesSurp gauge
+rdsosmetrics_memory_hugePagesSurp{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_memory_hugePagesTotal The total number of huge pages for the system.
+# TYPE rdsosmetrics_memory_hugePagesTotal gauge
+rdsosmetrics_memory_hugePagesTotal{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_memory_inactive The amount of least-frequently used memory pages, in kilobytes.
+# TYPE rdsosmetrics_memory_inactive gauge
+rdsosmetrics_memory_inactive{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.206536e+06
+# HELP rdsosmetrics_memory_mapped The total amount of file-system contents that is memory mapped inside a process address space, in kilobytes.
+# TYPE rdsosmetrics_memory_mapped gauge
+rdsosmetrics_memory_mapped{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 101964
+# HELP rdsosmetrics_memory_pageTables The amount of memory used by page tables, in kilobytes.
+# TYPE rdsosmetrics_memory_pageTables gauge
+rdsosmetrics_memory_pageTables{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 8984
+# HELP rdsosmetrics_memory_slab The amount of reusable kernel data structures, in kilobytes.
+# TYPE rdsosmetrics_memory_slab gauge
+rdsosmetrics_memory_slab{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 98208
+# HELP rdsosmetrics_memory_total The total amount of memory, in kilobytes.
+# TYPE rdsosmetrics_memory_total gauge
+rdsosmetrics_memory_total{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.970444e+06
+# HELP rdsosmetrics_memory_writeback The amount of dirty pages in RAM that are still being written to the backing storage, in kilobytes.
+# TYPE rdsosmetrics_memory_writeback gauge
+rdsosmetrics_memory_writeback{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_network_rx The number of bytes received per second.
+# TYPE rdsosmetrics_network_rx gauge
+rdsosmetrics_network_rx{instance="pmm-qa-rds-mysql-8-4",interface="eth0",region="us-east-2"} 698.72
+# HELP rdsosmetrics_network_tx The number of bytes uploaded per second.
+# TYPE rdsosmetrics_network_tx gauge
+rdsosmetrics_network_tx{instance="pmm-qa-rds-mysql-8-4",interface="eth0",region="us-east-2"} 11347.15
+# HELP rdsosmetrics_processList_cpuUsedPc The percentage of CPU used by the process.
+# TYPE rdsosmetrics_processList_cpuUsedPc gauge
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="pmm-qa-rds-mysql-8-4",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 0.04
+rdsosmetrics_processList_cpuUsedPc{id="0",instance="pmm-qa-rds-mysql-8-4",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 1.16
+rdsosmetrics_processList_cpuUsedPc{id="1000",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-4",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1001",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-1",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1002",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-2",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1003",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-3",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="1004",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-4",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1005",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_pg_flush_co",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="1006",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_checkpt",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1007",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_fl_notif",parentID="991",region="us-east-2",tgid="993"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="1008",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_flush",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="1009",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_wr_notif",parentID="991",region="us-east-2",tgid="993"} 0.02
+rdsosmetrics_processList_cpuUsedPc{id="1010",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_writer",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="1011",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_files_g",parentID="991",region="us-east-2",tgid="993"} 0.22
+rdsosmetrics_processList_cpuUsedPc{id="1014",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_lock_to",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1015",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_err_mon",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="1016",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_mon",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1017",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_resize",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1018",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_src_main",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1019",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_dict_stats",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1020",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_fts_opt",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1021",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-2",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1022",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-1",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1023",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-1",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1027",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_dump",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1028",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_clone_gtid",parentID="991",region="us-east-2",tgid="993"} 0.03
+rdsosmetrics_processList_cpuUsedPc{id="1029",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_purge",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1030",instance="pmm-qa-rds-mysql-8-4",name="mysqld: evt_sched",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1031",instance="pmm-qa-rds-mysql-8-4",name="mysqld: sig_handler",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1033",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-3",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="1034",instance="pmm-qa-rds-mysql-8-4",name="mysqld: gtid_zip",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="4717",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="5260",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="6045",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6149",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6150",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6258",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6331",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6362",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6495",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6496",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="6497",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="993",instance="pmm-qa-rds-mysql-8-4",name="mysqld",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="996",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_ibuf",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="997",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-1",parentID="991",region="us-east-2",tgid="993"} 0
+rdsosmetrics_processList_cpuUsedPc{id="998",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-2",parentID="991",region="us-east-2",tgid="993"} 0.01
+rdsosmetrics_processList_cpuUsedPc{id="999",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-3",parentID="991",region="us-east-2",tgid="993"} 0.01
+# HELP rdsosmetrics_processList_memoryUsedPc The amount of memory used by the process, in kilobytes.
+# TYPE rdsosmetrics_processList_memoryUsedPc gauge
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="pmm-qa-rds-mysql-8-4",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 8.95
+rdsosmetrics_processList_memoryUsedPc{id="0",instance="pmm-qa-rds-mysql-8-4",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 22.07
+rdsosmetrics_processList_memoryUsedPc{id="1000",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-4",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1001",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-1",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1002",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-2",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1003",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-3",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1004",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-4",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1005",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_pg_flush_co",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1006",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_checkpt",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1007",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_fl_notif",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1008",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_flush",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1009",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_wr_notif",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1010",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_writer",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1011",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_files_g",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1014",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_lock_to",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1015",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_err_mon",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1016",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_mon",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1017",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_resize",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1018",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_src_main",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1019",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_dict_stats",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1020",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_fts_opt",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1021",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-2",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1022",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-1",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1023",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-1",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1027",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_dump",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1028",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_clone_gtid",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1029",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_purge",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1030",instance="pmm-qa-rds-mysql-8-4",name="mysqld: evt_sched",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1031",instance="pmm-qa-rds-mysql-8-4",name="mysqld: sig_handler",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1033",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-3",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="1034",instance="pmm-qa-rds-mysql-8-4",name="mysqld: gtid_zip",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="4717",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="5260",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6045",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6149",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6150",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6258",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6331",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6362",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6495",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6496",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="6497",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="993",instance="pmm-qa-rds-mysql-8-4",name="mysqld",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="996",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_ibuf",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="997",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-1",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="998",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-2",parentID="991",region="us-east-2",tgid="993"} 27.75
+rdsosmetrics_processList_memoryUsedPc{id="999",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-3",parentID="991",region="us-east-2",tgid="993"} 27.75
+# HELP rdsosmetrics_processList_rss The amount of RAM allocated to the process, in kilobytes.
+# TYPE rdsosmetrics_processList_rss gauge
+rdsosmetrics_processList_rss{id="0",instance="pmm-qa-rds-mysql-8-4",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 176268
+rdsosmetrics_processList_rss{id="0",instance="pmm-qa-rds-mysql-8-4",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 434844
+rdsosmetrics_processList_rss{id="1000",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-4",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1001",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-1",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1002",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-2",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1003",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-3",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1004",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-4",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1005",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_pg_flush_co",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1006",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_checkpt",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1007",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_fl_notif",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1008",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_flush",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1009",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_wr_notif",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1010",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_writer",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1011",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_files_g",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1014",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_lock_to",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1015",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_err_mon",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1016",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_mon",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1017",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_resize",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1018",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_src_main",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1019",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_dict_stats",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1020",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_fts_opt",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1021",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-2",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1022",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-1",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1023",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-1",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1027",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_dump",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1028",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_clone_gtid",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1029",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_purge",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1030",instance="pmm-qa-rds-mysql-8-4",name="mysqld: evt_sched",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1031",instance="pmm-qa-rds-mysql-8-4",name="mysqld: sig_handler",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1033",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-3",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="1034",instance="pmm-qa-rds-mysql-8-4",name="mysqld: gtid_zip",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="4717",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="5260",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6045",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6149",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6150",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6258",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6331",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6362",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6495",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6496",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="6497",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="993",instance="pmm-qa-rds-mysql-8-4",name="mysqld",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="996",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_ibuf",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="997",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-1",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="998",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-2",parentID="991",region="us-east-2",tgid="993"} 546892
+rdsosmetrics_processList_rss{id="999",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-3",parentID="991",region="us-east-2",tgid="993"} 546892
+# HELP rdsosmetrics_processList_vss The amount of virtual memory allocated to the process, in kilobytes.
+# TYPE rdsosmetrics_processList_vss gauge
+rdsosmetrics_processList_vss{id="0",instance="pmm-qa-rds-mysql-8-4",name="OS processes",parentID="0",region="us-east-2",tgid="0"} 1.951536e+06
+rdsosmetrics_processList_vss{id="0",instance="pmm-qa-rds-mysql-8-4",name="RDS processes",parentID="0",region="us-east-2",tgid="0"} 5.677932e+06
+rdsosmetrics_processList_vss{id="1000",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-4",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1001",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-1",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1002",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-2",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1003",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-3",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1004",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_wr-4",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1005",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_pg_flush_co",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1006",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_checkpt",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1007",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_fl_notif",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1008",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_flush",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1009",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_wr_notif",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1010",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_writer",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1011",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_log_files_g",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1014",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_lock_to",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1015",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_err_mon",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1016",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_mon",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1017",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_resize",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1018",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_src_main",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1019",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_dict_stats",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1020",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_fts_opt",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1021",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-2",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1022",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_worker-1",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1023",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-1",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1027",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_buf_dump",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1028",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_clone_gtid",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1029",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_srv_purge",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1030",instance="pmm-qa-rds-mysql-8-4",name="mysqld: evt_sched",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1031",instance="pmm-qa-rds-mysql-8-4",name="mysqld: sig_handler",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1033",instance="pmm-qa-rds-mysql-8-4",name="mysqld: xpl_accept-3",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="1034",instance="pmm-qa-rds-mysql-8-4",name="mysqld: gtid_zip",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="4717",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="5260",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6045",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6149",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6150",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6258",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6331",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6362",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6495",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6496",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="6497",instance="pmm-qa-rds-mysql-8-4",name="mysqld: connection",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="993",instance="pmm-qa-rds-mysql-8-4",name="mysqld",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="996",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_ibuf",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="997",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-1",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="998",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-2",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+rdsosmetrics_processList_vss{id="999",instance="pmm-qa-rds-mysql-8-4",name="mysqld: ib_io_rd-3",parentID="991",region="us-east-2",tgid="993"} 2.18828e+06
+# HELP rdsosmetrics_swap_cached The amount of swap memory, in kilobytes, used as cache memory.
+# TYPE rdsosmetrics_swap_cached gauge
+rdsosmetrics_swap_cached{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 676
+# HELP rdsosmetrics_swap_free The total amount of swap memory free, in kilobytes.
+# TYPE rdsosmetrics_swap_free gauge
+rdsosmetrics_swap_free{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.829756e+06
+# HELP rdsosmetrics_swap_in The total amount of memory, in kilobytes, swapped in from disk.
+# TYPE rdsosmetrics_swap_in gauge
+rdsosmetrics_swap_in{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_swap_out The total amount of memory, in kilobytes, swapped out to disk.
+# TYPE rdsosmetrics_swap_out gauge
+rdsosmetrics_swap_out{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_swap_total The total amount of swap memory available, in kilobytes.
+# TYPE rdsosmetrics_swap_total gauge
+rdsosmetrics_swap_total{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 4.193276e+06
+# HELP rdsosmetrics_tasks_blocked The number of tasks that are blocked.
+# TYPE rdsosmetrics_tasks_blocked gauge
+rdsosmetrics_tasks_blocked{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_running The number of tasks that are running.
+# TYPE rdsosmetrics_tasks_running gauge
+rdsosmetrics_tasks_running{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_sleeping The number of tasks that are sleeping.
+# TYPE rdsosmetrics_tasks_sleeping gauge
+rdsosmetrics_tasks_sleeping{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 99
+# HELP rdsosmetrics_tasks_stopped The number of tasks that are stopped.
+# TYPE rdsosmetrics_tasks_stopped gauge
+rdsosmetrics_tasks_stopped{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_tasks_total The total number of tasks.
+# TYPE rdsosmetrics_tasks_total gauge
+rdsosmetrics_tasks_total{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 99
+# HELP rdsosmetrics_tasks_zombie The number of child tasks that are inactive with an active parent task.
+# TYPE rdsosmetrics_tasks_zombie gauge
+rdsosmetrics_tasks_zombie{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0
+# HELP rdsosmetrics_timestamp Metrics timestamp (UNIX seconds).
+# TYPE rdsosmetrics_timestamp counter
+rdsosmetrics_timestamp{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.778744867e+09
