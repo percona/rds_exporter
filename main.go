@@ -18,6 +18,7 @@ import (
 	"github.com/percona/rds_exporter/client"
 	"github.com/percona/rds_exporter/config"
 	"github.com/percona/rds_exporter/enhanced"
+	"github.com/percona/rds_exporter/info"
 	"github.com/percona/rds_exporter/sessions"
 )
 
@@ -68,6 +69,7 @@ func main() {
 	{
 		registry := prometheus.NewRegistry()
 		registry.MustRegister(enhanced.NewCollector(sess, logger))
+		registry.MustRegister(info.NewCollector(sess))
 		http.Handle(*enhancedMetricsPathF, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 			//ErrorLog:      log.NewErrorLogger(), TODO TS
 			ErrorHandling: promhttp.ContinueOnError,
