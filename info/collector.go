@@ -1,6 +1,8 @@
 package info
 
 import (
+	"maps"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/percona/rds_exporter/sessions"
@@ -32,9 +34,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 				"region":   instance.Region,
 				"instance": instance.Instance,
 			}
-			for n, v := range instance.Labels {
-				labels[n] = v
-			}
+			maps.Copy(labels, instance.Labels)
+
 			// Applied last so a config label cannot overwrite the AWS value.
 			labels["aws_cluster_id"] = instance.ClusterID
 			labels["aws_engine"] = instance.Engine

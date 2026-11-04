@@ -105,6 +105,11 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 	return states, nil
 }
 
+const (
+	arnFields       = 6
+	arnAccountField = 4
+)
+
 // accountFromARN returns the AWS account ID of an ARN, or an empty string when it is not one.
 func accountFromARN(arn string) string {
 	if !strings.HasPrefix(arn, "arn:") {
@@ -112,11 +117,11 @@ func accountFromARN(arn string) string {
 	}
 
 	fields := strings.Split(arn, ":")
-	if len(fields) < 6 {
+	if len(fields) < arnFields {
 		return ""
 	}
 
-	return fields[4]
+	return fields[arnAccountField]
 }
 
 // New creates a new sessions pool for given configuration.

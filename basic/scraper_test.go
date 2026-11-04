@@ -13,6 +13,8 @@ import (
 )
 
 func TestClusterVolumeParams(t *testing.T) {
+	t.Parallel()
+
 	end := time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
 
 	params := clusterVolumeParams(&sessions.Instance{Engine: "aurora-mysql", ClusterID: "cluster-a"}, end)

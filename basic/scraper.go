@@ -2,6 +2,7 @@ package basic
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"strings"
 	"sync"
@@ -85,14 +86,12 @@ func (s *Scraper) Scrape() {
 
 	end := time.Now().Add(-Delay)
 	if params := clusterVolumeParams(s.resolved, end); params != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			if err := s.scrapeClusterVolume(params); err != nil {
+		wg.Go(func() {
+			err := s.scrapeClusterVolume(params)
+			if err != nil {
 				level.Error(s.collector.l).Log("metric", "VolumeBytesUsed", "error", err)
 			}
-		}()
+		})
 	}
 
 	wg.Add(len(s.collector.metrics))
@@ -131,7 +130,7 @@ func clusterVolumeParams(instance *sessions.Instance, end time.Time) *cloudwatch
 func (s *Scraper) scrapeClusterVolume(params *cloudwatch.GetMetricStatisticsInput) error {
 	resp, err := s.svc.GetMetricStatistics(context.Background(), params)
 	if err != nil {
-		return err
+		return fmt.Errorf("get cluster volume statistics: %w", err)
 	}
 
 	if len(resp.Datapoints) == 0 {
