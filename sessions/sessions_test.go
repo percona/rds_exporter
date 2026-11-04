@@ -55,35 +55,54 @@ func TestSession(t *testing.T) {
 		assert.Fail(t, "no-such-instance does not exist")
 	}
 
-	// AWS issues a new resource ID whenever it recreates an instance, so the exact value is not
-	// something this test can pin — only its shape.
+	// AWS issues a new resource ID and cluster ID, and the account ID is the tester's own, so
+	// this test pins only their shape.
 	for _, instance := range []*Instance{am57i, p13i, m84i, ap16i} {
 		require.NotNil(t, instance)
 		assert.Regexp(t, `^db-[A-Z0-9]+$`, instance.ResourceID)
+		assert.Regexp(t, `^\d{12}$`, instance.AccountID)
+		assert.Equal(t, am57i.AccountID, instance.AccountID)
 	}
+
+	assert.NotEmpty(t, am57i.ClusterID)
+	assert.NotEmpty(t, p13i.ClusterID)
+	assert.Empty(t, m84i.ClusterID)
+	assert.Empty(t, ap16i.ClusterID)
 
 	am57iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora3-mysql-instance-1",
 		ResourceID:                 am57i.ResourceID,
+		ClusterID:                  am57i.ClusterID,
+		Engine:                     "aurora-mysql",
+		AccountID:                  am57i.AccountID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	p13iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-aurora-postgres-13-5-instance-1",
 		ResourceID:                 p13i.ResourceID,
+		ClusterID:                  p13i.ClusterID,
+		Engine:                     "aurora-postgresql",
+		AccountID:                  p13i.AccountID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	m84iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-rds-mysql-8-4",
 		ResourceID:                 m84i.ResourceID,
+		ClusterID:                  m84i.ClusterID,
+		Engine:                     "mysql",
+		AccountID:                  m84i.AccountID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 	ap16iExpected := Instance{
 		Region:                     "us-east-2",
 		Instance:                   "pmm-qa-pgsql-16",
 		ResourceID:                 ap16i.ResourceID,
+		ClusterID:                  ap16i.ClusterID,
+		Engine:                     "postgres",
+		AccountID:                  ap16i.AccountID,
 		EnhancedMonitoringInterval: time.Minute,
 	}
 

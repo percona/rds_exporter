@@ -140,6 +140,10 @@ aws_rds_update_latency_average{instance="pmm-qa-aurora3-mysql-instance-1",region
 # HELP aws_rds_update_throughput_average UpdateThroughput
 # TYPE aws_rds_update_throughput_average gauge
 aws_rds_update_throughput_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP aws_rds_volume_bytes_used_average VolumeBytesUsed
+# TYPE aws_rds_volume_bytes_used_average gauge
+aws_rds_volume_bytes_used_average{aws_account_id="ACCOUNT",aws_cluster_id="CLUSTER",instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 0
+aws_rds_volume_bytes_used_average{aws_account_id="ACCOUNT",aws_cluster_id="CLUSTER",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
 # HELP aws_rds_write_iops_average The average number of disk I/O operations per second. Units: Count/Second
 # TYPE aws_rds_write_iops_average gauge
 aws_rds_write_iops_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 7.684486006234269
