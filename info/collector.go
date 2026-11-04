@@ -8,6 +8,11 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
+const (
+	labelRegion   = "region"
+	labelInstance = "instance"
+)
+
 // InstanceSource provides the instances to publish info series for.
 type InstanceSource interface {
 	AllSessions() map[string][]sessions.Instance
@@ -27,12 +32,12 @@ func NewCollector(src InstanceSource) *Collector {
 func (c *Collector) Describe(chan<- *prometheus.Desc) {}
 
 // Collect implements prometheus.Collector.
-func (c *Collector) Collect(ch chan<- prometheus.Metric) {
+func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
 	for _, instances := range c.src.AllSessions() {
 		for _, instance := range instances {
 			labels := prometheus.Labels{
-				"region":   instance.Region,
-				"instance": instance.Instance,
+				labelRegion:   instance.Region,
+				labelInstance: instance.Instance,
 			}
 			maps.Copy(labels, instance.Labels)
 
@@ -42,7 +47,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 			labels["aws_account_id"] = instance.AccountID
 
 			desc := prometheus.NewDesc("aws_rds_instance_info", "Information about the RDS instance.", nil, labels)
-			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1)
+			metrics <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1)
 		}
 	}
 }

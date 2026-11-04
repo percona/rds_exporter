@@ -17,7 +17,7 @@ func TestClusterVolumeParams(t *testing.T) {
 
 	end := time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
 
-	params := clusterVolumeParams(&sessions.Instance{Engine: "aurora-mysql", ClusterID: "cluster-a"}, end)
+	params := clusterVolumeParams(&sessions.Instance{Engine: "aurora-mysql", ClusterID: "cluster-a"}, end) //nolint:exhaustruct
 	require.NotNil(t, params)
 	assert.Equal(t, "VolumeBytesUsed", aws.ToString(params.MetricName))
 	assert.Equal(t, "AWS/RDS", aws.ToString(params.Namespace))
@@ -30,6 +30,6 @@ func TestClusterVolumeParams(t *testing.T) {
 	assert.True(t, end.Equal(aws.ToTime(params.EndTime)))
 	assert.True(t, end.Add(-clusterVolumeRange).Equal(aws.ToTime(params.StartTime)))
 
-	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora-postgresql"}, end))
-	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "mysql", ClusterID: "x"}, end))
+	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora-postgresql"}, end))     //nolint:exhaustruct
+	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "mysql", ClusterID: "x"}, end)) //nolint:exhaustruct
 }

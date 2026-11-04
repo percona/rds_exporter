@@ -92,6 +92,7 @@ func (s *Scraper) Scrape() {
 		wg.Go(func() {
 			err := s.scrapeClusterVolume(params)
 			if err != nil {
+				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
 				level.Error(s.collector.l).Log("metric", "VolumeBytesUsed", "error", err)
 			}
 		})
@@ -104,6 +105,7 @@ func (s *Scraper) Scrape() {
 			defer wg.Done()
 
 			if err := s.scrapeMetric(metric); err != nil {
+				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
 				level.Error(s.collector.l).Log("metric", metric.cwName, "error", err)
 			}
 		}()
@@ -116,7 +118,7 @@ func clusterVolumeParams(instance *sessions.Instance, end time.Time) *cloudwatch
 		return nil
 	}
 
-	return &cloudwatch.GetMetricStatisticsInput{
+	return &cloudwatch.GetMetricStatisticsInput{ //nolint:exhaustruct
 		EndTime:    aws.Time(end),
 		StartTime:  aws.Time(end.Add(-clusterVolumeRange)),
 		Period:     aws.Int32(int32(Period.Seconds())),
