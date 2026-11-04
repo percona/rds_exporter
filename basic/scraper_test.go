@@ -28,7 +28,7 @@ func TestClusterVolumeParams(t *testing.T) {
 	assert.Equal(t, []types.Statistic{types.StatisticAverage}, params.Statistics)
 	assert.Equal(t, int32(60), aws.ToInt32(params.Period))
 	assert.True(t, end.Equal(aws.ToTime(params.EndTime)))
-	assert.True(t, end.Add(-Range).Equal(aws.ToTime(params.StartTime)))
+	assert.True(t, end.Add(-clusterVolumeRange).Equal(aws.ToTime(params.StartTime)))
 
 	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora-postgresql"}, end))
 	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "mysql", ClusterID: "x"}, end))

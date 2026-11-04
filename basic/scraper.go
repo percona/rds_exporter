@@ -24,6 +24,9 @@ var (
 	Range  = 600 * time.Second
 )
 
+// AWS publishes Aurora VolumeBytesUsed irregularly, often more than an hour late.
+const clusterVolumeRange = 3 * time.Hour
+
 type Scraper struct {
 	// params
 	instance  *config.Instance
@@ -115,7 +118,7 @@ func clusterVolumeParams(instance *sessions.Instance, end time.Time) *cloudwatch
 
 	return &cloudwatch.GetMetricStatisticsInput{
 		EndTime:    aws.Time(end),
-		StartTime:  aws.Time(end.Add(-Range)),
+		StartTime:  aws.Time(end.Add(-clusterVolumeRange)),
 		Period:     aws.Int32(int32(Period.Seconds())),
 		MetricName: aws.String("VolumeBytesUsed"),
 		Namespace:  aws.String("AWS/RDS"),
