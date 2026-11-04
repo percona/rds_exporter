@@ -311,9 +311,8 @@ func makeRDSFileSysMetrics(s *fileSys, constLabels prometheus.Labels) []promethe
 
 // makeNodeFilesystemMetrics returns node_exporter-like node_filesystem_ metrics.
 func makeNodeFilesystemMetrics(s *fileSys, constLabels prometheus.Labels) []prometheus.Metric {
-	// all labels are used by our dashboards, so fill both device and fstype with the same value
 	labelKeys := []string{"device", "fstype", "mountpoint"}
-	labelValues := []string{s.Name, s.Name, s.MountPoint}
+	labelValues := []string{s.Name, "", s.MountPoint}
 	res := make([]prometheus.Metric, 0, 5)
 
 	desc := prometheus.NewDesc("node_filesystem_files", "Filesystem total file nodes.", labelKeys, constLabels)
