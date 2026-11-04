@@ -179,6 +179,11 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			res.sessions[key][idx].Engine = state.Engine
 			res.sessions[key][idx].AccountID = state.AccountID
 			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
+
+			if state.AccountID == "" {
+				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
+				level.Warn(logger).Log("msg", "Can't determine the AWS account ID from the instance ARN.", "instance", instance.Instance)
+			}
 		}
 	}
 
