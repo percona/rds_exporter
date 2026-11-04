@@ -184,6 +184,7 @@ func TestInstanceStatesAuroraFields(t *testing.T) {
 
 	plain := dbInstance("plain", secondResourceID, nil)
 	plain.Engine = aws.String("mysql")
+	plain.DBInstanceArn = aws.String("not-an-arn")
 
 	client := &fakeRDSClient{pages: []*rds.DescribeDBInstancesOutput{describePage(nil, aurora, plain)}, err: nil, calls: 0}
 
@@ -193,6 +194,8 @@ func TestInstanceStatesAuroraFields(t *testing.T) {
 	assert.Equal(t, "cluster-a", states["a3"].ClusterID)
 	assert.Equal(t, "aurora-mysql", states["a3"].Engine)
 	assert.Equal(t, "123456789012", states["a3"].AccountID)
+	require.Contains(t, states, "plain")
 	assert.Empty(t, states["plain"].ClusterID)
+	assert.Empty(t, states["plain"].AccountID)
 	assert.Equal(t, "mysql", states["plain"].Engine)
 }
