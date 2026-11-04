@@ -81,9 +81,21 @@ Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter
 You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/main/basic/testdata/all.txt)
 and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
 
+`aws_rds_instance_info` is exported once per instance on `/enhanced`, even when basic and enhanced metrics are disabled.
+Its labels are `region`, `instance`, the labels from the configuration, `aws_cluster_id`, `aws_engine` and `aws_account_id`;
+the AWS values win over configuration labels of the same name. `aws_cluster_id` is empty for instances outside a cluster.
+
+For Aurora instances (engine starting with `aurora-`) the exporter also reads the cluster-level `VolumeBytesUsed`
+and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus `aws_cluster_id` and `aws_account_id`.
+The per-instance `Volume*` metrics are no longer exported.
+
+`node_filesystem_*` series have an empty `fstype` label.
+
 ## Cost
 Amazon charges for every CloudWatch API request, see the [current charges](http://aws.amazon.com/cloudwatch/pricing/).
 
 Every metric retrieved requires one API request, which can include multiple statistics.
 
-If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month. 
+If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month.
+
+The exporter makes 47 CloudWatch requests per scrape for a plain RDS instance and 48 for an Aurora instance. 
