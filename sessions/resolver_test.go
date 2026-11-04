@@ -160,3 +160,39 @@ func TestInstanceStates(t *testing.T) {
 		}, states, "an instance missing from the result loses its monitoring, so a failed page must not discard the rest")
 	})
 }
+
+func TestAccountFromARN(t *testing.T) {
+	t.Parallel()
+
+	for arn, expected := range map[string]string{
+		"arn:aws:rds:us-east-2:123456789012:db:a3":           "123456789012",
+		"arn:aws-us-gov:rds:us-gov-west-1:111122223333:db:x": "111122223333",
+		"":           "",
+		"not-an-arn": "",
+	} {
+		assert.Equal(t, expected, accountFromARN(arn), arn)
+	}
+}
+
+func TestInstanceStatesAuroraFields(t *testing.T) {
+	t.Parallel()
+
+	aurora := dbInstance("a3", firstResourceID, nil)
+	aurora.DBClusterIdentifier = aws.String("cluster-a")
+	aurora.Engine = aws.String("aurora-mysql")
+	aurora.DBInstanceArn = aws.String("arn:aws:rds:us-east-2:123456789012:db:a3")
+
+	plain := dbInstance("plain", secondResourceID, nil)
+	plain.Engine = aws.String("mysql")
+
+	client := &fakeRDSClient{pages: []*rds.DescribeDBInstancesOutput{describePage(nil, aurora, plain)}, err: nil, calls: 0}
+
+	states, err := (&InstanceStateResolver{svc: client}).InstanceStates(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, "cluster-a", states["a3"].ClusterID)
+	assert.Equal(t, "aurora-mysql", states["a3"].Engine)
+	assert.Equal(t, "123456789012", states["a3"].AccountID)
+	assert.Empty(t, states["plain"].ClusterID)
+	assert.Equal(t, "mysql", states["plain"].Engine)
+}

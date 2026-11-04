@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -27,6 +28,9 @@ type Instance struct {
 	DisableBasicMetrics        bool
 	DisableEnhancedMetrics     bool
 	ResourceID                 string
+	ClusterID                  string
+	Engine                     string
+	AccountID                  string
 	Labels                     map[string]string
 	EnhancedMonitoringInterval time.Duration
 }
@@ -48,6 +52,9 @@ type Sessions struct {
 // InstanceState is the AWS-side state of a single DB instance.
 type InstanceState struct {
 	ResourceID string
+	ClusterID  string
+	Engine     string
+	AccountID  string
 	// MonitoringInterval is zero when Enhanced Monitoring is disabled, in which case AWS publishes
 	// no RDSOSMetrics log stream for the instance at all.
 	MonitoringInterval time.Duration
@@ -87,12 +94,29 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 
 			states[instanceID] = InstanceState{
 				ResourceID:         resourceID,
+				ClusterID:          aws.ToString(dbInstance.DBClusterIdentifier),
+				Engine:             aws.ToString(dbInstance.Engine),
+				AccountID:          accountFromARN(aws.ToString(dbInstance.DBInstanceArn)),
 				MonitoringInterval: time.Duration(aws.ToInt32(dbInstance.MonitoringInterval)) * time.Second,
 			}
 		}
 	}
 
 	return states, nil
+}
+
+// accountFromARN returns the AWS account ID of an ARN, or an empty string when it is not one.
+func accountFromARN(arn string) string {
+	if !strings.HasPrefix(arn, "arn:") {
+		return ""
+	}
+
+	fields := strings.Split(arn, ":")
+	if len(fields) < 6 {
+		return ""
+	}
+
+	return fields[4]
 }
 
 // New creates a new sessions pool for given configuration.
@@ -146,6 +170,9 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			}
 
 			res.sessions[key][idx].ResourceID = state.ResourceID
+			res.sessions[key][idx].ClusterID = state.ClusterID
+			res.sessions[key][idx].Engine = state.Engine
+			res.sessions[key][idx].AccountID = state.AccountID
 			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
 		}
 	}
