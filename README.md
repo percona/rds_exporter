@@ -87,6 +87,7 @@ the AWS values win over configuration labels of the same name. `aws_cluster_id` 
 
 For Aurora instances (engine starting with `aurora-`) the exporter also reads the cluster-level `VolumeBytesUsed`
 and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus `aws_cluster_id` and `aws_account_id`.
+AWS publishes it irregularly, so the exporter reads the latest value from the last 3 hours and it can be up to about 3 hours old.
 The per-instance `Volume*` metrics are no longer exported.
 
 `node_filesystem_*` series have an empty `fstype` label.
@@ -98,4 +99,4 @@ Every metric retrieved requires one API request, which can include multiple stat
 
 If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month.
 
-The exporter makes 47 CloudWatch requests per scrape for a plain RDS instance and 48 for an Aurora instance. 
+The exporter makes 47 CloudWatch requests per scrape for a plain RDS instance and 48 for an Aurora instance.
