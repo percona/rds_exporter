@@ -217,21 +217,6 @@ var Metrics = []Metric{
 		prometheusHelp: "UpdateThroughput",
 	},
 	{
-		cwName:         "VolumeBytesUsed",
-		prometheusName: "aws_rds_volume_bytes_used_average",
-		prometheusHelp: "VolumeBytesUsed",
-	},
-	{
-		cwName:         "VolumeReadIOPs",
-		prometheusName: "aws_rds_volume_read_io_ps_average",
-		prometheusHelp: "VolumeReadIOPs",
-	},
-	{
-		cwName:         "VolumeWriteIOPs",
-		prometheusName: "aws_rds_volume_write_io_ps_average",
-		prometheusHelp: "VolumeWriteIOPs",
-	},
-	{
 		cwName:         "WriteIOPS",
 		prometheusName: "aws_rds_write_iops_average",
 		prometheusHelp: "The average number of disk I/O operations per second. Units: Count/Second",

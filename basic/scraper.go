@@ -2,6 +2,8 @@ package basic
 
 import (
 	"context"
+	"maps"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/percona/rds_exporter/config"
+	"github.com/percona/rds_exporter/sessions"
 )
 
 var (
@@ -23,6 +26,7 @@ var (
 type Scraper struct {
 	// params
 	instance  *config.Instance
+	resolved  *sessions.Instance
 	collector *Collector
 	ch        chan<- prometheus.Metric
 
@@ -32,7 +36,7 @@ type Scraper struct {
 }
 
 func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prometheus.Metric) *Scraper {
-	cfg, _ := collector.sessions.GetConfig(instance.Region, instance.Instance)
+	cfg, resolved := collector.sessions.GetConfig(instance.Region, instance.Instance)
 	if cfg == nil {
 		return nil
 	}
@@ -53,6 +57,7 @@ func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prome
 	return &Scraper{
 		// params
 		instance:  instance,
+		resolved:  resolved,
 		collector: collector,
 		ch:        ch,
 
@@ -78,6 +83,18 @@ func (s *Scraper) Scrape() {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
+	end := time.Now().Add(-Delay)
+	if params := clusterVolumeParams(s.resolved, end); params != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if err := s.scrapeClusterVolume(params); err != nil {
+				level.Error(s.collector.l).Log("metric", "VolumeBytesUsed", "error", err)
+			}
+		}()
+	}
+
 	wg.Add(len(s.collector.metrics))
 	for _, metric := range s.collector.metrics {
 		metric := metric
@@ -89,6 +106,50 @@ func (s *Scraper) Scrape() {
 			}
 		}()
 	}
+}
+
+// clusterVolumeParams returns the cluster-level VolumeBytesUsed query, or nil for a non-Aurora instance.
+func clusterVolumeParams(instance *sessions.Instance, end time.Time) *cloudwatch.GetMetricStatisticsInput {
+	if instance == nil || !strings.HasPrefix(instance.Engine, "aurora-") || instance.ClusterID == "" {
+		return nil
+	}
+
+	return &cloudwatch.GetMetricStatisticsInput{
+		EndTime:    aws.Time(end),
+		StartTime:  aws.Time(end.Add(-Range)),
+		Period:     aws.Int32(int32(Period.Seconds())),
+		MetricName: aws.String("VolumeBytesUsed"),
+		Namespace:  aws.String("AWS/RDS"),
+		Dimensions: []types.Dimension{{
+			Name:  aws.String("DBClusterIdentifier"),
+			Value: aws.String(instance.ClusterID),
+		}},
+		Statistics: []types.Statistic{types.StatisticAverage},
+	}
+}
+
+func (s *Scraper) scrapeClusterVolume(params *cloudwatch.GetMetricStatisticsInput) error {
+	resp, err := s.svc.GetMetricStatistics(context.Background(), params)
+	if err != nil {
+		return err
+	}
+
+	if len(resp.Datapoints) == 0 {
+		return nil
+	}
+
+	labels := maps.Clone(s.constLabels)
+	labels["aws_cluster_id"] = s.resolved.ClusterID
+	labels["aws_account_id"] = s.resolved.AccountID
+
+	dp := getLatestDatapoint(resp.Datapoints)
+	s.ch <- prometheus.MustNewConstMetric(
+		prometheus.NewDesc("aws_rds_volume_bytes_used_average", "VolumeBytesUsed", nil, labels),
+		prometheus.GaugeValue,
+		aws.ToFloat64(dp.Average),
+	)
+
+	return nil
 }
 
 func (s *Scraper) scrapeMetric(metric Metric) error {
