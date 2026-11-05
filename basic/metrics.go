@@ -133,8 +133,8 @@ var Metrics = []Metric{
 	},
 	{
 		cwName:         "FreeableMemory",
-		prometheusName: "node_memory_Cached_bytes",
-		prometheusHelp: "The amount of available random access memory. Units: Bytes",
+		prometheusName: "aws_rds_freeable_memory_average",
+		prometheusHelp: "FreeableMemory",
 	},
 	{
 		cwName:         "InsertLatency",
