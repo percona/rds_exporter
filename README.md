@@ -82,8 +82,9 @@ You can see a list of basic monitoring metrics [there](https://github.com/percon
 and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
 
 `aws_rds_instance_info` is exported once per instance on `/enhanced`, even when basic and enhanced metrics are disabled.
-Its labels are `region`, `instance`, the labels from the configuration, `aws_cluster_id`, `aws_engine` and `aws_account_id`;
-the AWS values win over configuration labels of the same name. `aws_cluster_id` is empty for instances outside a cluster.
+Its labels are `region`, `instance`, the labels from the configuration, `aws_cluster_id`, `aws_engine`, `aws_account_id`,
+`aws_source_instance_id` and `aws_source_region`; the AWS values win over configuration labels of the same name.
+`aws_cluster_id` is empty for instances outside a cluster, and the two `aws_source_*` labels are empty for instances that are not read replicas.
 
 For Aurora instances (engine starting with `aurora-`) the exporter also reads the cluster-level `VolumeBytesUsed`
 and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus `aws_cluster_id` and `aws_account_id`.

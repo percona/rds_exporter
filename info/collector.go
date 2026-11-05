@@ -45,6 +45,8 @@ func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
 			labels["aws_cluster_id"] = instance.ClusterID
 			labels["aws_engine"] = instance.Engine
 			labels["aws_account_id"] = instance.AccountID
+			labels["aws_source_instance_id"] = instance.SourceInstanceID
+			labels["aws_source_region"] = instance.SourceRegion
 
 			desc := prometheus.NewDesc("aws_rds_instance_info", "Information about the RDS instance.", nil, labels)
 			metrics <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1)

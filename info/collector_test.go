@@ -33,15 +33,17 @@ func TestCollector(t *testing.T) {
 				Engine:                 "aurora-mysql",
 				ClusterID:              "cluster-a",
 				AccountID:              "123456789012",
-				Labels:                 map[string]string{labelNode: testAurora, labelEngine: "spoof"},
+				Labels:                 map[string]string{labelNode: testAurora, labelEngine: "spoof", "aws_source_region": "spoof"},
 				DisableBasicMetrics:    true,
 				DisableEnhancedMetrics: true,
 			},
 			{ //nolint:exhaustruct
-				Region:   testRegion,
-				Instance: testMySQL,
-				Engine:   "mysql",
-				Labels:   map[string]string{labelNode: testMySQL},
+				Region:           testRegion,
+				Instance:         testMySQL,
+				Engine:           "mysql",
+				Labels:           map[string]string{labelNode: testMySQL},
+				SourceInstanceID: "m84-source",
+				SourceRegion:     "eu-west-1",
 			},
 		},
 	}
@@ -77,7 +79,7 @@ func TestCollector(t *testing.T) {
 		},
 		testMySQL: {
 			labelRegion: testRegion, labelInstance: testMySQL, labelNode: testMySQL,
-			labelEngine: "mysql",
+			labelEngine: "mysql", "aws_source_instance_id": "m84-source", "aws_source_region": "eu-west-1",
 		},
 	}, got)
 }

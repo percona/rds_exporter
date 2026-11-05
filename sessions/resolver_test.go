@@ -16,6 +16,9 @@ import (
 const (
 	firstResourceID  = "db-1"
 	secondResourceID = "db-2"
+	thirdResourceID  = "db-3"
+	testRegion       = "us-east-2"
+	fourthResourceID = "db-4"
 )
 
 var errDescribeRefused = errors.New("describe refused")
@@ -186,9 +189,19 @@ func TestInstanceStatesAuroraFields(t *testing.T) {
 	plain.Engine = aws.String("mysql")
 	plain.DBInstanceArn = aws.String("not-an-arn")
 
-	client := &fakeRDSClient{pages: []*rds.DescribeDBInstancesOutput{describePage(nil, aurora, plain)}, err: nil, calls: 0}
+	sameRegion := dbInstance("same", thirdResourceID, nil)
+	sameRegion.ReadReplicaSourceDBInstanceIdentifier = aws.String("a3")
 
-	states, err := (&InstanceStateResolver{svc: client}).InstanceStates(t.Context())
+	crossRegion := dbInstance("cross", fourthResourceID, nil)
+	crossRegion.ReadReplicaSourceDBInstanceIdentifier = aws.String("arn:aws:rds:eu-west-1:123456789012:db:a3-src")
+
+	client := &fakeRDSClient{
+		pages: []*rds.DescribeDBInstancesOutput{describePage(nil, aurora, plain, sameRegion, crossRegion)},
+		err:   nil,
+		calls: 0,
+	}
+
+	states, err := (&InstanceStateResolver{svc: client, region: testRegion}).InstanceStates(t.Context())
 
 	require.NoError(t, err)
 	assert.Equal(t, "cluster-a", states["a3"].ClusterID)
@@ -198,4 +211,10 @@ func TestInstanceStatesAuroraFields(t *testing.T) {
 	assert.Empty(t, states["plain"].ClusterID)
 	assert.Empty(t, states["plain"].AccountID)
 	assert.Equal(t, "mysql", states["plain"].Engine)
+	assert.Empty(t, states["plain"].SourceInstanceID)
+	assert.Empty(t, states["plain"].SourceRegion)
+	assert.Equal(t, "a3", states["same"].SourceInstanceID)
+	assert.Equal(t, testRegion, states["same"].SourceRegion)
+	assert.Equal(t, "a3-src", states["cross"].SourceInstanceID)
+	assert.Equal(t, "eu-west-1", states["cross"].SourceRegion)
 }

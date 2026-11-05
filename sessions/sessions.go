@@ -31,6 +31,8 @@ type Instance struct {
 	ClusterID                  string
 	Engine                     string
 	AccountID                  string
+	SourceInstanceID           string
+	SourceRegion               string
 	Labels                     map[string]string
 	EnhancedMonitoringInterval time.Duration
 }
@@ -55,6 +57,9 @@ type InstanceState struct {
 	ClusterID  string
 	Engine     string
 	AccountID  string
+	// SourceInstanceID and SourceRegion identify the read replica source, and are empty for other instances.
+	SourceInstanceID string
+	SourceRegion     string
 	// MonitoringInterval is zero when Enhanced Monitoring is disabled, in which case AWS publishes
 	// no RDSOSMetrics log stream for the instance at all.
 	MonitoringInterval time.Duration
@@ -62,13 +67,15 @@ type InstanceState struct {
 
 // InstanceStateResolver resolves the current AWS state of DB instances.
 type InstanceStateResolver struct {
-	svc rds.DescribeDBInstancesAPIClient
+	svc    rds.DescribeDBInstancesAPIClient
+	region string
 }
 
 // NewInstanceStateResolver creates a resolver using the given AWS config.
 func NewInstanceStateResolver(cfg aws.Config) *InstanceStateResolver {
 	return &InstanceStateResolver{
-		svc: rds.NewFromConfig(cfg),
+		svc:    rds.NewFromConfig(cfg),
+		region: cfg.Region,
 	}
 }
 
@@ -92,11 +99,15 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 				continue
 			}
 
+			sourceID, sourceRegion := r.replicaSource(aws.ToString(dbInstance.ReadReplicaSourceDBInstanceIdentifier))
+
 			states[instanceID] = InstanceState{
 				ResourceID:         resourceID,
 				ClusterID:          aws.ToString(dbInstance.DBClusterIdentifier),
 				Engine:             aws.ToString(dbInstance.Engine),
 				AccountID:          accountFromARN(aws.ToString(dbInstance.DBInstanceArn)),
+				SourceInstanceID:   sourceID,
+				SourceRegion:       sourceRegion,
 				MonitoringInterval: time.Duration(aws.ToInt32(dbInstance.MonitoringInterval)) * time.Second,
 			}
 		}
@@ -105,8 +116,28 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 	return states, nil
 }
 
+// replicaSource returns the source DB instance identifier and region of a read replica.
+// AWS reports a plain identifier for a same-region source and an ARN for a cross-region one.
+func (r *InstanceStateResolver) replicaSource(source string) (string, string) {
+	if source == "" {
+		return "", ""
+	}
+
+	if !strings.HasPrefix(source, "arn:") {
+		return source, r.region
+	}
+
+	fields := strings.Split(source, ":")
+	if len(fields) < arnFields {
+		return source, ""
+	}
+
+	return fields[len(fields)-1], fields[arnRegionField]
+}
+
 const (
 	arnFields       = 6
+	arnRegionField  = 3
 	arnAccountField = 4
 )
 
@@ -178,6 +209,8 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			res.sessions[key][idx].ClusterID = state.ClusterID
 			res.sessions[key][idx].Engine = state.Engine
 			res.sessions[key][idx].AccountID = state.AccountID
+			res.sessions[key][idx].SourceInstanceID = state.SourceInstanceID
+			res.sessions[key][idx].SourceRegion = state.SourceRegion
 			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
 
 			if state.AccountID == "" {
