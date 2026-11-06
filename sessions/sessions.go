@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
@@ -47,6 +49,8 @@ func (i Instance) String() string {
 
 // Sessions is a pool of AWS configs per region.
 type Sessions struct {
+	// mu guards the instances, whose AWS metadata the enhanced scrapers refresh while collectors read it.
+	mu       sync.RWMutex
 	sessions map[string][]Instance
 	Configs  map[string]aws.Config
 }
@@ -161,6 +165,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	level.Info(logger).Log("msg", "Creating sessions...")
 
 	res := &Sessions{
+		mu:       sync.RWMutex{},
 		sessions: make(map[string][]Instance),
 		Configs:  make(map[string]aws.Config),
 	}
@@ -206,11 +211,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			}
 
 			res.sessions[key][idx].ResourceID = state.ResourceID
-			res.sessions[key][idx].ClusterID = state.ClusterID
-			res.sessions[key][idx].Engine = state.Engine
-			res.sessions[key][idx].AccountID = state.AccountID
-			res.sessions[key][idx].SourceInstanceID = state.SourceInstanceID
-			res.sessions[key][idx].SourceRegion = state.SourceRegion
+			setMetadata(&res.sessions[key][idx], state)
 			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
 
 			if state.AccountID == "" {
@@ -254,8 +255,11 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	return res, nil
 }
 
-// GetConfig returns AWS config and full instance information for given region and instance.
+// GetConfig returns AWS config and a copy of the full instance information for given region and instance.
 func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for key, instances := range s.sessions {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {
@@ -267,9 +271,42 @@ func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
 	return nil, nil
 }
 
-// AllSessions returns all AWS configs and instances.
+// AllSessions returns a copy of all instances, keyed by session.
 func (s *Sessions) AllSessions() map[string][]Instance {
-	return s.sessions
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	res := make(map[string][]Instance, len(s.sessions))
+	for key, instances := range s.sessions {
+		res[key] = slices.Clone(instances)
+	}
+
+	return res
+}
+
+// UpdateInstanceStates refreshes the AWS metadata of the session's instances found in states.
+// Instances missing from states, as after a partially read DescribeDBInstances, keep the values they had.
+func (s *Sessions) UpdateInstanceStates(session string, states map[string]InstanceState) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for idx, instance := range s.sessions[session] {
+		state, ok := states[instance.Instance]
+		if !ok {
+			continue
+		}
+
+		setMetadata(&s.sessions[session][idx], state)
+	}
+}
+
+// setMetadata copies the AWS metadata exported on aws_rds_instance_info from state.
+func setMetadata(instance *Instance, state InstanceState) {
+	instance.ClusterID = state.ClusterID
+	instance.Engine = state.Engine
+	instance.AccountID = state.AccountID
+	instance.SourceInstanceID = state.SourceInstanceID
+	instance.SourceRegion = state.SourceRegion
 }
 
 // Internal helper

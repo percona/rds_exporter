@@ -4,9 +4,12 @@ import (
 	"flag"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -117,4 +120,119 @@ func TestSession(t *testing.T) {
 		"us-east-2/" + os.Getenv("AWS_ACCESS_KEY"): {am57iExpected},
 		"us-east-2/": {p13iExpected, m84iExpected, ap16iExpected},
 	}, all)
+}
+
+const (
+	testReplicaID = "replica"
+	testPrimaryID = "primary"
+	testAccountID = "123456789012"
+	otherRegion   = "eu-west-1"
+)
+
+func TestUpdateInstanceStates(t *testing.T) {
+	t.Parallel()
+
+	replica := Instance{ //nolint:exhaustruct
+		Region:           testRegion,
+		Instance:         testReplicaID,
+		ResourceID:       firstResourceID,
+		Engine:           "mysql",
+		AccountID:        testAccountID,
+		SourceInstanceID: testPrimaryID,
+		SourceRegion:     testRegion,
+	}
+	notDescribed := Instance{ //nolint:exhaustruct
+		Region:     testRegion,
+		Instance:   "not-described",
+		ResourceID: secondResourceID,
+		ClusterID:  "kept",
+	}
+	otherSession := replica
+	otherSession.Region = otherRegion
+
+	sessions := &Sessions{
+		mu: sync.RWMutex{},
+		sessions: map[string][]Instance{
+			testRegion + "/":  {replica, notDescribed},
+			otherRegion + "/": {otherSession},
+		},
+		Configs: map[string]aws.Config{},
+	}
+
+	promoted := dbInstance(testReplicaID, firstResourceID, nil)
+	promoted.Engine = aws.String("mysql")
+	promoted.DBInstanceArn = aws.String("arn:aws:rds:us-east-2:" + testAccountID + ":db:" + testReplicaID)
+	client := &fakeRDSClient{pages: []*rds.DescribeDBInstancesOutput{describePage(nil, promoted)}, err: nil, calls: 0}
+
+	states, err := (&InstanceStateResolver{svc: client, region: testRegion}).InstanceStates(t.Context())
+	require.NoError(t, err)
+
+	sessions.UpdateInstanceStates(testRegion+"/", states)
+
+	_, got := sessions.GetConfig(testRegion, testReplicaID)
+	require.NotNil(t, got)
+	assert.Empty(t, got.SourceInstanceID, "a promoted read replica has no source any more")
+	assert.Empty(t, got.SourceRegion)
+	assert.Equal(t, testAccountID, got.AccountID)
+	assert.Equal(t, firstResourceID, got.ResourceID)
+
+	_, got = sessions.GetConfig(testRegion, "not-described")
+	require.NotNil(t, got)
+	assert.Equal(t, "kept", got.ClusterID, "an instance missing from the result keeps what it had")
+
+	_, got = sessions.GetConfig(otherRegion, testReplicaID)
+	require.NotNil(t, got)
+	assert.Equal(t, testPrimaryID, got.SourceInstanceID, "another session's instance of the same name is not this one")
+
+	all := sessions.AllSessions()
+	all[testRegion+"/"][0].ClusterID = "changed by a caller"
+	_, got = sessions.GetConfig(testRegion, testReplicaID)
+	require.NotNil(t, got)
+	assert.Empty(t, got.ClusterID, "AllSessions hands out a copy")
+}
+
+func TestUpdateInstanceStatesConcurrently(t *testing.T) {
+	t.Parallel()
+
+	const session = testRegion + "/"
+
+	sessions := &Sessions{
+		mu: sync.RWMutex{},
+		sessions: map[string][]Instance{
+			session: {{Region: testRegion, Instance: testReplicaID, ResourceID: firstResourceID}}, //nolint:exhaustruct
+		},
+		Configs: map[string]aws.Config{},
+	}
+	replica := map[string]InstanceState{testReplicaID: {SourceInstanceID: testPrimaryID, SourceRegion: testRegion}} //nolint:exhaustruct
+	promoted := map[string]InstanceState{testReplicaID: {}}                                                         //nolint:exhaustruct
+
+	var workers sync.WaitGroup
+
+	workers.Go(func() {
+		for i := range 1000 {
+			if i%2 == 0 {
+				sessions.UpdateInstanceStates(session, replica)
+			} else {
+				sessions.UpdateInstanceStates(session, promoted)
+			}
+		}
+	})
+
+	for range 4 {
+		workers.Go(func() {
+			for range 1000 {
+				for _, instances := range sessions.AllSessions() {
+					for _, instance := range instances {
+						assert.Equal(t, instance.SourceInstanceID == "", instance.SourceRegion == "",
+							"an update is seen whole or not at all")
+					}
+				}
+
+				_, instance := sessions.GetConfig(testRegion, testReplicaID)
+				assert.Equal(t, instance.SourceInstanceID == "", instance.SourceRegion == "")
+			}
+		})
+	}
+
+	workers.Wait()
 }

@@ -85,6 +85,10 @@ and a list of enhanced monitoring metrics in text files [there](https://github.c
 Its labels are `region`, `instance`, the labels from the configuration, `aws_cluster_id`, `aws_engine`, `aws_account_id`,
 `aws_source_instance_id` and `aws_source_region`; the AWS values win over configuration labels of the same name.
 `aws_cluster_id` is empty for instances outside a cluster, and the two `aws_source_*` labels are empty for instances that are not read replicas.
+The AWS values are read at start-up and refreshed every 5 minutes from the `DescribeDBInstances` call that enhanced metrics
+already make for each region and `aws_access_key`, so a promoted read replica loses its `aws_source_*` labels within minutes.
+When every instance of a region and `aws_access_key` has `disable_enhanced_metrics: true`, that call is not made,
+and those instances keep the values read at start-up until the exporter restarts.
 
 For Aurora instances (engine starting with `aurora-`) the exporter also reads the cluster-level `VolumeBytesUsed`
 and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus `aws_cluster_id` and `aws_account_id`.

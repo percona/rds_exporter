@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `aws_rds_instance_info` metric, one per instance on `/enhanced`, with `aws_cluster_id`, `aws_engine`,
-  `aws_account_id`, `aws_source_instance_id` and `aws_source_region` labels.
+  `aws_account_id`, `aws_source_instance_id` and `aws_source_region` labels, refreshed every 5 minutes.
 - Cluster-level `aws_rds_volume_bytes_used_average` for Aurora instances, labelled with `aws_cluster_id`
   and `aws_account_id`.
 
