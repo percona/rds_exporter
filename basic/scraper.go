@@ -102,26 +102,27 @@ func (s *Scraper) Scrape() {
 	if s.resolved != nil {
 		engine = s.resolved.Engine
 	}
-	metrics := metricsFor(engine, s.collector.metrics)
 
-	wg.Add(len(metrics))
-	for _, metric := range metrics {
-		metric := metric
-		go func() {
-			defer wg.Done()
-
+	for _, metric := range metricsFor(engine, s.collector.metrics) {
+		wg.Go(func() {
 			if err := s.scrapeMetric(metric); err != nil {
 				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
 				level.Error(s.collector.l).Log("metric", metric.cwName, "error", err)
 			}
-		}()
+		})
 	}
 }
+
+// RDS engine names that get no MySQL-only metrics.
+const (
+	enginePostgres       = "postgres"
+	engineAuroraPostgres = "aurora-postgresql"
+)
 
 // metricsFor returns the metrics to request for an instance of the given engine.
 // An empty engine (AWS lookup failed or not run yet) gets every metric.
 func metricsFor(engine string, metrics []Metric) []Metric {
-	if engine != "postgres" && engine != "aurora-postgresql" {
+	if engine != enginePostgres && engine != engineAuroraPostgres {
 		return metrics
 	}
 
@@ -131,6 +132,7 @@ func metricsFor(engine string, metrics []Metric) []Metric {
 			res = append(res, m)
 		}
 	}
+
 	return res
 }
 

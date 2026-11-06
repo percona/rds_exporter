@@ -82,15 +82,17 @@ func TestMetricsFor(t *testing.T) {
 			mysqlOnly++
 		}
 	}
+
 	require.Len(t, Metrics, 47)
 	require.Equal(t, 19, mysqlOnly)
 
-	for _, engine := range []string{"postgres", "aurora-postgresql"} {
+	for _, engine := range []string{enginePostgres, engineAuroraPostgres} {
 		t.Run(engine, func(t *testing.T) {
 			t.Parallel()
 
 			metrics := metricsFor(engine, Metrics)
 			assert.Len(t, metrics, 28)
+
 			for _, m := range metrics {
 				assert.False(t, m.mysqlOnly, m.cwName)
 			}
