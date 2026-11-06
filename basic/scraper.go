@@ -138,22 +138,31 @@ func (s *Scraper) scrapeClusterVolume(params *cloudwatch.GetMetricStatisticsInpu
 		return fmt.Errorf("get cluster volume statistics: %w", err)
 	}
 
-	if len(resp.Datapoints) == 0 {
+	metric := clusterVolumeMetric(resp.Datapoints, s.constLabels, s.resolved)
+	if metric != nil {
+		s.ch <- metric
+	}
+
+	return nil
+}
+
+// clusterVolumeMetric returns the cluster storage series of the latest datapoint, or nil when there is none.
+//
+//nolint:ireturn // prometheus.MustNewConstMetric returns the interface.
+func clusterVolumeMetric(datapoints []types.Datapoint, constLabels prometheus.Labels, instance *sessions.Instance) prometheus.Metric {
+	if len(datapoints) == 0 {
 		return nil
 	}
 
-	labels := maps.Clone(s.constLabels)
-	labels["aws_cluster_id"] = s.resolved.ClusterID
-	labels["aws_account_id"] = s.resolved.AccountID
+	labels := maps.Clone(constLabels)
+	labels["aws_cluster_id"] = instance.ClusterID
+	labels["aws_account_id"] = instance.AccountID
 
-	dp := getLatestDatapoint(resp.Datapoints)
-	s.ch <- prometheus.MustNewConstMetric(
+	return prometheus.MustNewConstMetric(
 		prometheus.NewDesc("aws_rds_volume_bytes_used_average", "VolumeBytesUsed", nil, labels),
 		prometheus.GaugeValue,
-		aws.ToFloat64(dp.Average),
+		aws.ToFloat64(getLatestDatapoint(datapoints).Average),
 	)
-
-	return nil
 }
 
 func (s *Scraper) scrapeMetric(metric Metric) error {

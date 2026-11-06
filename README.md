@@ -91,8 +91,9 @@ When every instance of a region and `aws_access_key` has `disable_enhanced_metri
 and those instances keep the values read at start-up until the exporter restarts.
 
 For Aurora instances (engine starting with `aurora-`) the exporter also reads the cluster-level `VolumeBytesUsed`
-and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus `aws_cluster_id` and `aws_account_id`.
-AWS publishes it irregularly, so the exporter reads the latest value from the last 3 hours and it can be up to about 3 hours old.
+of the instance's current cluster and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus
+`aws_cluster_id` and `aws_account_id`. AWS publishes it irregularly, so the exporter reads the latest value from the 3 hours ending
+10 minutes before the scrape, and it can be up to about 3 hours 10 minutes old.
 The per-instance `Volume*` metrics are no longer exported.
 
 `node_filesystem_*` series have an empty `fstype` label.
