@@ -39,8 +39,9 @@ func TestClusterVolumeParams(t *testing.T) {
 	assert.True(t, end.Equal(aws.ToTime(params.EndTime)))
 	assert.True(t, end.Add(-clusterVolumeRange).Equal(aws.ToTime(params.StartTime)))
 
-	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora-postgresql"}, end))     //nolint:exhaustruct
-	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "mysql", ClusterID: "x"}, end)) //nolint:exhaustruct
+	assert.NotNil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora", ClusterID: "x"}, end)) //nolint:exhaustruct
+	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "aurora-postgresql"}, end))         //nolint:exhaustruct
+	assert.Nil(t, clusterVolumeParams(&sessions.Instance{Engine: "mysql", ClusterID: "x"}, end))     //nolint:exhaustruct
 }
 
 func TestClusterVolumeMetric(t *testing.T) {

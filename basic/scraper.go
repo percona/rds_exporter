@@ -114,7 +114,7 @@ func (s *Scraper) Scrape() {
 
 // clusterVolumeParams returns the cluster-level VolumeBytesUsed query, or nil for a non-Aurora instance.
 func clusterVolumeParams(instance *sessions.Instance, end time.Time) *cloudwatch.GetMetricStatisticsInput {
-	if instance == nil || !strings.HasPrefix(instance.Engine, "aurora-") || instance.ClusterID == "" {
+	if instance == nil || !strings.HasPrefix(instance.Engine, "aurora") || instance.ClusterID == "" {
 		return nil
 	}
 
