@@ -81,9 +81,28 @@ Exporter synthesizes [node_exporter](https://github.com/prometheus/node_exporter
 You can see a list of basic monitoring metrics [there](https://github.com/percona/rds_exporter/blob/main/basic/testdata/all.txt)
 and a list of enhanced monitoring metrics in text files [there](https://github.com/percona/rds_exporter/tree/main/enhanced/testdata).
 
+`aws_rds_instance_info` is exported once per instance on `/enhanced`, even when basic and enhanced metrics are disabled.
+Its labels are `region`, `instance`, the labels from the configuration, `aws_cluster_id`, `aws_engine`, `aws_account_id`,
+`aws_source_instance_id` and `aws_source_region`; the AWS values win over configuration labels of the same name.
+`aws_cluster_id` is empty for instances outside a cluster, and the two `aws_source_*` labels are empty for instances that are not read replicas.
+The AWS values are read at start-up and refreshed every 5 minutes from the `DescribeDBInstances` call that enhanced metrics
+already make for each region and `aws_access_key`, so a promoted read replica loses its `aws_source_*` labels within minutes.
+When every instance of a region and `aws_access_key` has `disable_enhanced_metrics: true`, that call is not made,
+and those instances keep the values read at start-up until the exporter restarts.
+
+For Aurora instances (engine `aurora`, `aurora-mysql` or `aurora-postgresql`) the exporter also reads the cluster-level `VolumeBytesUsed`
+of the instance's current cluster and exports it as `aws_rds_volume_bytes_used_average`, labelled with the instance labels plus
+`aws_cluster_id` and `aws_account_id`. AWS publishes it irregularly, so the exporter reads the latest value from the 3 hours ending
+10 minutes before the scrape, and it can be up to about 3 hours 10 minutes old.
+The per-instance `Volume*` metrics are no longer exported.
+
+`node_filesystem_*` series have an empty `fstype` label.
+
 ## Cost
 Amazon charges for every CloudWatch API request, see the [current charges](http://aws.amazon.com/cloudwatch/pricing/).
 
 Every metric retrieved requires one API request, which can include multiple statistics.
 
-If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month. 
+If you have 100 API requests every minute, with the price of $10 per million requests (as of Aug 2018), that is around $45 per month.
+
+The exporter makes 47 CloudWatch requests per scrape for a plain RDS instance and 48 for an Aurora instance.

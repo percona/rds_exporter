@@ -76,6 +76,12 @@ aws_rds_dml_throughput_average{instance="pmm-qa-aurora3-mysql-instance-1",region
 # TYPE aws_rds_free_local_storage_average gauge
 aws_rds_free_local_storage_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 6.58468864e+09
 aws_rds_free_local_storage_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2.6512121856e+10
+# HELP aws_rds_freeable_memory_average FreeableMemory
+# TYPE aws_rds_freeable_memory_average gauge
+aws_rds_freeable_memory_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 2.577866752e+09
+aws_rds_freeable_memory_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 9.93275904e+08
+aws_rds_freeable_memory_average{instance="pmm-qa-pgsql-16",region="us-east-2"} 3.124822016e+09
+aws_rds_freeable_memory_average{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 7.06854912e+08
 # HELP aws_rds_insert_latency_average InsertLatency
 # TYPE aws_rds_insert_latency_average gauge
 aws_rds_insert_latency_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 3.638
@@ -140,6 +146,10 @@ aws_rds_update_latency_average{instance="pmm-qa-aurora3-mysql-instance-1",region
 # HELP aws_rds_update_throughput_average UpdateThroughput
 # TYPE aws_rds_update_throughput_average gauge
 aws_rds_update_throughput_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
+# HELP aws_rds_volume_bytes_used_average VolumeBytesUsed
+# TYPE aws_rds_volume_bytes_used_average gauge
+aws_rds_volume_bytes_used_average{aws_account_id="ACCOUNT",aws_cluster_id="CLUSTER",instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 0
+aws_rds_volume_bytes_used_average{aws_account_id="ACCOUNT",aws_cluster_id="CLUSTER",instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 0
 # HELP aws_rds_write_iops_average The average number of disk I/O operations per second. Units: Count/Second
 # TYPE aws_rds_write_iops_average gauge
 aws_rds_write_iops_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 7.684486006234269
@@ -172,12 +182,6 @@ node_cpu_average{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 3.725
 # TYPE node_filesystem_free_bytes gauge
 node_filesystem_free_bytes{instance="pmm-qa-pgsql-16",region="us-east-2"} 3.9184605184e+10
 node_filesystem_free_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 1.9494342656e+10
-# HELP node_memory_Cached_bytes The amount of available random access memory. Units: Bytes
-# TYPE node_memory_Cached_bytes gauge
-node_memory_Cached_bytes{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 2.577866752e+09
-node_memory_Cached_bytes{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 9.93275904e+08
-node_memory_Cached_bytes{instance="pmm-qa-pgsql-16",region="us-east-2"} 3.124822016e+09
-node_memory_Cached_bytes{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 7.06854912e+08
 # HELP rds_exporter_scrape_duration_seconds Time this RDS scrape took, in seconds.
 # TYPE rds_exporter_scrape_duration_seconds gauge
 rds_exporter_scrape_duration_seconds 1.625459084

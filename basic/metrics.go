@@ -133,8 +133,8 @@ var Metrics = []Metric{
 	},
 	{
 		cwName:         "FreeableMemory",
-		prometheusName: "node_memory_Cached_bytes",
-		prometheusHelp: "The amount of available random access memory. Units: Bytes",
+		prometheusName: "aws_rds_freeable_memory_average",
+		prometheusHelp: "FreeableMemory",
 	},
 	{
 		cwName:         "InsertLatency",
@@ -215,21 +215,6 @@ var Metrics = []Metric{
 		cwName:         "UpdateThroughput",
 		prometheusName: "aws_rds_update_throughput_average",
 		prometheusHelp: "UpdateThroughput",
-	},
-	{
-		cwName:         "VolumeBytesUsed",
-		prometheusName: "aws_rds_volume_bytes_used_average",
-		prometheusHelp: "VolumeBytesUsed",
-	},
-	{
-		cwName:         "VolumeReadIOPs",
-		prometheusName: "aws_rds_volume_read_io_ps_average",
-		prometheusHelp: "VolumeReadIOPs",
-	},
-	{
-		cwName:         "VolumeWriteIOPs",
-		prometheusName: "aws_rds_volume_write_io_ps_average",
-		prometheusHelp: "VolumeWriteIOPs",
 	},
 	{
 		cwName:         "WriteIOPS",

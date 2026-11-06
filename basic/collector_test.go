@@ -16,6 +16,19 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
+// normalizeEnvironmentLabels replaces label values that depend on the AWS account under test.
+func normalizeEnvironmentLabels(metrics []*helpers.Metric) {
+	for _, metric := range metrics {
+		if _, ok := metric.Labels["aws_account_id"]; ok {
+			metric.Labels["aws_account_id"] = "ACCOUNT"
+		}
+
+		if _, ok := metric.Labels["aws_cluster_id"]; ok {
+			metric.Labels["aws_cluster_id"] = "CLUSTER"
+		}
+	}
+}
+
 func TestCollector(t *testing.T) {
 	cfg, err := config.Load("../config.tests.yml")
 	require.NoError(t, err)
@@ -27,6 +40,7 @@ func TestCollector(t *testing.T) {
 	c := New(cfg, sess, logger)
 
 	actualMetrics := helpers.ReadMetrics(helpers.CollectMetrics(c))
+	normalizeEnvironmentLabels(actualMetrics)
 	sort.Slice(actualMetrics, func(i, j int) bool { return actualMetrics[i].Less(actualMetrics[j]) })
 	actualLines := helpers.Format(helpers.WriteMetrics(actualMetrics))
 
@@ -40,6 +54,7 @@ func TestCollector(t *testing.T) {
 	actualLines = helpers.Format(helpers.WriteMetrics(actualMetrics))
 
 	expectedMetrics := helpers.ReadMetrics(helpers.Parse(readTestDataMetrics(t)))
+	normalizeEnvironmentLabels(expectedMetrics)
 	sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
 	for _, m := range expectedMetrics {
 		m.Value = 0

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
+	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
@@ -27,6 +30,11 @@ type Instance struct {
 	DisableBasicMetrics        bool
 	DisableEnhancedMetrics     bool
 	ResourceID                 string
+	ClusterID                  string
+	Engine                     string
+	AccountID                  string
+	SourceInstanceID           string
+	SourceRegion               string
 	Labels                     map[string]string
 	EnhancedMonitoringInterval time.Duration
 }
@@ -41,6 +49,8 @@ func (i Instance) String() string {
 
 // Sessions is a pool of AWS configs per region.
 type Sessions struct {
+	// mu guards the instances, whose AWS metadata the enhanced scrapers refresh while collectors read it.
+	mu       sync.RWMutex
 	sessions map[string][]Instance
 	Configs  map[string]aws.Config
 }
@@ -48,6 +58,12 @@ type Sessions struct {
 // InstanceState is the AWS-side state of a single DB instance.
 type InstanceState struct {
 	ResourceID string
+	ClusterID  string
+	Engine     string
+	AccountID  string
+	// SourceInstanceID and SourceRegion identify the read replica source, and are empty for other instances.
+	SourceInstanceID string
+	SourceRegion     string
 	// MonitoringInterval is zero when Enhanced Monitoring is disabled, in which case AWS publishes
 	// no RDSOSMetrics log stream for the instance at all.
 	MonitoringInterval time.Duration
@@ -55,13 +71,15 @@ type InstanceState struct {
 
 // InstanceStateResolver resolves the current AWS state of DB instances.
 type InstanceStateResolver struct {
-	svc rds.DescribeDBInstancesAPIClient
+	svc    rds.DescribeDBInstancesAPIClient
+	region string
 }
 
 // NewInstanceStateResolver creates a resolver using the given AWS config.
 func NewInstanceStateResolver(cfg aws.Config) *InstanceStateResolver {
 	return &InstanceStateResolver{
-		svc: rds.NewFromConfig(cfg),
+		svc:    rds.NewFromConfig(cfg),
+		region: cfg.Region,
 	}
 }
 
@@ -85,8 +103,15 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 				continue
 			}
 
+			sourceID, sourceRegion := r.replicaSource(aws.ToString(dbInstance.ReadReplicaSourceDBInstanceIdentifier))
+
 			states[instanceID] = InstanceState{
 				ResourceID:         resourceID,
+				ClusterID:          aws.ToString(dbInstance.DBClusterIdentifier),
+				Engine:             aws.ToString(dbInstance.Engine),
+				AccountID:          accountFromARN(aws.ToString(dbInstance.DBInstanceArn)),
+				SourceInstanceID:   sourceID,
+				SourceRegion:       sourceRegion,
 				MonitoringInterval: time.Duration(aws.ToInt32(dbInstance.MonitoringInterval)) * time.Second,
 			}
 		}
@@ -95,12 +120,52 @@ func (r *InstanceStateResolver) InstanceStates(ctx context.Context) (map[string]
 	return states, nil
 }
 
+// replicaSource returns the source DB instance identifier and region of a read replica.
+// AWS reports a plain identifier for a same-region source and an ARN for a cross-region one.
+func (r *InstanceStateResolver) replicaSource(source string) (string, string) {
+	if source == "" {
+		return "", ""
+	}
+
+	if !strings.HasPrefix(source, "arn:") {
+		return source, r.region
+	}
+
+	fields := strings.Split(source, ":")
+	if len(fields) < arnFields {
+		return source, ""
+	}
+
+	return fields[len(fields)-1], fields[arnRegionField]
+}
+
+const (
+	arnFields       = 6
+	arnRegionField  = 3
+	arnAccountField = 4
+)
+
+// accountFromARN returns the AWS account ID of an ARN, or an empty string when it is not one.
+func accountFromARN(arn string) string {
+	if !strings.HasPrefix(arn, "arn:") {
+		return ""
+	}
+
+	fields := strings.Split(arn, ":")
+	if len(fields) < arnFields {
+		return ""
+	}
+
+	return fields[arnAccountField]
+}
+
 // New creates a new sessions pool for given configuration.
 func New(instances []config.Instance, client *http.Client, logger log.Logger, trace bool) (*Sessions, error) {
 	logger = log.With(logger, "component", "sessions")
 	level.Info(logger).Log("msg", "Creating sessions...")
 
 	res := &Sessions{
+		mu:       sync.RWMutex{},
 		sessions: make(map[string][]Instance),
 		Configs:  make(map[string]aws.Config),
 	}
@@ -146,7 +211,13 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 			}
 
 			res.sessions[key][idx].ResourceID = state.ResourceID
+			setMetadata(&res.sessions[key][idx], state)
 			res.sessions[key][idx].EnhancedMonitoringInterval = state.MonitoringInterval
+
+			if state.AccountID == "" {
+				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
+				level.Warn(logger).Log("msg", "Can't determine the AWS account ID from the instance ARN.", "instance", instance.Instance)
+			}
 		}
 	}
 
@@ -184,8 +255,11 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	return res, nil
 }
 
-// GetConfig returns AWS config and full instance information for given region and instance.
+// GetConfig returns AWS config and a copy of the full instance information for given region and instance.
 func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for key, instances := range s.sessions {
 		for _, i := range instances {
 			if i.Region == region && i.Instance == instance {
@@ -197,9 +271,42 @@ func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
 	return nil, nil
 }
 
-// AllSessions returns all AWS configs and instances.
+// AllSessions returns a copy of all instances, keyed by session.
 func (s *Sessions) AllSessions() map[string][]Instance {
-	return s.sessions
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	res := make(map[string][]Instance, len(s.sessions))
+	for key, instances := range s.sessions {
+		res[key] = slices.Clone(instances)
+	}
+
+	return res
+}
+
+// UpdateInstanceStates refreshes the AWS metadata of the session's instances found in states.
+// Instances missing from states, as after a partially read DescribeDBInstances, keep the values they had.
+func (s *Sessions) UpdateInstanceStates(session string, states map[string]InstanceState) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for idx, instance := range s.sessions[session] {
+		state, ok := states[instance.Instance]
+		if !ok {
+			continue
+		}
+
+		setMetadata(&s.sessions[session][idx], state)
+	}
+}
+
+// setMetadata copies the AWS metadata exported on aws_rds_instance_info from state.
+func setMetadata(instance *Instance, state InstanceState) {
+	instance.ClusterID = state.ClusterID
+	instance.Engine = state.Engine
+	instance.AccountID = state.AccountID
+	instance.SourceInstanceID = state.SourceInstanceID
+	instance.SourceRegion = state.SourceRegion
 }
 
 // Internal helper

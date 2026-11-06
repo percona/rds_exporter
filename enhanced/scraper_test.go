@@ -67,7 +67,7 @@ func TestScraper(t *testing.T) {
 	for session, instances := range sess.AllSessions() {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
 			cfg := sess.Configs[session]
-			s := newScraper(session, cfg, instances, logger)
+			s := newScraper(session, cfg, instances, sess, logger)
 			s.testDisallowUnknownFields = true
 			recorder := &recordingClient{inner: s.svc, messages: make(map[string]string), newest: make(map[string]int64)}
 			s.svc = recorder
@@ -126,6 +126,19 @@ func (r *fakeStateResolver) InstanceStates(_ context.Context) (map[string]sessio
 	return r.states, r.err
 }
 
+// fakeStateRecorder keeps what the last refresh handed it.
+type fakeStateRecorder struct {
+	session string
+	states  map[string]sessions.InstanceState
+	calls   int
+}
+
+func (r *fakeStateRecorder) UpdateInstanceStates(session string, states map[string]sessions.InstanceState) {
+	r.calls++
+	r.session = session
+	r.states = states
+}
+
 func monitoredState(resourceID string) sessions.InstanceState {
 	return sessions.InstanceState{ResourceID: resourceID, MonitoringInterval: time.Minute}
 }
@@ -156,6 +169,7 @@ func newTestScraperWith(
 		instances:                 instances,
 		svc:                       client,
 		stateResolver:             stateResolver,
+		stateRecorder:             &fakeStateRecorder{session: "", states: nil, calls: 0},
 		missing:                   newMissingStreams(),
 		evidence:                  scrapeEvidence{isolationCalls: 0, isolated: nil, rejectedStreams: 0, answered: false},
 		unansweredRejections:      make(map[string]struct{}),
@@ -420,6 +434,27 @@ func TestRefresh(t *testing.T) {
 			assert.Empty(t, scraper.unansweredRejections,
 				"a stream that is not requested any more cannot stand in the group's account")
 		})
+	})
+
+	t.Run("hands the resolved states to the recorder", func(t *testing.T) {
+		t.Parallel()
+
+		promoted := sessions.InstanceState{ResourceID: oldResourceID, Engine: "mysql", MonitoringInterval: time.Minute} //nolint:exhaustruct
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: promoted},
+			err:    errDescribeFailed,
+			calls:  0,
+		}
+		recorder := &fakeStateRecorder{session: "", states: nil, calls: 0}
+		scraper := newTestScraper(resolver)
+		scraper.stateRecorder = recorder
+
+		require.ErrorIs(t, scraper.refreshInstanceStates(t.Context()), errDescribeFailed)
+
+		assert.Equal(t, 1, recorder.calls)
+		assert.Equal(t, testSession, recorder.session)
+		assert.Equal(t, map[string]sessions.InstanceState{blueGreenPrimaryInstance: promoted}, recorder.states,
+			"the pages read before a failed one are as current as a full result")
 	})
 
 	t.Run("keeps monitoring interval on resolver error", func(t *testing.T) {
@@ -810,7 +845,7 @@ func TestScraperDisableEnhancedMetrics(t *testing.T) {
 
 	for session, instances := range sess.AllSessions() {
 		t.Run(fmt.Sprint(instances), func(t *testing.T) {
-			s := newScraper(session, sess.Configs[session], instances, logger)
+			s := newScraper(session, sess.Configs[session], instances, sess, logger)
 			s.testDisallowUnknownFields = true
 			metrics := s.scrape(t.Context())
 
