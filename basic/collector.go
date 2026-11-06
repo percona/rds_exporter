@@ -28,6 +28,8 @@ type Metric struct {
 	cwName         string
 	prometheusName string
 	prometheusHelp string
+	// mysqlOnly marks metrics AWS publishes only for MySQL engines; they are not requested for PostgreSQL.
+	mysqlOnly bool
 }
 
 type Collector struct {

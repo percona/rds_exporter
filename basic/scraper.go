@@ -98,8 +98,14 @@ func (s *Scraper) Scrape() {
 		})
 	}
 
-	wg.Add(len(s.collector.metrics))
-	for _, metric := range s.collector.metrics {
+	var engine string
+	if s.resolved != nil {
+		engine = s.resolved.Engine
+	}
+	metrics := metricsFor(engine, s.collector.metrics)
+
+	wg.Add(len(metrics))
+	for _, metric := range metrics {
 		metric := metric
 		go func() {
 			defer wg.Done()
@@ -110,6 +116,22 @@ func (s *Scraper) Scrape() {
 			}
 		}()
 	}
+}
+
+// metricsFor returns the metrics to request for an instance of the given engine.
+// An empty engine (AWS lookup failed or not run yet) gets every metric.
+func metricsFor(engine string, metrics []Metric) []Metric {
+	if engine != "postgres" && engine != "aurora-postgresql" {
+		return metrics
+	}
+
+	res := make([]Metric, 0, len(metrics))
+	for _, m := range metrics {
+		if !m.mysqlOnly {
+			res = append(res, m)
+		}
+	}
+	return res
 }
 
 // clusterVolumeParams returns the cluster-level VolumeBytesUsed query, or nil for a non-Aurora instance.

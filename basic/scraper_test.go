@@ -72,3 +72,37 @@ func TestClusterVolumeMetric(t *testing.T) {
 
 	assert.Nil(t, clusterVolumeMetric(nil, constLabels, instance))
 }
+
+func TestMetricsFor(t *testing.T) {
+	t.Parallel()
+
+	var mysqlOnly int
+	for _, m := range Metrics {
+		if m.mysqlOnly {
+			mysqlOnly++
+		}
+	}
+	require.Len(t, Metrics, 47)
+	require.Equal(t, 19, mysqlOnly)
+
+	for _, engine := range []string{"postgres", "aurora-postgresql"} {
+		t.Run(engine, func(t *testing.T) {
+			t.Parallel()
+
+			metrics := metricsFor(engine, Metrics)
+			assert.Len(t, metrics, 28)
+			for _, m := range metrics {
+				assert.False(t, m.mysqlOnly, m.cwName)
+			}
+		})
+	}
+
+	// An empty engine means the AWS lookup failed or has not run yet: request everything, as before.
+	for _, engine := range []string{"aurora-mysql", "mysql", "mariadb", "aurora", ""} {
+		t.Run("engine "+engine, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, Metrics, metricsFor(engine, Metrics))
+		})
+	}
+}
