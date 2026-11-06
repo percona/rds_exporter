@@ -5,11 +5,13 @@ var Metrics = []Metric{
 		cwName:         "ActiveTransactions",
 		prometheusName: "aws_rds_active_transactions_average",
 		prometheusHelp: "ActiveTransactions",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "AuroraBinlogReplicaLag",
 		prometheusName: "aws_rds_aurora_binlog_replica_lag_average",
 		prometheusHelp: "AuroraBinlogReplicaLag",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "AuroraReplicaLag",
@@ -30,11 +32,13 @@ var Metrics = []Metric{
 		cwName:         "BinLogDiskUsage",
 		prometheusName: "aws_rds_bin_log_disk_usage_average",
 		prometheusHelp: "The amount of disk space occupied by binary logs on the master. Applies to MySQL read replicas. Units: Bytes",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "BlockedTransactions",
 		prometheusName: "aws_rds_blocked_transactions_average",
 		prometheusHelp: "BlockedTransactions",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "BufferCacheHitRatio",
@@ -75,21 +79,25 @@ var Metrics = []Metric{
 		cwName:         "DDLLatency",
 		prometheusName: "aws_rds_ddl_latency_average",
 		prometheusHelp: "DDLLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DDLThroughput",
 		prometheusName: "aws_rds_ddl_throughput_average",
 		prometheusHelp: "DDLThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DMLLatency",
 		prometheusName: "aws_rds_dml_latency_average",
 		prometheusHelp: "DMLLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DMLThroughput",
 		prometheusName: "aws_rds_dml_throughput_average",
 		prometheusHelp: "DMLThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DatabaseConnections",
@@ -105,11 +113,13 @@ var Metrics = []Metric{
 		cwName:         "DeleteLatency",
 		prometheusName: "aws_rds_delete_latency_average",
 		prometheusHelp: "DeleteLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DeleteThroughput",
 		prometheusName: "aws_rds_delete_throughput_average",
 		prometheusHelp: "DeleteThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "DiskQueueDepth",
@@ -140,16 +150,19 @@ var Metrics = []Metric{
 		cwName:         "InsertLatency",
 		prometheusName: "aws_rds_insert_latency_average",
 		prometheusHelp: "InsertLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "InsertThroughput",
 		prometheusName: "aws_rds_insert_throughput_average",
 		prometheusHelp: "InsertThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "LoginFailures",
 		prometheusName: "aws_rds_login_failures_average",
 		prometheusHelp: "LoginFailures",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "NetworkReceiveThroughput",
@@ -170,6 +183,7 @@ var Metrics = []Metric{
 		cwName:         "Queries",
 		prometheusName: "aws_rds_queries_average",
 		prometheusHelp: "Queries",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "ReadIOPS",
@@ -190,16 +204,19 @@ var Metrics = []Metric{
 		cwName:         "ResultSetCacheHitRatio",
 		prometheusName: "aws_rds_result_set_cache_hit_ratio_average",
 		prometheusHelp: "ResultSetCacheHitRatio",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "SelectLatency",
 		prometheusName: "aws_rds_select_latency_average",
 		prometheusHelp: "SelectLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "SelectThroughput",
 		prometheusName: "aws_rds_select_throughput_average",
 		prometheusHelp: "SelectThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "SwapUsage",
@@ -210,11 +227,13 @@ var Metrics = []Metric{
 		cwName:         "UpdateLatency",
 		prometheusName: "aws_rds_update_latency_average",
 		prometheusHelp: "UpdateLatency",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "UpdateThroughput",
 		prometheusName: "aws_rds_update_throughput_average",
 		prometheusHelp: "UpdateThroughput",
+		mysqlOnly:      true,
 	},
 	{
 		cwName:         "WriteIOPS",

@@ -98,18 +98,42 @@ func (s *Scraper) Scrape() {
 		})
 	}
 
-	wg.Add(len(s.collector.metrics))
-	for _, metric := range s.collector.metrics {
-		metric := metric
-		go func() {
-			defer wg.Done()
+	var engine string
+	if s.resolved != nil {
+		engine = s.resolved.Engine
+	}
 
+	for _, metric := range metricsFor(engine, s.collector.metrics) {
+		wg.Go(func() {
 			if err := s.scrapeMetric(metric); err != nil {
 				//nolint:errcheck // a log line that cannot be written has nowhere to be reported.
 				level.Error(s.collector.l).Log("metric", metric.cwName, "error", err)
 			}
-		}()
+		})
 	}
+}
+
+// RDS engine names that get no MySQL-only metrics.
+const (
+	enginePostgres       = "postgres"
+	engineAuroraPostgres = "aurora-postgresql"
+)
+
+// metricsFor returns the metrics to request for an instance of the given engine.
+// An empty engine (AWS lookup failed or not run yet) gets every metric.
+func metricsFor(engine string, metrics []Metric) []Metric {
+	if engine != enginePostgres && engine != engineAuroraPostgres {
+		return metrics
+	}
+
+	res := make([]Metric, 0, len(metrics))
+	for _, m := range metrics {
+		if !m.mysqlOnly {
+			res = append(res, m)
+		}
+	}
+
+	return res
 }
 
 // clusterVolumeParams returns the cluster-level VolumeBytesUsed query, or nil for a non-Aurora instance.
