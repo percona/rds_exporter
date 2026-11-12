@@ -492,6 +492,31 @@ func renamedBoxClient() *fakeLogsClient {
 	})
 }
 
+func assertEarlyRefreshRetried(t *testing.T, states map[string]sessions.InstanceState) {
+	t.Helper()
+
+	resolver := &fakeStateResolver{states: states, err: nil, calls: 0}
+
+	var buf bytes.Buffer
+
+	scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+	tick(t, scraper)
+	tick(t, scraper)
+	require.Equal(t, 1, resolver.calls)
+	require.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+
+	resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
+
+	elapseMinute(scraper)
+	tick(t, scraper)
+
+	assert.Equal(t, 2, resolver.calls)
+	assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
+		"AWS showing the switchover a minute later repoints the instance")
+	assert.NotContains(t, buf.String(), confirmedLine)
+}
+
 func TestForeignEventEpisodes(t *testing.T) {
 	t.Parallel()
 
@@ -566,44 +591,17 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.Contains(t, buf.String(), "level=warn")
 	})
 
-	for _, testCase := range []struct {
-		name   string
-		states map[string]sessions.InstanceState
-	}{
-		{
-			name:   "retries an early refresh that found the resource ID unchanged",
-			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
-		},
-		{
-			name:   "retries an early refresh that did not return the instance",
-			states: map[string]sessions.InstanceState{},
-		},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
+	t.Run("retries an early refresh that found the resource ID unchanged", func(t *testing.T) {
+		t.Parallel()
 
-			resolver := &fakeStateResolver{states: testCase.states, err: nil, calls: 0}
+		assertEarlyRefreshRetried(t, map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)})
+	})
 
-			var buf bytes.Buffer
+	t.Run("retries an early refresh that did not return the instance", func(t *testing.T) {
+		t.Parallel()
 
-			scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
-
-			tick(t, scraper)
-			tick(t, scraper)
-			require.Equal(t, 1, resolver.calls)
-			require.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
-
-			resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
-
-			elapseMinute(scraper)
-			tick(t, scraper)
-
-			assert.Equal(t, 2, resolver.calls)
-			assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
-				"AWS showing the switchover a minute later repoints the instance")
-			assert.NotContains(t, buf.String(), confirmedLine)
-		})
-	}
+		assertEarlyRefreshRetried(t, map[string]sessions.InstanceState{})
+	})
 
 	t.Run("gives an instance that switches after another its own early refresh", func(t *testing.T) {
 		t.Parallel()
@@ -1016,6 +1014,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.Equal(t, 1, resolver.calls, "DescribeDBInstances lists the whole region, so it may not run every scrape")
 
 		elapseMinute(scraper)
+
 		client.events[oldResourceID] = []types.FilteredLogEvent{
 			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old3", testEventTime().Add(time.Minute)),
 		}
