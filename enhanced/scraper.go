@@ -25,6 +25,9 @@ const (
 	resourceIDRefreshInterval = 5 * time.Minute
 	logGroupName              = "RDSOSMetrics"
 
+	// earlyRefreshSpacing is the least time between a refresh and one that foreign event episodes bring forward.
+	earlyRefreshSpacing = 30 * time.Second
+
 	// LogStreamNames accepts up to 100 items.
 	// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
 	maxLogStreamsPerRequest = 100
@@ -190,9 +193,7 @@ type scraper struct {
 	nextResourceIDRefresh time.Time
 	refreshBackoff        time.Duration
 
-	// nextEarlyRefresh is when a foreign event may next bring the refresh forward. DescribeDBInstances
-	// lists every instance in the region, so a stream whose events keep changing name may not turn it
-	// into a call per scrape.
+	// nextEarlyRefresh is when a foreign event may next bring the refresh forward.
 	nextEarlyRefresh time.Time
 
 	// foreignEpisodes is, per configured instance, the episode of events naming another instance it is
@@ -1204,21 +1205,22 @@ func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 		return nil
 	}
 
-	if now.Before(s.nextResourceIDRefresh) {
-		s.nextEarlyRefresh = now.Add(resourceIDRefreshInterval).Round(0)
-	}
+	early := now.Before(s.nextResourceIDRefresh)
+	s.nextEarlyRefresh = now.Add(earlyRefreshSpacing).Round(0)
 
 	s.markForeignEpisodesAsked()
 
 	err := s.updateInstanceStates(ctx)
+	if early && err == nil {
+		return nil
+	}
+
 	s.scheduleNextRefresh(err != nil)
 
 	return err
 }
 
-// refreshDue reports whether the instance states are to be resolved now. An episode of foreign
-// events brings the refresh forward, but never inside the backoff of a failed one, which would turn
-// a DescribeDBInstances that keeps failing into one per scrape.
+// refreshDue reports whether the instance states are to be resolved now.
 func (s *scraper) refreshDue(now time.Time) bool {
 	if !now.Before(s.nextResourceIDRefresh) {
 		return true

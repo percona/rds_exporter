@@ -13,17 +13,21 @@ import (
 // AWS input and is never exported.
 const maxLoggedPayloadName = 64
 
+// maxEarlyRefreshes is how many refreshes a foreign event episode asks for before it waits for the
+// regular refresh.
+const maxEarlyRefreshes = 3
+
 // episodeStage is how far the early refresh of a foreign event episode has got.
 type episodeStage int
 
 const (
-	// episodeOpen waits for its early refresh.
+	// episodeOpen waits for its early refreshes.
 	episodeOpen episodeStage = iota
-	// episodeAsked has had a refresh that could not settle it, and is not asked for again on every
-	// scrape.
+	// episodeAsked has had maxEarlyRefreshes refreshes that could not settle it, and waits for the
+	// regular refresh.
 	episodeAsked
-	// episodeConfirmed has had a refresh return the same resource ID for the configured name, so AWS
-	// and the events disagree on what the stream belongs to, and no early refresh can fix that.
+	// episodeConfirmed has had a refresh return the same resource ID for the configured name after
+	// maxEarlyRefreshes, so AWS and the events disagree on what the stream belongs to.
 	episodeConfirmed
 )
 
@@ -38,6 +42,7 @@ type foreignEpisode struct {
 	payloadName string
 	newest      time.Time
 	ownLast     bool
+	refreshes   int
 	stage       episodeStage
 }
 
@@ -100,6 +105,7 @@ func (s *scraper) claimEvent(
 		payloadName: payloadName,
 		newest:      newest,
 		ownLast:     false,
+		refreshes:   0,
 		stage:       episodeOpen,
 	}
 
@@ -171,23 +177,26 @@ func (s *scraper) foreignRefreshWanted() bool {
 	return false
 }
 
-// markForeignEpisodesAsked records that a refresh has run for every episode waiting at its start,
-// whatever it returns: an instance the refresh did not return or could not read is left to the
-// regular refresh.
+// markForeignEpisodesAsked counts a refresh for every episode waiting at its start, whatever it
+// returns, and leaves an episode that has had maxEarlyRefreshes to the regular refresh.
 func (s *scraper) markForeignEpisodesAsked() {
 	for key, episode := range s.foreignEpisodes {
 		if !episode.wantsRefresh() {
 			continue
 		}
 
-		episode.stage = episodeAsked
+		episode.refreshes++
+		if episode.refreshes >= maxEarlyRefreshes {
+			episode.stage = episodeAsked
+		}
+
 		s.foreignEpisodes[key] = episode
 	}
 }
 
-// settleForeignEpisode closes the episode of an instance a refresh has returned the state of. A new
-// resource ID ends it. The same one, while the stream's newest events still name another instance,
-// confirms that AWS and the events disagree, which is reported once.
+// settleForeignEpisode settles the episode of an instance a refresh has returned the state of. A new
+// resource ID ends it. The same one, after maxEarlyRefreshes and while the stream's newest events
+// still name another instance, confirms that AWS and the events disagree, which is reported once.
 func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 	key := keyOf(s.session, instance)
 
@@ -202,7 +211,7 @@ func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 		return
 	}
 
-	if episode.ownLast || episode.stage == episodeConfirmed {
+	if episode.ownLast || episode.stage != episodeAsked {
 		return
 	}
 

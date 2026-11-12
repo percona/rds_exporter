@@ -460,6 +460,21 @@ func tick(t *testing.T, scraper *scraper) map[instanceKey]instanceMetrics {
 	return scraper.scrape(t.Context())
 }
 
+// elapseMinute advances the scraper's refresh clock by a minute.
+func elapseMinute(scraper *scraper) {
+	scraper.nextResourceIDRefresh = scraper.nextResourceIDRefresh.Add(-time.Minute)
+	scraper.nextEarlyRefresh = scraper.nextEarlyRefresh.Add(-time.Minute)
+}
+
+func exhaustEarlyRefreshes(t *testing.T, scraper *scraper) {
+	t.Helper()
+
+	for range maxEarlyRefreshes {
+		elapseMinute(scraper)
+		tick(t, scraper)
+	}
+}
+
 // foreignScraper returns a scraper logging into buf whose regular refresh is parked, so that any
 // resolver call is an early one.
 func foreignScraper(
@@ -525,7 +540,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		}
 	})
 
-	t.Run("warns once when the refresh keeps the resource ID", func(t *testing.T) {
+	t.Run("warns once the early refreshes keep the resource ID", func(t *testing.T) {
 		t.Parallel()
 
 		resolver := &fakeStateResolver{
@@ -538,16 +553,153 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
-		for range 4 {
+		assert.Empty(t, tick(t, scraper))
+
+		for range maxEarlyRefreshes + 1 {
+			elapseMinute(scraper)
 			assert.Empty(t, tick(t, scraper))
 		}
 
-		assert.Equal(t, 1, resolver.calls, "a confirmed episode waits for the regular refresh")
+		assert.Equal(t, maxEarlyRefreshes, resolver.calls, "a confirmed episode waits for the regular refresh")
 		assert.Equal(t, 1, strings.Count(buf.String(), openedLine))
 		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine))
 		assert.Contains(t, buf.String(), "level=warn")
-		assert.False(t, scraper.nextResourceIDRefresh.Before(time.Now().Add(resourceIDRefreshInterval-time.Minute)),
-			"the regular refresh interval resumes")
+	})
+
+	for _, testCase := range []struct {
+		name   string
+		states map[string]sessions.InstanceState
+	}{
+		{
+			name:   "retries an early refresh that found the resource ID unchanged",
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+		},
+		{
+			name:   "retries an early refresh that did not return the instance",
+			states: map[string]sessions.InstanceState{},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			resolver := &fakeStateResolver{states: testCase.states, err: nil, calls: 0}
+
+			var buf bytes.Buffer
+
+			scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+			tick(t, scraper)
+			tick(t, scraper)
+			require.Equal(t, 1, resolver.calls)
+			require.Equal(t, oldResourceID, scraper.instances[0].ResourceID)
+
+			resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
+
+			elapseMinute(scraper)
+			tick(t, scraper)
+
+			assert.Equal(t, 2, resolver.calls)
+			assert.Equal(t, newResourceID, scraper.instances[0].ResourceID,
+				"AWS showing the switchover a minute later repoints the instance")
+			assert.NotContains(t, buf.String(), confirmedLine)
+		})
+	}
+
+	t.Run("gives an instance that switches after another its own early refresh", func(t *testing.T) {
+		t.Parallel()
+
+		const promotedResourceID = "promoted-resource-id"
+
+		client := eventsClient(map[string][]types.FilteredLogEvent{
+			oldResourceID:  {osMetricsEventFor(oldResourceID, renamedInstance, testEventTime())},
+			sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
+		})
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{
+				blueGreenPrimaryInstance: monitoredState(newResourceID),
+				unchangedPrimaryInstance: monitoredState(sameResourceID),
+			},
+			err:   nil,
+			calls: 0,
+		}
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver,
+			testInstance(blueGreenPrimaryInstance, oldResourceID),
+			testInstance(unchangedPrimaryInstance, sameResourceID),
+		)
+
+		tick(t, scraper)
+		tick(t, scraper)
+		require.Equal(t, 1, resolver.calls)
+		require.Equal(t, newResourceID, scraper.instances[0].ResourceID)
+
+		client.events[sameResourceID] = []types.FilteredLogEvent{
+			osMetricsEventFor(sameResourceID, unchangedPrimaryInstance+"-old1", testEventTime().Add(time.Second)),
+		}
+		resolver.states[unchangedPrimaryInstance] = monitoredState(promotedResourceID)
+
+		tick(t, scraper)
+		elapseMinute(scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls)
+		assert.Equal(t, promotedResourceID, scraper.instances[1].ResourceID,
+			"the early refresh of one instance does not hold back the next instance's for a refresh interval")
+	})
+
+	t.Run("keeps the regular refresh on its schedule", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+		scraper.nextResourceIDRefresh = time.Now().Add(time.Minute)
+
+		tick(t, scraper)
+		tick(t, scraper)
+		require.Equal(t, 1, resolver.calls)
+		require.Empty(t, scraper.foreignEpisodes)
+
+		elapseMinute(scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 2, resolver.calls, "an early refresh does not put the regular one off")
+	})
+
+	t.Run("spaces an early refresh from the regular refresh before it", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)},
+			err:    nil,
+			calls:  0,
+		}
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+
+		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
+
+		tick(t, scraper)
+		require.Equal(t, 1, resolver.calls)
+
+		tick(t, scraper)
+		assert.Equal(t, 1, resolver.calls, "the regular refresh is one of the episode's refreshes and starts the spacing")
+
+		elapseMinute(scraper)
+		tick(t, scraper)
+		assert.Equal(t, 2, resolver.calls, "the episode asks again once the spacing has passed")
 	})
 
 	t.Run("does not warn again on the regular refresh", func(t *testing.T) {
@@ -564,13 +716,14 @@ func TestForeignEventEpisodes(t *testing.T) {
 		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
 		tick(t, scraper)
-		tick(t, scraper)
+		exhaustEarlyRefreshes(t, scraper)
+		require.Equal(t, 1, strings.Count(buf.String(), confirmedLine))
 
 		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
 
 		tick(t, scraper)
 
-		assert.Equal(t, 2, resolver.calls)
+		assert.Equal(t, maxEarlyRefreshes+1, resolver.calls)
 		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine), "a confirmed episode is reported once")
 	})
 
@@ -589,19 +742,17 @@ func TestForeignEventEpisodes(t *testing.T) {
 		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
 		tick(t, scraper)
-		tick(t, scraper)
-		require.Equal(t, 1, resolver.calls)
+		exhaustEarlyRefreshes(t, scraper)
+		require.Equal(t, maxEarlyRefreshes, resolver.calls)
 
 		client.events[oldResourceID] = []types.FilteredLogEvent{
 			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old2", testEventTime().Add(time.Second)),
 		}
-		scraper.nextEarlyRefresh = time.Time{}
 
 		tick(t, scraper)
-		tick(t, scraper)
-		tick(t, scraper)
+		exhaustEarlyRefreshes(t, scraper)
 
-		assert.Equal(t, 2, resolver.calls)
+		assert.Equal(t, 2*maxEarlyRefreshes, resolver.calls)
 		assert.Equal(t, 2, strings.Count(buf.String(), confirmedLine))
 	})
 
@@ -626,10 +777,9 @@ func TestForeignEventEpisodes(t *testing.T) {
 		scraper := foreignScraper(&buf, eventsClient(events), resolver, instances...)
 
 		tick(t, scraper)
-		tick(t, scraper)
-		tick(t, scraper)
+		exhaustEarlyRefreshes(t, scraper)
 
-		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, maxEarlyRefreshes, resolver.calls)
 		assert.Equal(t, len(streams), strings.Count(buf.String(), confirmedLine))
 	})
 
@@ -667,11 +817,38 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		tick(t, scraper)
 
-		assert.Equal(t, 2, resolver.calls)
-		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine), "the backed-off refresh settles the episode")
+		for range maxEarlyRefreshes - 1 {
+			elapseMinute(scraper)
+			tick(t, scraper)
+		}
+
+		assert.Equal(t, maxEarlyRefreshes+1, resolver.calls)
+		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine),
+			"the backed-off refresh is one of the episode's refreshes")
 	})
 
 	t.Run("settles what a partial refresh returned", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{
+			states: map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)},
+			err:    errDescribeFailed,
+			calls:  0,
+		}
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+		tick(t, scraper)
+
+		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, newResourceID, scraper.instances[0].ResourceID)
+		assert.Empty(t, scraper.foreignEpisodes, "a page that was read is authoritative for the instances on it")
+	})
+
+	t.Run("warns on the resource ID partial refreshes kept", func(t *testing.T) {
 		t.Parallel()
 
 		resolver := &fakeStateResolver{
@@ -685,14 +862,19 @@ func TestForeignEventEpisodes(t *testing.T) {
 		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
 		tick(t, scraper)
-		tick(t, scraper)
 
-		assert.Equal(t, 1, resolver.calls)
+		for range maxEarlyRefreshes {
+			scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
+
+			tick(t, scraper)
+		}
+
+		assert.Equal(t, maxEarlyRefreshes, resolver.calls)
 		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine),
 			"a page that was read is authoritative for the instances on it")
 	})
 
-	t.Run("does not ask again for an instance the refresh did not return", func(t *testing.T) {
+	t.Run("stops asking for an instance the refreshes do not return", func(t *testing.T) {
 		t.Parallel()
 
 		resolver := &fakeStateResolver{states: map[string]sessions.InstanceState{}, err: nil, calls: 0}
@@ -701,11 +883,14 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
-		for range 4 {
+		tick(t, scraper)
+
+		for range maxEarlyRefreshes + 1 {
+			elapseMinute(scraper)
 			tick(t, scraper)
 		}
 
-		assert.Equal(t, 1, resolver.calls)
+		assert.Equal(t, maxEarlyRefreshes, resolver.calls)
 		assert.NotContains(t, buf.String(), confirmedLine)
 	})
 
@@ -739,6 +924,34 @@ func TestForeignEventEpisodes(t *testing.T) {
 		assert.NotContains(t, buf.String(), confirmedLine, "the stream reports the instance after all")
 	})
 
+	t.Run("does not warn when the instance's own event follows the early refreshes", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &fakeStateResolver{states: map[string]sessions.InstanceState{}, err: nil, calls: 0}
+		client := renamedBoxClient()
+
+		var buf bytes.Buffer
+
+		scraper := foreignScraper(&buf, client, resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
+
+		tick(t, scraper)
+		exhaustEarlyRefreshes(t, scraper)
+		require.Equal(t, maxEarlyRefreshes, resolver.calls)
+
+		client.events[oldResourceID] = append(client.events[oldResourceID],
+			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime().Add(time.Second)))
+
+		tick(t, scraper)
+
+		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(oldResourceID)}
+		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
+
+		tick(t, scraper)
+
+		assert.Equal(t, maxEarlyRefreshes+1, resolver.calls)
+		assert.NotContains(t, buf.String(), confirmedLine, "the stream reports the instance after all")
+	})
+
 	t.Run("reports instances whose stream interleaves their events once", func(t *testing.T) {
 		t.Parallel()
 
@@ -767,10 +980,11 @@ func TestForeignEventEpisodes(t *testing.T) {
 				osMetricsEventFor(sameResourceID, blueGreenPrimaryInstance, newest),
 			}
 
+			elapseMinute(scraper)
 			tick(t, scraper)
 		}
 
-		assert.Equal(t, 1, resolver.calls, "a settled episode is not asked for again")
+		assert.Equal(t, maxEarlyRefreshes, resolver.calls, "a settled episode is not asked for again")
 		assert.Equal(t, 2, strings.Count(buf.String(), openedLine), "one episode per instance")
 		assert.Equal(t, 1, strings.Count(buf.String(), confirmedLine),
 			"only the instance whose stream ends on another name is reported")
@@ -801,7 +1015,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 
 		assert.Equal(t, 1, resolver.calls, "DescribeDBInstances lists the whole region, so it may not run every scrape")
 
-		scraper.nextEarlyRefresh = time.Now().Add(-time.Second)
+		elapseMinute(scraper)
 		client.events[oldResourceID] = []types.FilteredLogEvent{
 			osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance+"-old3", testEventTime().Add(time.Minute)),
 		}
@@ -809,7 +1023,7 @@ func TestForeignEventEpisodes(t *testing.T) {
 		tick(t, scraper)
 		tick(t, scraper)
 
-		assert.Equal(t, 2, resolver.calls, "the cap lifts after a refresh interval")
+		assert.Equal(t, 2, resolver.calls, "the cap lifts within a minute")
 	})
 
 	t.Run("tells apart names that differ beyond the logged length", func(t *testing.T) {
@@ -942,8 +1156,8 @@ func TestForeignEventEpisodes(t *testing.T) {
 		scraper := foreignScraper(&buf, renamedBoxClient(), resolver, testInstance(blueGreenPrimaryInstance, oldResourceID))
 
 		tick(t, scraper)
-		tick(t, scraper)
-		require.Len(t, scraper.foreignEpisodes, 1)
+		exhaustEarlyRefreshes(t, scraper)
+		require.Equal(t, 1, strings.Count(buf.String(), confirmedLine))
 
 		resolver.states = map[string]sessions.InstanceState{blueGreenPrimaryInstance: monitoredState(newResourceID)}
 		scraper.nextResourceIDRefresh = time.Now().Add(-time.Second)
