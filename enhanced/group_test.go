@@ -181,9 +181,9 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		scraper.scrape(t.Context())
 
 		assert.Zero(t, scraper.missing.len(), "a stream that exists must not be excluded for the group's sake")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound],
 			"the group is one problem, not one per instance")
-		assert.Zero(t, scraper.errorCounts[errorKindNotFound])
+		assert.Zero(t, scraper.counts.errors[errorKindNotFound])
 		assert.True(t, scraper.group.paused(), "the group must be retried")
 	})
 
@@ -197,12 +197,12 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		scraper.scrape(t.Context())
 
 		client.calls = nil
-		scraper.errorCounts = make(map[string]uint64)
+		scraper.counts.errors = make(map[string]uint64)
 
 		scraper.scrape(t.Context())
 
 		assert.Empty(t, client.calls, "a group that cannot exist yet must not be asked once per instance")
-		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound],
+		assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound],
 			"an already reported group must not inflate the counter on every scrape")
 	})
 
@@ -225,9 +225,9 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 
 				scraper.scrape(t.Context())
 
-				assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+				assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound],
 					"a scrape nothing answered anywhere is about the group however many requests it took")
-				assert.Zero(t, scraper.errorCounts[errorKindNotFound],
+				assert.Zero(t, scraper.counts.errors[errorKindNotFound],
 					"no instance may be named for a fault that belongs to the group")
 				assert.Zero(t, scraper.missing.len())
 				assert.True(t, scraper.group.probeAfter.After(time.Now()))
@@ -247,14 +247,14 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 			scraper.scrape(t.Context())
 
 			assert.Equal(t, 1, scraper.missing.len(), "one stream cannot tell itself apart from its group")
-			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindNotFound])
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+			assert.Equal(t, uint64(1), scraper.counts.errors[errorKindNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 
 			for range 2 {
 				scraper.scrape(t.Context())
 			}
 
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound], "a session this small never blames the group")
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound], "a session this small never blames the group")
 			assert.False(t, scraper.group.paused())
 		})
 
@@ -270,7 +270,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 
 			metrics := scraper.scrape(t.Context())
 
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 			assert.Equal(t, maxLogStreamsPerRequest, scraper.missing.len())
 			assert.NotEmpty(t, metrics[testKey(streams[maxLogStreamsPerRequest])],
 				"the batch that answered must keep reporting")
@@ -287,8 +287,8 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 
 			scraper.scrape(t.Context())
 
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
-			assert.Equal(t, uint64(len(streams)), scraper.errorCounts[errorKindNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
+			assert.Equal(t, uint64(len(streams)), scraper.counts.errors[errorKindNotFound])
 			assert.Equal(t, len(streams), scraper.missing.len())
 			assert.False(t, scraper.group.paused(), "churn must not pause the whole session")
 
@@ -296,7 +296,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 				scraper.scrape(t.Context())
 			}
 
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound], "a session this small never blames the group")
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound], "a session this small never blames the group")
 			assert.False(t, scraper.group.paused())
 		})
 
@@ -311,7 +311,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 			scraper.scrape(t.Context())
 
 			assert.Equal(t, len(streams)-1, scraper.missing.len())
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 		})
 	})
 
@@ -330,7 +330,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 
 		scraper.scrape(t.Context())
 
-		assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+		assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 		assert.False(t, scraper.group.paused(), "a throttled scrape may not pause the whole session")
 		assert.Equal(t, len(gone), scraper.missing.len(), "the streams singled out are missing either way")
 
@@ -347,7 +347,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		gaps := fallbackGaps(t, scraper, client, 8*scraper.group.fallbackThreshold())
 		require.NotEmpty(t, gaps, "the fallbacks this is about must have happened")
 
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound],
 			"one group that went missing once is one error, however many fallbacks went looking for it")
 		assert.Zero(t, scraper.missing.len(),
 			"no instance may be named for a fault that belongs to the group")
@@ -400,7 +400,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		require.NotEmpty(t, client.calls)
 		assert.Equal(t, streams, client.calls[0].streams, "the whole fleet is asked before the group is blamed")
 		assert.True(t, scraper.group.paused(), "rejected over the fleet with nothing held back, the group takes the blame")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound])
 	})
 
 	t.Run("asks the streams held back before blaming the log group", func(t *testing.T) {
@@ -439,7 +439,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 			require.Len(t, client.calls[0].streams, maxProbesPerScrape, "the first scrape asks the streams due a probe slot")
 			require.Empty(t, metrics)
 			assert.False(t, scraper.group.paused(), "streams held back have not been heard from, so the group is not blamed")
-			assert.Zero(t, scraper.errorCounts[errorKindGroupNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindGroupNotFound])
 
 			client.calls = nil
 
@@ -477,8 +477,8 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 
 			assert.Equal(t, streams, client.calls[0].streams, "the whole fleet is asked")
 			assert.True(t, scraper.group.paused(), "rejected everywhere with nothing held back, the group takes the blame")
-			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
-			assert.Zero(t, scraper.errorCounts[errorKindNotFound], "the exclusions renewed are not new exclusions")
+			assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound])
+			assert.Zero(t, scraper.counts.errors[errorKindNotFound], "the exclusions renewed are not new exclusions")
 		})
 	})
 
@@ -512,7 +512,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		require.True(t, scraper.group.paused(), "the rejections of the cut scrapes must add up to the fleet")
 		assert.Equal(t, 5, scrapes, "two cut scrapes reach ten streams, the third is rejected over the rest and asks for "+
 			"a sweep, the sweep is cut, and the fifth is rejected over the rest again")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound])
 
 		fake.calls = nil
 
@@ -541,7 +541,7 @@ func TestScrapeBlamesTheLogGroup(t *testing.T) {
 		assert.Equal(t, 21, scrapes, "each cut scrape singles out what its budget reaches, so eighteen of them "+
 			"leave a remainder small enough to be rejected over in one; the sweep that asks the excluded "+
 			"streams too is cut as well, and the scrape after it is what blames the group")
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound])
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound])
 
 		client.calls = nil
 
@@ -606,7 +606,7 @@ func TestScrapeProbesTheBlamedLogGroup(t *testing.T) {
 		require.Equal(t, []string{probed}, client.calls[0].streams)
 		assert.False(t, scraper.group.paused(), "the answered page ends the pause")
 		assert.Zero(t, scraper.missing.len(), "the answered page proved the probed stream exists")
-		assert.Zero(t, scraper.errorCounts[errorKindNotFound], "a rejection after an answer names no stream")
+		assert.Zero(t, scraper.counts.errors[errorKindNotFound], "a rejection after an answer names no stream")
 		assert.Zero(t, scraper.group.rejectedProbes, "a probe that was answered was not rejected")
 		assert.NotEmpty(t, metrics[testKey(probed)], "the events the answered page carried are kept")
 	})
@@ -735,7 +735,7 @@ func TestScrapeProbesTheBlamedLogGroup(t *testing.T) {
 		assert.Equal(t, streams, client.calls[0].streams, "the next scrape asks the whole fleet, the streams excluded included")
 		assert.Len(t, metrics, len(alive), "the instances whose streams exist report as soon as the pause ends")
 		assert.Equal(t, len(gone), scraper.missing.len(), "the streams gone on their own evidence stay excluded")
-		assert.Zero(t, scraper.errorCounts[errorKindNotFound]-uint64(len(gone)),
+		assert.Zero(t, scraper.counts.errors[errorKindNotFound]-uint64(len(gone)),
 			"a stream excluded before the outage and still gone after it is counted once")
 	})
 
@@ -1090,7 +1090,7 @@ func TestScrapeFallsBackToTheLogStreams(t *testing.T) {
 			assert.Equal(t, []int{threshold, 2 * threshold, 4 * threshold}, gaps[:3],
 				"a region without Enhanced Monitoring is bisected less and less often")
 			assert.Zero(t, scraper.missing.len(), "a fallback rejected everywhere names no stream")
-			assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound], "one group missing is one error")
+			assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound], "one group missing is one error")
 		})
 	})
 
@@ -1223,7 +1223,7 @@ func TestScrapeFallsBackToTheLogStreams(t *testing.T) {
 
 		require.Len(t, client.calls, 1, "the scrape after the fallback probes rather than bisecting the fleet again")
 		assert.Len(t, client.calls[0].streams, 1)
-		assert.Equal(t, uint64(1), scraper.errorCounts[errorKindGroupNotFound],
+		assert.Equal(t, uint64(1), scraper.counts.errors[errorKindGroupNotFound],
 			"the pause taken back is the same outage, and one outage is counted once")
 	})
 
@@ -1378,7 +1378,7 @@ func TestScrapeExcludesStreamsWhileTheLogGroupIsInDoubt(t *testing.T) {
 			var buf bytes.Buffer
 
 			scraper.logger = level.NewFilter(log.NewLogfmtLogger(&buf), level.AllowDebug())
-			counted := scraper.errorCounts[errorKindNotFound]
+			counted := scraper.counts.errors[errorKindNotFound]
 
 			// A fallback the deadline cut leaves the pause standing, so the group's answer arrives through
 			// the probe rotation: rejected over the stream that stays gone, answered by the next one.
@@ -1400,7 +1400,7 @@ func TestScrapeExcludesStreamsWhileTheLogGroupIsInDoubt(t *testing.T) {
 				"a stream still rejected while its group answers is missing for a reason of its own")
 			assert.Equal(t, 1, scraper.missing.len())
 			assert.Len(t, metrics, len(streams)-1)
-			assert.Equal(t, counted+1, scraper.errorCounts[errorKindNotFound],
+			assert.Equal(t, counted+1, scraper.counts.errors[errorKindNotFound],
 				"an exclusion released and made again is a second exclusion, and counts once more")
 			assert.Equal(t, 1, strings.Count(buf.String(), "level=warn "+excludedLogStream),
 				"the one stream missing for a reason of its own is warned about once")
@@ -1447,7 +1447,7 @@ func TestScrapeExcludesStreamsWhileTheLogGroupIsInDoubt(t *testing.T) {
 		scraper.scrape(t.Context())
 
 		assert.Len(t, client.calls, 1, "the bisect must not be paid again")
-		assert.Equal(t, uint64(len(gone)), scraper.errorCounts[errorKindNotFound],
+		assert.Equal(t, uint64(len(gone)), scraper.counts.errors[errorKindNotFound],
 			"a stream excluded once is counted once")
 	})
 
