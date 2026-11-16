@@ -200,9 +200,8 @@ type scraper struct {
 	// foreignEpisodes is, per configured instance, the episode of events naming another instance it is
 	// in.
 	foreignEpisodes map[instanceKey]foreignEpisode
-	// foreignReads is, per configured instance, the timestamp of every foreign event read that the
-	// request window may still return. A dropped event does not move the window, so the lookback
-	// returns it again, and only its ID tells it apart from another event with the same timestamp.
+	// foreignReads holds, per configured instance and event ID, the timestamp of every foreign event read
+	// that the request window may still return.
 	foreignReads map[instanceKey]map[string]time.Time
 
 	// What the scrape reports about itself.

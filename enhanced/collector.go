@@ -111,13 +111,10 @@ type Collector struct {
 	monitored map[instanceKey]bool
 	metrics   map[instanceKey]storedSample
 	errors    map[errorKey]uint64
-	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock. It is
-	// deliberately not one of the error kinds: the samples are exported either way, so counting it
-	// there would make a host whose clock drifts look like collection failing.
+	// skewed is how many events a region delivered timestamped ahead of the exporter's own clock.
 	skewed map[string]uint64
 	// foreignEvents is how many events a region delivered for an instance other than the one
-	// configured for their log stream. It is labelled by region alone because the name the event
-	// carries is AWS input and may not reach a label.
+	// configured for their log stream.
 	foreignEvents map[string]uint64
 }
 

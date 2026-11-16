@@ -223,8 +223,7 @@ func osMetricsEventFor(resourceID, instanceID string, timestamp time.Time) types
 	}
 }
 
-// osMetricsDocument returns the smallest OS metrics document that parses. The names are JSON-encoded
-// so that a test can put any bytes AWS might send into them.
+// osMetricsDocument returns the smallest OS metrics document that parses, with the names JSON-encoded.
 func osMetricsDocument(resourceID, instanceID string, timestamp time.Time) string {
 	return fmt.Sprintf(
 		`{"engine":"MySQL","instanceID":%s,"instanceResourceID":%s,"numVCPUs":2,`+

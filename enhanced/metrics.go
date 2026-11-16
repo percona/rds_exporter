@@ -471,8 +471,7 @@ func instanceLabels(region, instance string, labels map[string]string) prometheu
 const metricsPerEvent = 100
 
 // makePrometheusMetrics returns all Prometheus metrics for given osMetrics, labelled as the configured
-// instance. The document's own instanceID is not used: AWS renames a box on a blue/green switchover,
-// and the name PMM added the instance with is what every other series for it carries.
+// instance.
 func (m *osMetrics) makePrometheusMetrics(region, instance string, labels map[string]string) []prometheus.Metric {
 	res := make([]prometheus.Metric, 0, metricsPerEvent)
 

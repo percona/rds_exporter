@@ -9,8 +9,7 @@ import (
 	"github.com/percona/rds_exporter/sessions"
 )
 
-// maxLoggedPayloadName caps how much of the instance name an event carries is logged. The name is
-// AWS input and is never exported.
+// maxLoggedPayloadName caps how much of the instance name an event carries is logged.
 const maxLoggedPayloadName = 64
 
 // maxEarlyRefreshes is how many refreshes a foreign event episode asks for before it waits for the
@@ -32,11 +31,7 @@ const (
 )
 
 // foreignEpisode is a run of events naming another instance than the configured one, on one log
-// stream and under one name. The first event of an episode asks for the instance states to be
-// refreshed early, since a blue/green switchover is the usual cause and the refresh is what repoints
-// the instance. ownLast is the instance's own event having come after the episode's newest one, as
-// when the lookback after a repoint re-reads the promoted box's events from before it took the name;
-// the stream reports the instance after all, so it is neither refreshed for nor reported.
+// stream and under one name.
 type foreignEpisode struct {
 	resourceID  string
 	payloadName string
@@ -47,15 +42,8 @@ type foreignEpisode struct {
 	stage       episodeStage
 }
 
-// claimEvent reports whether an event is the configured instance's own, and accounts for it when it
-// is not. The log stream alone does not say so: after a blue/green switchover the stream is read until
-// the next refresh repoints it, while AWS has already renamed the box behind it. The request still
-// counts as answered, so a foreign event never reads as a missing stream.
-//
-// A dropped event does not move the request window, so it is read again until the window passes it;
-// it is counted and logged the first time only. Only an event newer than the episode's newest moves
-// the episode on: CloudWatch can ingest an event after a newer one, and the order the stream reports
-// the names in is what the episode is about.
+// claimEvent reports whether an event is the configured instance's own, and accounts for it as a
+// foreign event when it is not.
 func (s *scraper) claimEvent(
 	instance sessions.Instance, payloadName, eventID string, timestamp time.Time, logger log.Logger,
 ) bool {
@@ -89,8 +77,6 @@ func (s *scraper) claimEvent(
 		return false
 	}
 
-	// An event dated beyond the skew threshold says more about the clocks than about the order of the
-	// events, and taken at its word it would hold the episode until the clock caught up with it.
 	newest := notAfter(timestamp, time.Now().Add(clockSkewReportThreshold))
 
 	if known && episode.payloadName == payloadName {
@@ -122,8 +108,8 @@ func (s *scraper) claimEvent(
 	return false
 }
 
-// firstForeignRead records a foreign event and reports whether it had not been read before. An event
-// without an ID cannot be told apart from another, so it is taken as new every time.
+// firstForeignRead records a foreign event and reports whether it had not been read before, taking an
+// event without an ID as new every time.
 func (s *scraper) firstForeignRead(key instanceKey, eventID string, timestamp time.Time) bool {
 	if eventID == "" {
 		return true
@@ -144,9 +130,7 @@ func (s *scraper) firstForeignRead(key instanceKey, eventID string, timestamp ti
 	return true
 }
 
-// forgetForeignReads drops the foreign events the request window starting at start can no longer
-// return. FilterLogEvents treats the start as inclusive and takes it in whole milliseconds, so an event
-// dated in the start's millisecond is still returned and is kept.
+// forgetForeignReads drops the foreign events dated before the millisecond the request window starts in.
 func (s *scraper) forgetForeignReads(start time.Time) {
 	requested := time.UnixMilli(start.UnixMilli())
 
@@ -179,9 +163,8 @@ func (s *scraper) foreignRefreshWanted() bool {
 	return false
 }
 
-// markForeignEpisodesAsked counts a refresh for every episode waiting at its start and last counted at
-// least earlyRefreshSpacing before, whatever it returns, and leaves an episode that has had
-// maxEarlyRefreshes to the regular refresh.
+// markForeignEpisodesAsked counts a refresh for every waiting episode not counted within
+// earlyRefreshSpacing, and leaves one that reaches maxEarlyRefreshes to the regular refresh.
 func (s *scraper) markForeignEpisodesAsked(now time.Time) {
 	for key, episode := range s.foreignEpisodes {
 		if !episode.wantsRefresh() || now.Before(episode.counted.Add(earlyRefreshSpacing)) {
@@ -199,9 +182,8 @@ func (s *scraper) markForeignEpisodesAsked(now time.Time) {
 	}
 }
 
-// settleForeignEpisode settles the episode of an instance a refresh has returned the state of. A new
-// resource ID ends it. The same one, after maxEarlyRefreshes and while the stream's newest events
-// still name another instance, confirms that AWS and the events disagree, which is reported once.
+// settleForeignEpisode ends a refreshed instance's episode on a new resource ID, and reports it once
+// when the same ID comes back after maxEarlyRefreshes while another name still comes last.
 func (s *scraper) settleForeignEpisode(instance sessions.Instance) {
 	key := keyOf(s.session, instance)
 
