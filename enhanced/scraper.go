@@ -25,7 +25,8 @@ const (
 	resourceIDRefreshInterval = 5 * time.Minute
 	logGroupName              = "RDSOSMetrics"
 
-	// earlyRefreshSpacing is the least time between a refresh and one that foreign event episodes bring forward.
+	// earlyRefreshSpacing is the least time between a refresh and one that foreign event episodes bring
+	// forward, and between two refreshes an episode counts.
 	earlyRefreshSpacing = 30 * time.Second
 
 	// LogStreamNames accepts up to 100 items.
@@ -1208,7 +1209,7 @@ func (s *scraper) refreshInstanceStates(ctx context.Context) error {
 	early := now.Before(s.nextResourceIDRefresh)
 	s.nextEarlyRefresh = now.Add(earlyRefreshSpacing).Round(0)
 
-	s.markForeignEpisodesAsked()
+	s.markForeignEpisodesAsked(now)
 
 	err := s.updateInstanceStates(ctx)
 	if early && err == nil {

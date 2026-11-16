@@ -43,6 +43,7 @@ type foreignEpisode struct {
 	newest      time.Time
 	ownLast     bool
 	refreshes   int
+	counted     time.Time
 	stage       episodeStage
 }
 
@@ -106,6 +107,7 @@ func (s *scraper) claimEvent(
 		newest:      newest,
 		ownLast:     false,
 		refreshes:   0,
+		counted:     time.Time{},
 		stage:       episodeOpen,
 	}
 
@@ -177,15 +179,18 @@ func (s *scraper) foreignRefreshWanted() bool {
 	return false
 }
 
-// markForeignEpisodesAsked counts a refresh for every episode waiting at its start, whatever it
-// returns, and leaves an episode that has had maxEarlyRefreshes to the regular refresh.
-func (s *scraper) markForeignEpisodesAsked() {
+// markForeignEpisodesAsked counts a refresh for every episode waiting at its start and last counted at
+// least earlyRefreshSpacing before, whatever it returns, and leaves an episode that has had
+// maxEarlyRefreshes to the regular refresh.
+func (s *scraper) markForeignEpisodesAsked(now time.Time) {
 	for key, episode := range s.foreignEpisodes {
-		if !episode.wantsRefresh() {
+		if !episode.wantsRefresh() || now.Before(episode.counted.Add(earlyRefreshSpacing)) {
 			continue
 		}
 
+		episode.counted = now.Round(0)
 		episode.refreshes++
+
 		if episode.refreshes >= maxEarlyRefreshes {
 			episode.stage = episodeAsked
 		}
