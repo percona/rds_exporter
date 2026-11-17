@@ -153,8 +153,8 @@ func (s *Scraper) scrapeClusterVolume(params *cloudwatch.GetMetricStatisticsInpu
 //
 //nolint:ireturn // prometheus.MustNewConstMetric returns the interface.
 func clusterVolumeMetric(datapoints []types.Datapoint, constLabels prometheus.Labels, instance *sessions.Instance) prometheus.Metric {
-	dp := getLatestDatapoint(datapoints)
-	if dp == nil {
+	latest := getLatestDatapoint(datapoints)
+	if latest == nil {
 		return nil
 	}
 
@@ -165,7 +165,7 @@ func clusterVolumeMetric(datapoints []types.Datapoint, constLabels prometheus.La
 	return prometheus.MustNewConstMetric(
 		prometheus.NewDesc("aws_rds_volume_bytes_used_average", "VolumeBytesUsed", nil, labels),
 		prometheus.GaugeValue,
-		aws.ToFloat64(dp.Average),
+		aws.ToFloat64(latest.Average),
 	)
 }
 
