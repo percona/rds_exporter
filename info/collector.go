@@ -49,9 +49,11 @@ func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
 			labels["aws_source_region"] = instance.SourceRegion
 
 			desc := prometheus.NewDesc("aws_rds_instance_info", "Information about the RDS instance.", nil, labels)
+
 			metric, err := prometheus.NewConstMetric(desc, prometheus.GaugeValue, 1)
 			if err != nil {
 				metrics <- prometheus.NewInvalidMetric(desc, err)
+
 				continue
 			}
 
