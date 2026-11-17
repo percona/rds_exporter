@@ -74,6 +74,9 @@ func NewScraper(instance *config.Instance, collector *Collector, ch chan<- prome
 func getLatestDatapoint(datapoints []types.Datapoint) *types.Datapoint {
 	var latest *types.Datapoint = nil
 	for i := range datapoints {
+		if datapoints[i].Timestamp == nil {
+			continue
+		}
 		if latest == nil || latest.Timestamp.Before(*datapoints[i].Timestamp) {
 			latest = &datapoints[i]
 		}
@@ -174,7 +177,8 @@ func (s *Scraper) scrapeClusterVolume(params *cloudwatch.GetMetricStatisticsInpu
 //
 //nolint:ireturn // prometheus.MustNewConstMetric returns the interface.
 func clusterVolumeMetric(datapoints []types.Datapoint, constLabels prometheus.Labels, instance *sessions.Instance) prometheus.Metric {
-	if len(datapoints) == 0 {
+	dp := getLatestDatapoint(datapoints)
+	if dp == nil {
 		return nil
 	}
 
@@ -185,7 +189,7 @@ func clusterVolumeMetric(datapoints []types.Datapoint, constLabels prometheus.La
 	return prometheus.MustNewConstMetric(
 		prometheus.NewDesc("aws_rds_volume_bytes_used_average", "VolumeBytesUsed", nil, labels),
 		prometheus.GaugeValue,
-		aws.ToFloat64(getLatestDatapoint(datapoints).Average),
+		aws.ToFloat64(dp.Average),
 	)
 }
 
@@ -211,11 +215,11 @@ func (s *Scraper) scrapeMetric(metric Metric) error {
 		return err
 	}
 
-	if len(resp.Datapoints) == 0 {
+	dp := getLatestDatapoint(resp.Datapoints)
+	if dp == nil {
 		return nil
 	}
 
-	dp := getLatestDatapoint(resp.Datapoints)
 	v := aws.ToFloat64(dp.Average)
 	switch metric.cwName {
 	case "EngineUptime":

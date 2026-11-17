@@ -71,6 +71,25 @@ func TestClusterVolumeMetric(t *testing.T) {
 	assert.Equal(t, sharedLabels, constLabels, "the instance labels are shared by every series of the scrape")
 
 	assert.Nil(t, clusterVolumeMetric(nil, constLabels, instance))
+	assert.Nil(t, clusterVolumeMetric([]types.Datapoint{{Average: aws.Float64(1)}}, constLabels, instance)) //nolint:exhaustruct
+}
+
+func TestGetLatestDatapoint(t *testing.T) {
+	t.Parallel()
+
+	older := time.Date(2026, 11, 4, 10, 0, 0, 0, time.UTC)
+
+	assert.Nil(t, getLatestDatapoint(nil))
+	assert.Nil(t, getLatestDatapoint([]types.Datapoint{{Average: aws.Float64(1)}})) //nolint:exhaustruct
+
+	latest := getLatestDatapoint([]types.Datapoint{
+		{Average: aws.Float64(3)},                                            //nolint:exhaustruct
+		{Timestamp: aws.Time(older), Average: aws.Float64(1)},                //nolint:exhaustruct
+		{Average: aws.Float64(4)},                                            //nolint:exhaustruct
+		{Timestamp: aws.Time(older.Add(time.Hour)), Average: aws.Float64(2)}, //nolint:exhaustruct
+	})
+	require.NotNil(t, latest)
+	assert.InDelta(t, 2, aws.ToFloat64(latest.Average), 0, "datapoints without a timestamp are skipped")
 }
 
 func TestMetricsFor(t *testing.T) {

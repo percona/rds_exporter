@@ -22,6 +22,19 @@ const (
 	labelNode   = "node_name"
 )
 
+func TestCollectorInvalidLabel(t *testing.T) {
+	t.Parallel()
+
+	src := fakeSource{
+		testRegion: {{Region: testRegion, Instance: testAurora, Labels: map[string]string{"__reserved": "x"}}}, //nolint:exhaustruct
+	}
+
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(NewCollector(src))
+	_, err := registry.Gather()
+	require.Error(t, err, "an invalid configured label is reported as a scrape error")
+}
+
 func TestCollector(t *testing.T) {
 	t.Parallel()
 
