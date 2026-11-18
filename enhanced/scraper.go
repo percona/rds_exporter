@@ -21,6 +21,11 @@ type instanceStateResolver interface {
 	InstanceStates(ctx context.Context) (map[string]sessions.InstanceState, error)
 }
 
+// instanceStateRecorder keeps the states a refresh resolved for the other collectors.
+type instanceStateRecorder interface {
+	UpdateInstanceStates(session string, states map[string]sessions.InstanceState)
+}
+
 const (
 	resourceIDRefreshInterval = 5 * time.Minute
 	logGroupName              = "RDSOSMetrics"
@@ -166,6 +171,7 @@ type scraper struct {
 	instances     []sessions.Instance
 	svc           cloudwatchlogs.FilterLogEventsAPIClient
 	stateResolver instanceStateResolver
+	stateRecorder instanceStateRecorder
 	logger        log.Logger
 
 	// What this scrape found, and what the scrapes nothing answered add up to.
@@ -197,12 +203,19 @@ type scraper struct {
 	testDisallowUnknownFields bool // for tests only
 }
 
-func newScraper(session string, cfg aws.Config, instances []sessions.Instance, logger log.Logger) *scraper {
+func newScraper(
+	session string,
+	cfg aws.Config,
+	instances []sessions.Instance,
+	stateRecorder instanceStateRecorder,
+	logger log.Logger,
+) *scraper {
 	return &scraper{
 		session:               session,
 		instances:             instances,
 		svc:                   cloudwatchlogs.NewFromConfig(cfg),
 		stateResolver:         sessions.NewInstanceStateResolver(cfg),
+		stateRecorder:         stateRecorder,
 		missing:               newMissingStreams(),
 		evidence:              scrapeEvidence{isolationCalls: 0, isolated: nil, rejectedStreams: 0, answered: false},
 		unansweredRejections:  make(map[string]struct{}),
@@ -1205,8 +1218,12 @@ func (s *scraper) scheduleNextRefresh(failed bool) {
 // authoritative for the instances it does contain: waiting a whole refresh interval for a resource ID
 // this scraper could already see would leave a retired log stream to be excluded as missing, which is
 // the outcome the isolation exists to prevent.
+//
+// The states also go to the recorder, which keeps aws_rds_instance_info and the Aurora cluster ID
+// current for every instance of the session, those with enhanced metrics disabled included.
 func (s *scraper) updateInstanceStates(ctx context.Context) error {
 	states, err := s.stateResolver.InstanceStates(ctx)
+	s.stateRecorder.UpdateInstanceStates(s.session, states)
 
 	for instanceIndex, instance := range s.instances {
 		state, ok := states[instance.Instance]

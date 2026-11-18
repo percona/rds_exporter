@@ -17,19 +17,19 @@ node_disk_read_bytes_total{device="rdstemp",instance="pmm-qa-aurora-postgres-13-
 node_disk_written_bytes_total{device="rdstemp",instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 1.3266944e+07
 # HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
 # TYPE node_filesystem_avail_bytes gauge
-node_filesystem_avail_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 6.685626368e+09
+node_filesystem_avail_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 6.685626368e+09
 # HELP node_filesystem_files Filesystem total file nodes.
 # TYPE node_filesystem_files gauge
-node_filesystem_files{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 5.36870912e+08
+node_filesystem_files{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 5.36870912e+08
 # HELP node_filesystem_files_free Filesystem total free file nodes.
 # TYPE node_filesystem_files_free gauge
-node_filesystem_files_free{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 5.35993344e+08
+node_filesystem_files_free{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 5.35993344e+08
 # HELP node_filesystem_free_bytes Filesystem free space in bytes.
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 6.685626368e+09
+node_filesystem_free_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 6.685626368e+09
 # HELP node_filesystem_size_bytes Filesystem size in bytes.
 # TYPE node_filesystem_size_bytes gauge
-node_filesystem_size_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 8.278994944e+09
+node_filesystem_size_bytes{device="oscar--ephmeral--volume--group-oscar--ephmeral--logical--volume",fstype="",instance="pmm-qa-aurora-postgres-13-5-instance-1",mountpoint="/rdsdbdata",region="us-east-2"} 8.278994944e+09
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
 node_load1{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 0.05

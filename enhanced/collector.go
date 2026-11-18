@@ -147,7 +147,7 @@ func NewCollector(sessions *sessions.Sessions, logger log.Logger) *Collector {
 
 	for session, enabledInstances := range collector.configure(sessions.AllSessions()) {
 		cfg := sessions.Configs[session]
-		sessionScraper := newScraper(session, cfg, enabledInstances, logger)
+		sessionScraper := newScraper(session, cfg, enabledInstances, sessions, logger)
 
 		level.Info(sessionScraper.logger).Log("msg", fmt.Sprintf("Updating enhanced metrics every %s.", sessionScraper.interval()))
 

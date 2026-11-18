@@ -16,6 +16,9 @@ import (
 const (
 	firstResourceID  = "db-1"
 	secondResourceID = "db-2"
+	thirdResourceID  = "db-3"
+	testRegion       = "us-east-2"
+	fourthResourceID = "db-4"
 )
 
 var errDescribeRefused = errors.New("describe refused")
@@ -159,4 +162,59 @@ func TestInstanceStates(t *testing.T) {
 			"first": {ResourceID: firstResourceID, MonitoringInterval: time.Minute},
 		}, states, "an instance missing from the result loses its monitoring, so a failed page must not discard the rest")
 	})
+}
+
+func TestAccountFromARN(t *testing.T) {
+	t.Parallel()
+
+	for arn, expected := range map[string]string{
+		"arn:aws:rds:us-east-2:123456789012:db:a3":           "123456789012",
+		"arn:aws-us-gov:rds:us-gov-west-1:111122223333:db:x": "111122223333",
+		"":           "",
+		"not-an-arn": "",
+	} {
+		assert.Equal(t, expected, accountFromARN(arn), arn)
+	}
+}
+
+func TestInstanceStatesAuroraFields(t *testing.T) {
+	t.Parallel()
+
+	aurora := dbInstance("a3", firstResourceID, nil)
+	aurora.DBClusterIdentifier = aws.String("cluster-a")
+	aurora.Engine = aws.String("aurora-mysql")
+	aurora.DBInstanceArn = aws.String("arn:aws:rds:us-east-2:123456789012:db:a3")
+
+	plain := dbInstance("plain", secondResourceID, nil)
+	plain.Engine = aws.String("mysql")
+	plain.DBInstanceArn = aws.String("not-an-arn")
+
+	sameRegion := dbInstance("same", thirdResourceID, nil)
+	sameRegion.ReadReplicaSourceDBInstanceIdentifier = aws.String("a3")
+
+	crossRegion := dbInstance("cross", fourthResourceID, nil)
+	crossRegion.ReadReplicaSourceDBInstanceIdentifier = aws.String("arn:aws:rds:eu-west-1:123456789012:db:a3-src")
+
+	client := &fakeRDSClient{
+		pages: []*rds.DescribeDBInstancesOutput{describePage(nil, aurora, plain, sameRegion, crossRegion)},
+		err:   nil,
+		calls: 0,
+	}
+
+	states, err := (&InstanceStateResolver{svc: client, region: testRegion}).InstanceStates(t.Context())
+
+	require.NoError(t, err)
+	assert.Equal(t, "cluster-a", states["a3"].ClusterID)
+	assert.Equal(t, "aurora-mysql", states["a3"].Engine)
+	assert.Equal(t, "123456789012", states["a3"].AccountID)
+	require.Contains(t, states, "plain")
+	assert.Empty(t, states["plain"].ClusterID)
+	assert.Empty(t, states["plain"].AccountID)
+	assert.Equal(t, "mysql", states["plain"].Engine)
+	assert.Empty(t, states["plain"].SourceInstanceID)
+	assert.Empty(t, states["plain"].SourceRegion)
+	assert.Equal(t, "a3", states["same"].SourceInstanceID)
+	assert.Equal(t, testRegion, states["same"].SourceRegion)
+	assert.Equal(t, "a3-src", states["cross"].SourceInstanceID)
+	assert.Equal(t, "eu-west-1", states["cross"].SourceRegion)
 }

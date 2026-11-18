@@ -19,24 +19,24 @@ node_disk_written_bytes_total{device="filesystem",instance="pmm-qa-rds-mysql-8-4
 node_disk_written_bytes_total{device="rdsdev",instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 208896
 # HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
 # TYPE node_filesystem_avail_bytes gauge
-node_filesystem_avail_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
-node_filesystem_avail_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
+node_filesystem_avail_bytes{device="rdsfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
+node_filesystem_avail_bytes{device="rootfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
 # HELP node_filesystem_files Filesystem total file nodes.
 # TYPE node_filesystem_files gauge
-node_filesystem_files{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.34152192e+09
-node_filesystem_files{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.7108864e+08
+node_filesystem_files{device="rdsfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.34152192e+09
+node_filesystem_files{device="rootfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.7108864e+08
 # HELP node_filesystem_files_free Filesystem total free file nodes.
 # TYPE node_filesystem_files_free gauge
-node_filesystem_files_free{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.341223936e+09
-node_filesystem_files_free{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.27545088e+08
+node_filesystem_files_free{device="rdsfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.341223936e+09
+node_filesystem_files_free{device="rootfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 6.27545088e+08
 # HELP node_filesystem_free_bytes Filesystem free space in bytes.
 # TYPE node_filesystem_free_bytes gauge
-node_filesystem_free_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
-node_filesystem_free_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
+node_filesystem_free_bytes{device="rdsfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 1.9776045056e+10
+node_filesystem_free_bytes{device="rootfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 4.144877568e+09
 # HELP node_filesystem_size_bytes Filesystem size in bytes.
 # TYPE node_filesystem_size_bytes gauge
-node_filesystem_size_bytes{device="rdsfilesys",fstype="rdsfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 2.097266688e+10
-node_filesystem_size_bytes{device="rootfilesys",fstype="rootfilesys",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 1.04761344e+10
+node_filesystem_size_bytes{device="rdsfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/rdsdbdata",region="us-east-2"} 2.097266688e+10
+node_filesystem_size_bytes{device="rootfilesys",fstype="",instance="pmm-qa-rds-mysql-8-4",mountpoint="/",region="us-east-2"} 1.04761344e+10
 # HELP node_load1 The number of processes requesting CPU time over the last minute.
 # TYPE node_load1 gauge
 node_load1{instance="pmm-qa-rds-mysql-8-4",region="us-east-2"} 0.01
