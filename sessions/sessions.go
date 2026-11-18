@@ -255,7 +255,7 @@ func New(instances []config.Instance, client *http.Client, logger log.Logger, tr
 	return res, nil
 }
 
-// GetConfig returns AWS config and a copy of the full instance information for given region and instance.
+// GetConfig returns AWS config and a copy of the given instance; only its info metadata is refreshed after start-up.
 func (s *Sessions) GetConfig(region, instance string) (*aws.Config, *Instance) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -76,7 +76,7 @@ aws_rds_dml_throughput_average{instance="pmm-qa-aurora3-mysql-instance-1",region
 # TYPE aws_rds_free_local_storage_average gauge
 aws_rds_free_local_storage_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 6.58468864e+09
 aws_rds_free_local_storage_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 2.6512121856e+10
-# HELP aws_rds_freeable_memory_average FreeableMemory
+# HELP aws_rds_freeable_memory_average The amount of available random access memory. Units: Bytes
 # TYPE aws_rds_freeable_memory_average gauge
 aws_rds_freeable_memory_average{instance="pmm-qa-aurora-postgres-13-5-instance-1",region="us-east-2"} 2.577866752e+09
 aws_rds_freeable_memory_average{instance="pmm-qa-aurora3-mysql-instance-1",region="us-east-2"} 9.93275904e+08
