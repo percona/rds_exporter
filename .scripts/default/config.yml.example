@@ -1,0 +1,15 @@
+# rds_exporter configuration. Copy to /etc/rds_exporter/config.yml and make it
+# readable by the exporter only:
+#   install -m 0640 -g rds_exporter config.yml.example config.yml
+#
+# Credentials per instance: aws_role_arn (assume role), or aws_access_key and
+# aws_secret_key. Without them the default AWS credential chain is used
+# (environment, ~/.aws/credentials, EC2 instance role).
+instances:
+  - region: us-east-1
+    instance: my-rds-instance
+  # - region: us-east-1
+  #   instance: my-other-instance
+  #   aws_access_key: AKIAIOSFODNN7EXAMPLE
+  #   aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  #   aws_role_arn: arn:aws:iam::123456789012:role/my-role

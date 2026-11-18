@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+# creating rds_exporter user if it isn't already there
+if ! getent passwd rds_exporter >/dev/null; then
+    useradd \
+        --system \
+        --no-create-home \
+        --shell /sbin/nologin \
+        --comment "Prometheus exporter for Amazon RDS and Aurora (CloudWatch and Enhanced Monitoring)" \
+        rds_exporter >/dev/null
+fi
+
+systemctl --system daemon-reload >/dev/null || true
+
+exit 0
