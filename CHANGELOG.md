@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - CloudWatch `FreeableMemory` moved from `node_memory_Cached_bytes` to `aws_rds_freeable_memory_average`.
 - `node_filesystem_*` series have an empty `fstype` label instead of the device name.
+- CloudWatch metrics AWS publishes only for MySQL engines are no longer requested for PostgreSQL and
+  Aurora PostgreSQL instances (19 fewer calls per scrape).
 
 ### Removed
 - Per-instance `VolumeBytesUsed`, `VolumeReadIOPs` and `VolumeWriteIOPs` basic metrics.
