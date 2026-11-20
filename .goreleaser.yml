@@ -54,6 +54,8 @@ dockers_v2:
       - "{{.Major}}.{{.Minor}}"
       - "{{.Version}}"
     dockerfile: .scripts/Dockerfile
+    extra_files:
+      - LICENSE
     platforms:
       - linux/amd64
       - linux/arm64
