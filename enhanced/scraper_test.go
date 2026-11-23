@@ -93,7 +93,8 @@ func TestScraper(t *testing.T) {
 
 				osMetrics, err := parseOSMetrics(readTestDataJSON(t, instanceName), true)
 				require.NoError(t, err)
-				expectedMetrics := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, nil))
+
+				expectedMetrics := helpers.ReadMetrics(osMetrics.makePrometheusMetrics(instance.Region, instance.Instance, nil))
 				sort.Slice(expectedMetrics, func(i, j int) bool { return expectedMetrics[i].Less(expectedMetrics[j]) })
 				expectedMetrics = filterMetrics(expectedMetrics)
 				expectedLines := helpers.Format(helpers.WriteMetrics(expectedMetrics))
@@ -162,10 +163,12 @@ func newTestScraperWith(
 		sweepCutShort:             false,
 		sweep:                     sweepNone,
 		group:                     newLogGroup(),
-		errorCounts:               make(map[string]uint64),
-		skewedEvents:              0,
+		counts:                    newScrapeCounts(),
 		nextResourceIDRefresh:     nextResourceIDRefresh,
 		refreshBackoff:            0,
+		nextEarlyRefresh:          time.Time{},
+		foreignEpisodes:           make(map[instanceKey]foreignEpisode),
+		foreignReads:              make(map[instanceKey]map[string]time.Time),
 		nextStartTime:             testEventTime().Add(-time.Minute),
 		logger:                    promlog.New(&promlog.Config{}),
 		testDisallowUnknownFields: false,
@@ -209,7 +212,9 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 		unmonitored.EnhancedMonitoringInterval = 0
 
 		client := &fakeLogsClient{
-			events:   map[string][]types.FilteredLogEvent{oldResourceID: {osMetricsEvent(oldResourceID, testEventTime())}},
+			events: map[string][]types.FilteredLogEvent{
+				oldResourceID: {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+			},
 			missing:  map[string]struct{}{sameResourceID: {}},
 			errs:     nil,
 			pageSize: 0,
@@ -259,8 +264,8 @@ func TestScrapeCollectsEveryInstance(t *testing.T) {
 
 		client := &fakeLogsClient{
 			events: map[string][]types.FilteredLogEvent{
-				oldResourceID:  {osMetricsEvent(oldResourceID, testEventTime())},
-				sameResourceID: {osMetricsEvent(sameResourceID, testEventTime())},
+				oldResourceID:  {osMetricsEventFor(oldResourceID, blueGreenPrimaryInstance, testEventTime())},
+				sameResourceID: {osMetricsEventFor(sameResourceID, unchangedPrimaryInstance, testEventTime())},
 			},
 			missing:  nil,
 			errs:     nil,
