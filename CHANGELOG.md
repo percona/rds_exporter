@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
-Nothing yet.
+### Added
+- `aws_rds_instance_info` metric, one per instance on `/enhanced`, with `aws_cluster_id`, `aws_engine`,
+  `aws_account_id`, `aws_source_instance_id` and `aws_source_region` labels, refreshed every 5 minutes.
+- Cluster-level `aws_rds_volume_bytes_used_average` for Aurora instances, labelled with `aws_cluster_id`
+  and `aws_account_id`.
+
+### Changed
+- CloudWatch `FreeableMemory` moved from `node_memory_Cached_bytes` to `aws_rds_freeable_memory_average`.
+- `node_filesystem_*` series have an empty `fstype` label instead of the device name.
+
+### Removed
+- Per-instance `VolumeBytesUsed`, `VolumeReadIOPs` and `VolumeWriteIOPs` basic metrics.
 
 
 ## [0.7.0] - 2020-06-02
