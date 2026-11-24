@@ -78,15 +78,20 @@ func sampleMetrics(instance string) []prometheus.Metric {
 	return []prometheus.Metric{prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1)}
 }
 
+// collect drains the collector while it runs, so that a test may hold more series than a channel
+// buffer would.
 func collect(t *testing.T, collector *Collector) []*helpers.Metric {
 	t.Helper()
 
-	ch := make(chan prometheus.Metric, 100)
-	collector.Collect(ch)
-	close(ch)
+	metrics := make(chan prometheus.Metric)
 
-	collected := make([]prometheus.Metric, 0, len(ch))
-	for metric := range ch {
+	go func() {
+		collector.Collect(metrics)
+		close(metrics)
+	}()
+
+	var collected []prometheus.Metric
+	for metric := range metrics {
 		collected = append(collected, metric)
 	}
 
@@ -373,12 +378,11 @@ func TestCollect(t *testing.T) {
 		collector := testCollector(map[instanceKey]storedSample{})
 
 		collector.setMetrics(scrapeResult{
-			metrics:      nil,
-			errorCounts:  nil,
-			skewedEvents: 4,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   nil,
+			counts:    scrapeCounts{errors: nil, skewed: 4, foreign: 0},
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 
 		metrics := collect(t, collector)
@@ -390,6 +394,38 @@ func TestCollect(t *testing.T) {
 		assert.InDelta(t, 4.0, skew.Value, 0)
 		assert.Equal(t, prometheus.Labels{regionLabel: testRegion}, skew.Labels)
 		assert.Nil(t, findMetricByName(metrics, scrapeErrorsMetricName))
+	})
+
+	t.Run("counts foreign events by region from zero", func(t *testing.T) {
+		t.Parallel()
+
+		collector := testCollector(map[instanceKey]storedSample{})
+		result := scrapeResult{
+			metrics:   nil,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
+		}
+
+		collector.setMetrics(result, time.Now())
+
+		foreign := findMetricByName(collect(t, collector), foreignEventsMetricName)
+		require.NotNil(t, foreign, "the counter starts from a zero the region publishes")
+		assert.InDelta(t, 0.0, foreign.Value, 0)
+
+		result.counts.foreign = 3
+		collector.setMetrics(result, time.Now())
+		collector.setMetrics(result, time.Now())
+
+		metrics := collect(t, collector)
+
+		foreign = findMetricByName(metrics, foreignEventsMetricName)
+		require.NotNil(t, foreign)
+		assert.InDelta(t, 6.0, foreign.Value, 0)
+		assert.Equal(t, prometheus.Labels{regionLabel: testRegion}, foreign.Labels)
+		assert.Nil(t, findMetricByName(metrics, scrapeErrorsMetricName),
+			"an event naming another instance is not a collection error")
 	})
 
 	t.Run("runs concurrently with the scrapers", func(t *testing.T) {
@@ -412,11 +448,10 @@ func TestCollect(t *testing.T) {
 							eventTime: time.Now().Add(time.Duration(iteration) * time.Second),
 						},
 					},
-					errorCounts:  map[string]uint64{errorKindOther: 1},
-					skewedEvents: 0,
-					monitored:    nil,
-					region:       testRegion,
-					interval:     time.Minute,
+					counts:    scrapeCounts{errors: map[string]uint64{errorKindOther: 1}, skewed: 0, foreign: 0},
+					monitored: nil,
+					region:    testRegion,
+					interval:  time.Minute,
 				}, time.Now())
 			}()
 
@@ -483,11 +518,10 @@ func futureResult(eventTime time.Time) scrapeResult {
 		metrics: map[instanceKey]instanceMetrics{
 			testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
 		},
-		errorCounts:  nil,
-		skewedEvents: 0,
-		monitored:    map[instanceKey]bool{testKey("primary"): true},
-		region:       testRegion,
-		interval:     time.Minute,
+		counts:    newScrapeCounts(),
+		monitored: map[instanceKey]bool{testKey("primary"): true},
+		region:    testRegion,
+		interval:  time.Minute,
 	}
 }
 
@@ -505,11 +539,10 @@ func TestSetMetrics(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     10 * time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  10 * time.Minute,
 		}, time.Now())
 
 		assert.Equal(t, eventTime.Add(metricsTTL(10*time.Minute)), collector.metrics[testKey("primary")].expiresAt,
@@ -538,11 +571,10 @@ func TestSetMetrics(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("promoted"): {metrics: sampleMetrics("promoted"), eventTime: eventTime},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, now)
 
 		state := collector.metrics[testKey("promoted")]
@@ -563,12 +595,11 @@ func TestSetMetrics(t *testing.T) {
 		})
 
 		collector.setMetrics(scrapeResult{
-			metrics:      nil,
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   nil,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 
 		assert.Empty(t, collector.metrics, "an instance no longer configured must eventually disappear")
@@ -584,19 +615,17 @@ func TestSetMetrics(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				key: {metrics: sampleMetrics("promoted"), eventTime: time.Now().Add(-time.Minute)},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 		collector.setMetrics(scrapeResult{
-			metrics:      map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   map[instanceKey]instanceMetrics{key: {metrics: sampleMetrics("promoted"), eventTime: time.Now()}},
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 
 		require.Len(t, collector.metrics, 1, "a switchover must replace the instance, not duplicate its label set")
@@ -621,22 +650,20 @@ func TestSetMetrics(t *testing.T) {
 		collector := configuredCollector(map[instanceKey]storedSample{}, "primary")
 
 		collector.setMetrics(scrapeResult{
-			metrics:      nil,
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    map[instanceKey]bool{key: true},
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   nil,
+			counts:    newScrapeCounts(),
+			monitored: map[instanceKey]bool{key: true},
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 		require.False(t, collector.silenced(key))
 
 		collector.setMetrics(scrapeResult{
-			metrics:      nil,
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    map[instanceKey]bool{key: false},
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   nil,
+			counts:    newScrapeCounts(),
+			monitored: map[instanceKey]bool{key: false},
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 
 		assert.True(t, collector.silenced(key), "the scrapers report the state AWS has now, not at startup")
@@ -657,11 +684,10 @@ func TestSetMetricsEventTime(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("primary"): {metrics: sampleMetrics("primary"), eventTime: eventTime},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}
 
 		collector.setMetrics(result, time.Now())
@@ -789,11 +815,10 @@ func TestSetMetricsEventTime(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("skewed"): {metrics: sampleMetrics("skewed"), eventTime: eventTime},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}
 
 		collector.setMetrics(result, now)
@@ -824,11 +849,10 @@ func TestSetMetricsEventTime(t *testing.T) {
 			metrics: map[instanceKey]instanceMetrics{
 				testKey("lagging"): {metrics: sampleMetrics("lagging"), eventTime: now.Add(-2 * minMetricsTTL)},
 			},
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, now)
 
 		metrics := collect(t, collector)
@@ -893,12 +917,11 @@ func TestPrune(t *testing.T) {
 		}, "down")
 
 		collector.setMetrics(scrapeResult{
-			metrics:      nil,
-			errorCounts:  nil,
-			skewedEvents: 0,
-			monitored:    nil,
-			region:       testRegion,
-			interval:     time.Minute,
+			metrics:   nil,
+			counts:    newScrapeCounts(),
+			monitored: nil,
+			region:    testRegion,
+			interval:  time.Minute,
 		}, time.Now())
 
 		metrics := collect(t, collector)
