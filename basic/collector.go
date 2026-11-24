@@ -31,19 +31,21 @@ type Metric struct {
 }
 
 type Collector struct {
-	config   *config.Config
-	sessions *sessions.Sessions
-	metrics  []Metric
-	l        log.Logger
+	config          *config.Config
+	sessions        *sessions.Sessions
+	metrics         []Metric
+	l               log.Logger
+	cloudwatchDelay time.Duration
 }
 
 // New creates a new instance of a Collector.
-func New(config *config.Config, sessions *sessions.Sessions, logger log.Logger) *Collector {
+func New(config *config.Config, sessions *sessions.Sessions, logger log.Logger, delay time.Duration) *Collector {
 	return &Collector{
-		config:   config,
-		sessions: sessions,
-		metrics:  Metrics,
-		l:        log.With(logger, "component", "basic"),
+		config:          config,
+		sessions:        sessions,
+		metrics:         Metrics,
+		l:               log.With(logger, "component", "basic"),
+		cloudwatchDelay: delay,
 	}
 }
 
@@ -73,7 +75,11 @@ func (e *Collector) collect(ch chan<- prometheus.Metric) {
 		go func() {
 			defer wg.Done()
 
-			s := NewScraper(&instance, e, ch)
+			if e.cloudwatchDelay != defaultDelay {
+				level.Warn(e.l).Log("msg", fmt.Sprintf("Using custom CloudWatch delay %s for %s. Setting a very small delay may result in missing or incomplete metrics, as CloudWatch may not have published the latest datapoints yet.", e.cloudwatchDelay, instance))
+			}
+
+			s := NewScraper(&instance, e, ch, e.cloudwatchDelay)
 			if s == nil {
 				level.Error(e.l).Log("msg", fmt.Sprintf("No scraper for %s, skipping.", instance))
 				return
