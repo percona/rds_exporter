@@ -1,6 +1,9 @@
+version: 2
 dist: build
 builds:
   - binary: rds_exporter
+    id: rds_exporter
+    main: .
     env:
       - CGO_ENABLED=0
     goos:
@@ -18,29 +21,65 @@ builds:
     flags:
       - -v
     ldflags:
-        - -s -w
-        - -X github.com/prometheus/common/version.Version={{ .Version }}
-        - -X github.com/prometheus/common/version.Revision={{ .ShortCommit }}
-        - -X github.com/prometheus/common/version.Branch={{ .Branch }}
-        - -X github.com/prometheus/common/version.BuildDate={{ .Date }}
+      - -s -w
+      - -X github.com/prometheus/common/version.Version={{.Version}}
+      - -X github.com/prometheus/common/version.Revision={{.ShortCommit}}
+      - -X github.com/prometheus/common/version.Branch={{.Branch}}
+      - -X github.com/prometheus/common/version.BuildUser=goreleaser
+      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
+    files:
+      - LICENSE
 snapshot:
-  name_template: "{{ .ShortCommit }}"
+  version_template: "{{ incpatch .Version }}-snapshot.{{ .ShortCommit }}"
+checksum:
+  name_template: "{{ .ProjectName }}-{{ .Version }}.checksums.txt"
 changelog:
-  skip: true
+  use: github
 release:
   github:
     owner: percona
     name: rds_exporter
   draft: true
   prerelease: auto
-dockers:
-- goos: linux
-  goarch: amd64
-  image_templates:
-  - "ghcr.io/percona/rds_exporter:{{.Major}}.{{.Minor}}"
-  - "ghcr.io/percona/rds_exporter:{{.Version}}"
-  dockerfile: Dockerfile.releaser
-  use: buildx
+dockers_v2:
+  - ids:
+      - rds_exporter
+    images:
+      - docker.io/percona/rds_exporter
+      - ghcr.io/percona/rds_exporter
+    tags:
+      - "{{.Major}}.{{.Minor}}"
+      - "{{.Version}}"
+    dockerfile: .scripts/Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    flags:
+      - "--pull"
+nfpms:
+  - file_name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Os }}-{{- if eq .Arch `amd64` }}64-bit{{- else }}{{ .Arch }}{{ end }}"
+    homepage: https://www.percona.com/
+    description: Prometheus exporter for Amazon RDS and Aurora (CloudWatch and Enhanced Monitoring)
+    maintainer: Percona
+    vendor: Percona
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    scripts:
+      postinstall: .scripts/postinst
+      preremove: .scripts/preremove
+      postremove: .scripts/postremove
+    contents:
+      - src: .scripts/systemd/rds_exporter.service
+        dst: /usr/lib/systemd/system/rds_exporter.service
+      - src: .scripts/default/rds_exporter.example
+        dst: /etc/default/rds_exporter.example
+      - src: .scripts/default/config.yml.example
+        dst: /etc/rds_exporter/config.yml.example
+      - src: LICENSE
+        dst: /usr/share/doc/rds_exporter/LICENSE

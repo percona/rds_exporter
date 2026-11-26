@@ -1,0 +1,4 @@
+# Settings for rds_exporter. Copy this file to /etc/default/rds_exporter.
+# The instances to scrape and their AWS credentials go in
+# /etc/rds_exporter/config.yml (see config.yml.example there).
+OPTIONS="--config.file=/etc/rds_exporter/config.yml --web.listen-address=:9042"
