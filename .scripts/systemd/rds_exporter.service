@@ -1,0 +1,18 @@
+[Unit]
+Description=Prometheus exporter for Amazon RDS and Aurora (CloudWatch and Enhanced Monitoring)
+Documentation=https://github.com/percona/rds_exporter
+After=network.target
+
+[Service]
+Type=simple
+
+User=rds_exporter
+
+EnvironmentFile=-/etc/default/rds_exporter
+ExecStart=/usr/bin/rds_exporter $OPTIONS
+SyslogIdentifier=rds_exporter
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
